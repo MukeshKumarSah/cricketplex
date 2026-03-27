@@ -1,0 +1,324 @@
+/*  Ground Management Page  */
+
+.ground-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  padding-bottom: 2rem;
+}
+
+.ground-loading {
+  text-align: center;
+  color: #64748b;
+  padding: 4rem 0;
+  font-size: 1.05rem;
+}
+
+/*  Header  */
+.ground-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.ground-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -6%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(34,211,238,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ground-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.ground-header-icon {
+  font-size: 2rem;
+  color: #22d3ee;
+  flex-shrink: 0;
+}
+.ground-header h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+.ground-header p {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  margin: 0.2rem 0 0;
+}
+
+/*  Card  */
+.ground-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.ground-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ground-card-head h2 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+.ground-total-badge {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.25rem 0.75rem;
+}
+.ground-total-badge strong {
+  color: #22d3ee;
+}
+
+/*  Seat Grid  */
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+}
+.seat-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+.seat-card:hover {
+  border-color: #475569;
+  background: rgba(255,255,255,0.03);
+}
+.seat-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.seat-card-icon {
+  font-size: 1.2rem;
+}
+.seat-card-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.seat-card-desc {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.35;
+}
+.seat-card-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin-top: 0.35rem;
+}
+.seat-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.seat-btn:hover:not(:disabled) {
+  border-color: #22d3ee;
+  color: #22d3ee;
+  background: rgba(34,211,238,0.06);
+}
+.seat-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.seat-card-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+/*  Save Row  */
+.ground-save-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.3rem;
+}
+.ground-save-btn {
+  padding: 0.5rem 1.6rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  background: linear-gradient(90deg, #22d3ee 0%, #38bdf8 100%);
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ground-save-btn:hover:not(:disabled) {
+  box-shadow: 0 2px 16px 0 rgba(34,211,238,0.18);
+}
+.ground-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/*  Match List  */
+.ground-empty {
+  color: #64748b;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 2rem 0;
+  margin: 0;
+}
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.match-row:hover {
+  border-color: #475569;
+  background: rgba(255,255,255,0.03);
+}
+.match-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.match-info-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.match-format-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 5px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.match-comp {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.match-opponent {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.match-date {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/*  Pitch Picker  */
+.match-pitch-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+.match-pitch-picker label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.pitch-select-wrap select {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.92rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-width: 160px;
+}
+.pitch-select-wrap select:focus {
+  outline: none;
+  border-color: #22d3ee;
+}
+.pitch-hint {
+  font-size: 0.72rem;
+  color: #475569;
+  max-width: 180px;
+  text-align: right;
+}
+
+/*  Responsive  */
+@media (max-width: 900px) {
+  .seat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .ground-header, .ground-card {
+    padding: 1rem;
+  }
+  .seat-grid {
+    grid-template-columns: 1fr;
+  }
+  .match-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .match-pitch-picker {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .pitch-select-wrap select {
+    width: 100%;
+  }
+  .pitch-hint {
+    text-align: left;
+    max-width: none;
+  }
+}

@@ -1,0 +1,765 @@
+/* ── Lineup Setup Page ── */
+
+.lu-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 3rem;
+}
+
+.lu-loading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem;
+  font-size: 1rem;
+}
+
+/* ═══ Match Info Header ═══ */
+.lu-match-info {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lu-mi-teams {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.lu-mi-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #475569;
+}
+
+.lu-mi-initials {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.lu-mi-team-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.lu-mi-vs {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+}
+
+.lu-mi-details {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.lu-mi-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 5px;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lu-mi-league-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0ea5e9;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.lu-mi-league-link:hover {
+  color: #38bdf8;
+  text-decoration: underline;
+}
+
+.lu-mi-detail {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ═══ Section Container ═══ */
+.lu-section {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+}
+
+.lu-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lu-section-title svg {
+  font-size: 1.15rem;
+  color: #0ea5e9;
+}
+
+/* ═══ Batting Lineup Grid ═══ */
+.lu-batting-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.lu-batting-head {
+  display: grid;
+  grid-template-columns: 36px 1fr 60px 110px 60px 80px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #0f172a;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lu-batting-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 60px 110px 60px 80px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  min-height: 40px;
+}
+
+.lu-batting-row:last-child {
+  border-bottom: none;
+}
+
+.lu-empty-slot {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.lu-br-pos {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+}
+
+.lu-br-player {
+  min-width: 0;
+}
+
+.lu-br-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lu-player-select {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.lu-player-select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+.lu-br-role {
+  display: flex;
+  justify-content: center;
+}
+
+.lu-role-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lu-role-badge.batsman { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.lu-role-badge.keeper { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.lu-role-badge.all_rounder { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+.lu-role-badge.bowler { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+
+.lu-br-agg {
+  display: flex;
+  justify-content: center;
+}
+
+.lu-bat-agg-btns {
+  display: flex;
+  gap: 3px;
+}
+
+.lu-br-tags {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+}
+
+.lu-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.lu-tag-captain {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.lu-tag-keeper {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.lu-br-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.lu-move-btn {
+  background: none;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #64748b;
+  padding: 0.15rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+}
+
+.lu-move-btn:hover:not(:disabled) {
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.lu-move-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.lu-remove-btn {
+  background: none;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: #ef4444;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+  transition: all 0.15s;
+}
+
+.lu-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ─── Captain & Keeper Row ─── */
+.lu-ck-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.lu-ck-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lu-ck-item label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lu-ck-item select {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.lu-ck-item select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+/* ═══ Toss Section ═══ */
+.lu-toss-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.lu-toss-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lu-toss-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lu-toss-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.lu-toss-btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lu-toss-btn:hover {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.lu-toss-btn.active {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+/* ═══ Bowling Plan ═══ */
+.lu-bowling-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.lu-bowl-tab {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lu-bowl-tab:hover {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.lu-bowl-tab.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+/* Template bowler selection */
+.lu-template-bowlers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lu-template-note {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.lu-bowler-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lu-bowler-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lu-bowler-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0ea5e9;
+  width: 30px;
+  text-align: center;
+}
+
+.lu-bowler-slot select {
+  flex: 1;
+  max-width: 360px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.82rem;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.lu-bowler-slot select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+/* Template preview */
+.lu-template-preview {
+  margin-top: 0.75rem;
+}
+
+.lu-preview-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+}
+
+.lu-overs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.3rem;
+}
+
+.lu-over-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.3rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  gap: 0.1rem;
+}
+
+.lu-over-num {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.lu-over-bowler {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Custom Bowling — 5 per row */
+.lu-custom-bowling {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lu-co-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+}
+
+.lu-co-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.lu-co-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.lu-co-bowler {
+  width: 100%;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.72rem;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  text-align: center;
+}
+
+.lu-co-bowler:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+.lu-co-agg {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.lu-co-agg-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.12s;
+}
+
+.lu-co-agg-btn:hover {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.lu-co-agg-btn.active {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+.lu-co-agg-btn.active-d {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
+}
+
+.lu-co-agg-btn.active-a {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .lu-co-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ═══ Squad Player Pool ═══ */
+.lu-pool-table {
+  overflow-x: auto;
+}
+
+.lu-pool-head {
+  display: grid;
+  grid-template-columns: 1fr 60px 45px 45px 45px 45px 45px 45px 120px 60px;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: #0f172a;
+  border-radius: 8px 8px 0 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  min-width: 700px;
+}
+
+.lu-ph-col {
+  text-align: center;
+}
+
+.lu-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.lu-sortable:hover {
+  color: #e2e8f0;
+}
+
+.lu-sort-active {
+  color: #0ea5e9;
+}
+
+.lu-pool-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 45px 45px 45px 45px 45px 45px 120px 60px;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+  transition: background 0.15s;
+  min-width: 700px;
+}
+
+.lu-pool-row:hover {
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.lu-pool-selected {
+  background: rgba(14, 165, 233, 0.06);
+  border-left: 3px solid #0ea5e9;
+}
+
+.lu-pr-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lu-pr-role {
+  display: flex;
+  justify-content: center;
+}
+
+.lu-pr-stat {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.lu-pr-ovr {
+  color: #f59e0b;
+}
+
+.lu-pr-style {
+  font-size: 0.72rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lu-pr-status {
+  display: flex;
+  justify-content: center;
+}
+
+.lu-selected-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+/* ═══ Save Bar ═══ */
+.lu-save-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+.lu-save-btn {
+  padding: 0.6rem 2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lu-save-btn:hover:not(:disabled) {
+  background: #0284c7;
+}
+
+.lu-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ═══ Responsive ═══ */
+@media (max-width: 768px) {
+  .lu-batting-head,
+  .lu-batting-row {
+    grid-template-columns: 30px 1fr 50px 90px 50px 70px;
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .lu-mi-teams {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .lu-toss-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

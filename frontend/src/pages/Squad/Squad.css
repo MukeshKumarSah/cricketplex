@@ -1,0 +1,340 @@
+/* ── Squad Page ── */
+
+.sq-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+.sq-loading {
+  text-align: center;
+  color: #64748b;
+  padding: 4rem 0;
+  font-size: 1.05rem;
+}
+
+/* ── Empty State ── */
+.sq-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.sq-empty-icon {
+  font-size: 3rem;
+  color: #334155;
+  margin-bottom: 1rem;
+}
+.sq-empty h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.5rem;
+}
+.sq-empty p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Header ── */
+.sq-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.sq-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -6%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.sq-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.sq-header-icon {
+  font-size: 2rem;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+.sq-header h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+.sq-header p {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  margin: 0.15rem 0 0;
+}
+
+/* ── Filters ── */
+.sq-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+}
+.sq-filter-icon {
+  color: #64748b;
+  font-size: 1rem;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+.sq-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sq-filter-btn:hover {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+.sq-filter-btn.active {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+.sq-filter-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+}
+.sq-filter-btn.active .sq-filter-count {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+/* ── Card Grid ── */
+.sq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ── Player Card ── */
+.sq-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sq-card:hover {
+  border-color: #475569;
+}
+.sq-card.expanded {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Card Top */
+.sq-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.sq-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.sq-card-name {
+  display: flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+.sq-first {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+.sq-last {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+/* Role Badge */
+.sq-role-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.sq-role-badge.batsman {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+.sq-role-badge.keeper {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.sq-role-badge.all_rounder {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+.sq-role-badge.bowler {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+/* Meta */
+.sq-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: #64748b;
+  padding-left: 0.1rem;
+}
+.sq-meta-sep {
+  color: #475569;
+}
+
+/* ── Rating Bars - Two Column ── */
+.sq-ratings-split {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 1rem;
+  overflow: visible;
+}
+.sq-ratings-divider {
+  background: #334155;
+  width: 1px;
+  align-self: stretch;
+}
+.sq-ratings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.sq-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 18px;
+  min-width: 0;
+}
+.sq-rating-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  width: 36px;
+  min-width: 36px;
+  text-align: left;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.sq-rating-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sq-rating-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.sq-rating-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 24px;
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Expanded Detail ── */
+.sq-detail {
+  border-top: 1px solid #334155;
+  padding-top: 0.6rem;
+}
+.sq-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.sq-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.sq-detail-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.sq-detail-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sq-grid {
+    grid-template-columns: 1fr;
+  }
+  .sq-ratings-split {
+    grid-template-columns: 1fr;
+    gap: 0.5rem 0;
+  }
+  .sq-ratings-divider {
+    display: none;
+  }
+  .sq-header {
+    padding: 1.25rem;
+  }
+  .sq-detail-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

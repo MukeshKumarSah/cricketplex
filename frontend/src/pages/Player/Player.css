@@ -1,0 +1,13 @@
+.player-page {
+  padding: 2rem 0;
+}
+.player-page h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 0.5rem;
+}
+.player-id {
+  font-size: 0.85rem;
+  color: #64748b;
+}

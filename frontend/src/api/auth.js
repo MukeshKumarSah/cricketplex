@@ -1,0 +1,83 @@
+import API from './axios';
+
+export const signup = (data) => API.post('/auth/signup', data);
+export const login = (data) => API.post('/auth/login', data);
+export const getMe = () => API.get('/auth/me');
+export const setupTeam = (data) => API.post('/team/setup', data);
+
+// Settings
+export const getSettings = () => API.get('/settings');
+export const uploadProfilePic = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return API.post('/settings/profile-pic', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+export const uploadTeamPic = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return API.post('/settings/team-pic', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+export const updateTeam = (data) => API.put('/settings/team', data);
+export const changePassword = (data) => API.put('/settings/password', data);
+
+// Ground Management
+export const getStadiumSeats = () => API.get('/ground/seats');
+export const updateStadiumSeats = (data) => API.put('/ground/seats', data);
+export const getUpcomingHomeMatches = () => API.get('/ground/matches');
+export const updateMatchPitch = (matchId, pitchType) =>
+  API.put(`/ground/matches/${matchId}/pitch`, { pitchType });
+
+// Team List
+export const getTeamList = () => API.get('/teams');
+
+// Squad
+export const getSquad = () => API.get('/squad');
+
+// Admin - Name Pool Management
+export const getPoolStats = () => API.get('/admin/players/stats');
+export const getPoolByCountry = (country) => API.get(`/admin/players/pool/${encodeURIComponent(country)}`);
+export const addFirstNames = (country, names) => API.post('/admin/players/first-names', { country, names });
+export const addLastNames = (country, names) => API.post('/admin/players/last-names', { country, names });
+export const deleteFirstName = (id) => API.delete(`/admin/players/first-names/${id}`);
+export const deleteLastName = (id) => API.delete(`/admin/players/last-names/${id}`);
+
+// Search
+export const searchManagers = (q) => API.get(`/search/managers`, { params: { q } });
+export const searchPlayers = (q) => API.get(`/search/players`, { params: { q } });
+export const searchTeams = (q) => API.get(`/search/teams`, { params: { q } });
+export const searchLeagues = (q) => API.get(`/search/leagues`, { params: { q } });
+
+// Game Info
+export const getCurrentSeason = () => API.get('/team/current-season');
+export const getMyLeagues = () => API.get('/team/my-leagues');
+export const getMyMatches = (season, format) => {
+  const params = {};
+  if (season) params.season = season;
+  if (format) params.format = format;
+  return API.get('/team/my-matches', { params });
+};
+
+// League Detail
+export const getLeagueDetail = (id) => API.get(`/leagues/${id}`);
+export const getLeagueFixtures = (id) => API.get(`/leagues/${id}/fixtures`);
+
+// Admin - League Management
+export const getLeagueStats = () => API.get('/admin/leagues/stats');
+export const getLeaguesByCountry = (country, format, season) => {
+  const params = {};
+  if (format) params.format = format;
+  if (season) params.season = season;
+  return API.get(`/admin/leagues/${encodeURIComponent(country)}`, { params });
+};
+export const createLeague = (country, format, division) => API.post('/admin/leagues', { country, format, division });
+export const generateBotTeams = () => API.post('/admin/leagues/generate-bots');
+export const getBotStats = () => API.get('/admin/leagues/bot-stats');
+export const deleteLeague = (id) => API.delete(`/admin/leagues/${id}`);
+
+// Lineup
+export const getLineupData = (fixtureId) => API.get(`/match/${fixtureId}/lineup`);
+export const saveLineup = (fixtureId, data) => API.post(`/match/${fixtureId}/lineup`, data);

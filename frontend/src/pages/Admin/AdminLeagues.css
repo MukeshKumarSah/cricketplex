@@ -1,0 +1,460 @@
+/* ── Admin Leagues Page ── */
+
+.al-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.al-loading {
+  text-align: center;
+  color: #64748b;
+  padding: 4rem 0;
+  font-size: 1.05rem;
+}
+
+/* ── Header ── */
+.al-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.al-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -6%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.al-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.al-header-icon {
+  font-size: 2rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+.al-header h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+.al-header p {
+  font-size: 0.92rem;
+  color: #94a3b8;
+  margin: 0.2rem 0 0;
+}
+
+/* ── Stats ── */
+.al-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+}
+.al-stat-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.al-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+}
+.al-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.al-stat-green { color: #22c55e; }
+.al-stat-cyan { color: #22d3ee; }
+
+/* ── Card ── */
+.al-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.al-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.al-card-head h2 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+.al-badge {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.2rem 0.65rem;
+}
+
+/* ── Create Form ── */
+.al-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.al-form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.al-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.al-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+.al-select {
+  padding: 0.48rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  min-width: 220px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.al-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.al-select option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.al-input {
+  padding: 0.48rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  width: 80px;
+  transition: border-color 0.15s;
+}
+.al-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.al-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.48rem 1.4rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  height: fit-content;
+}
+.al-btn-primary:hover:not(:disabled) {
+  box-shadow: 0 2px 16px 0 rgba(59, 130, 246, 0.25);
+}
+.al-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.al-form-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Bot Button ── */
+.al-btn-bot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #0891b2 0%, #22d3ee 100%);
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: fit-content;
+}
+.al-btn-bot:hover:not(:disabled) {
+  box-shadow: 0 2px 16px 0 rgba(34, 211, 238, 0.25);
+}
+.al-btn-bot:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Country List ── */
+.al-country-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.al-country-item {
+  border: 1px solid #334155;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.al-country-item:has(.al-country-detail) {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+.al-country-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.92rem;
+  text-align: left;
+  transition: background 0.12s;
+}
+.al-country-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.al-country-chevron {
+  color: #64748b;
+  font-size: 0.85rem;
+  display: flex;
+  flex-shrink: 0;
+}
+.al-country-name {
+  font-weight: 600;
+  color: #f1f5f9;
+  flex: 1;
+}
+.al-country-meta {
+  display: flex;
+  gap: 0.4rem;
+}
+.al-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+/* ── Country Detail (expanded) ── */
+.al-country-detail {
+  padding: 0.25rem 1rem 1rem;
+  border-top: 1px solid #334155;
+}
+.al-detail-loading {
+  text-align: center;
+  color: #64748b;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+}
+.al-season-filter,
+.al-detail-filters {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0.5rem 0 0.25rem;
+  flex-wrap: wrap;
+}
+.al-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.al-filter-label,
+.al-season-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.al-format-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.15rem;
+}
+.al-format-tab {
+  padding: 0.25rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.al-format-tab:hover {
+  color: #e2e8f0;
+}
+.al-format-tab.active {
+  color: #fff;
+  background: #3b82f6;
+}
+.al-select-format {
+  min-width: 140px;
+}
+.al-season-select {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.al-season-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.al-season-select option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+.al-divisions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+.al-division-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.al-div-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #64748b;
+  margin: 0;
+}
+.al-league-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.al-league-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.al-league-chip-clickable {
+  cursor: pointer;
+}
+.al-league-chip-clickable:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.45);
+}
+.al-league-season {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.al-league-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.85rem;
+  padding: 0.15rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  margin-left: 0.15rem;
+}
+
+.al-league-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+.al-empty-msg {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem 0;
+  font-size: 0.92rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .al-stats {
+    grid-template-columns: 1fr;
+  }
+  .al-header, .al-card {
+    padding: 1.25rem;
+  }
+  .al-form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .al-country-meta {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,231 @@
+/* ── Game Manuals Page ── */
+
+.manuals-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.manuals-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.manuals-header::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -5%;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.manuals-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.manuals-header-icon {
+  font-size: 2rem;
+  color: #22d3ee;
+  flex-shrink: 0;
+}
+
+.manuals-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.manuals-header p {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+}
+
+.manuals-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.manuals-action-btn {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.manuals-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+/* Table of contents */
+.manuals-toc {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+}
+
+.manuals-toc h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 0.85rem;
+}
+
+.manuals-toc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.manuals-toc-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: left;
+}
+
+.manuals-toc-item:hover {
+  background: rgba(34, 211, 238, 0.06);
+  border-color: rgba(34, 211, 238, 0.2);
+  color: #22d3ee;
+}
+
+.manuals-toc-icon {
+  font-size: 1rem;
+  color: #22d3ee;
+  display: flex;
+}
+
+/* Sections */
+.manuals-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.manuals-section {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.manuals-section.open {
+  border-color: #475569;
+}
+
+.manuals-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.15rem 1.5rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manuals-section-toggle:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.manuals-section.open .manuals-section-toggle {
+  border-bottom: 1px solid #334155;
+}
+
+.manuals-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.manuals-section-icon {
+  font-size: 1.15rem;
+  color: #22d3ee;
+  display: flex;
+}
+
+.manuals-section-title h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.manuals-section-body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.manuals-block h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 0.35rem;
+}
+
+.manuals-block p {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.65;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .manuals-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .manuals-toc-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .manuals-toc-grid {
+    grid-template-columns: 1fr;
+  }
+}
