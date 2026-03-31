@@ -88,13 +88,53 @@ public class TeamService {
     }
 
     /**
+     * Check whether a country has available bot slots in the lowest division
+     * for all 3 formats (T20, ODI, FC).
+     * Returns true only if every format has at least one bot to replace.
+     */
+    public boolean isCountryAvailable(String country) {
+        String[] formats = {"T20", "ODI", "FC"};
+        for (String format : formats) {
+            if (!hasAvailableBotSlot(country, format)) return false;
+        }
+        return true;
+    }
+
+    private boolean hasAvailableBotSlot(String country, String format) {
+        Integer maxDiv = leagueRepository.findMaxDivisionForFormat(country, format);
+        if (maxDiv == null) return false;
+
+        List<League> bottomLeagues = leagueRepository
+                .findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(
+                        country, format, 1);
+
+        for (League l : bottomLeagues) {
+            if (!l.getDivision().equals(maxDiv)) continue;
+            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(l.getId());
+            for (LeagueTeam lt : entries) {
+                if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Assign a new team to the bottom division for each format,
      * replacing one bot team in each league.
+     * Throws if any format's lowest division has no bot slot available.
      */
     @Transactional
     public void assignTeamToLeagues(Team team) {
         String country = team.getCountry();
         String[] formats = {"T20", "ODI", "FC"};
+
+        // ── Pre-check: ensure every format has a bot slot ──
+        for (String format : formats) {
+            if (!hasAvailableBotSlot(country, format)) {
+                throw new IllegalArgumentException(
+                        "Leagues are full for " + country + ". No available slot in the lowest " + format + " division. Please choose a different country.");
+            }
+        }
 
         for (String format : formats) {
             // Find the highest division (bottom of the hierarchy)
@@ -105,16 +145,18 @@ public class TeamService {
             List<League> bottomLeagues = leagueRepository
                     .findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(
                             country, format, 1);
-            // Filter to only bottom division
+
+            // Collect only bottom-division leagues that have at least one bot
             List<League> candidates = new ArrayList<>();
             for (League l : bottomLeagues) {
-                if (l.getDivision().equals(maxDiv)) {
-                    candidates.add(l);
-                }
+                if (!l.getDivision().equals(maxDiv)) continue;
+                List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(l.getId());
+                boolean hasBot = entries.stream().anyMatch(lt -> Boolean.TRUE.equals(lt.getTeam().getIsBot()));
+                if (hasBot) candidates.add(l);
             }
             if (candidates.isEmpty()) continue;
 
-            // Pick a random league in the bottom division
+            // Pick a random league among those with bots
             League targetLeague = candidates.get(new Random().nextInt(candidates.size()));
 
             // Ensure fixtures exist (lazy generation for pre-V13 leagues)
@@ -132,17 +174,9 @@ public class TeamService {
 
             if (botEntry != null) {
                 UUID oldBotId = botEntry.getTeam().getId();
-                // Replace bot team with user team
                 botEntry.setTeam(team);
                 leagueTeamRepository.save(botEntry);
-                // Update fixtures to reference the new team
                 fixtureService.swapTeamInFixtures(targetLeague.getId(), oldBotId, team.getId());
-            } else {
-                // No bot to replace, just add (shouldn't normally happen)
-                leagueTeamRepository.save(LeagueTeam.builder()
-                        .league(targetLeague)
-                        .team(team)
-                        .build());
             }
         }
     }

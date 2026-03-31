@@ -247,6 +247,10 @@
   color: #94a3b8;
 }
 
+.lp-round-time {
+  color: #22d3ee;
+}
+
 .lp-round-matches {
   display: flex;
   flex-direction: column;
@@ -349,4 +353,114 @@
 .lp-coming-soon p {
   margin: 0;
   font-size: 1rem;
+}
+
+/* ── Stats Tab ── */
+.lp-stats {
+  padding: 1rem;
+}
+
+.lp-stat-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.35rem;
+}
+
+.lp-stat-tab {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lp-stat-tab:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lp-stat-tab.active {
+  background: #22d3ee;
+  color: #0f172a;
+}
+
+.lp-stat-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #334155;
+  border-radius: 10px;
+}
+
+.lp-stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.lp-stat-table thead {
+  background: #0f172a;
+}
+
+.lp-stat-table th {
+  padding: 0.7rem 0.55rem;
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #334155;
+}
+
+.lp-stat-table td {
+  padding: 0.55rem 0.55rem;
+  text-align: center;
+  color: #cbd5e1;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.lp-stat-table tbody tr:hover {
+  background: rgba(14, 165, 233, 0.05);
+}
+
+.lp-stat-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.lp-st-pos {
+  width: 40px;
+  font-weight: 700;
+  color: #0ea5e9 !important;
+}
+
+.lp-st-player {
+  text-align: left !important;
+  font-weight: 500;
+  color: #f1f5f9 !important;
+  min-width: 140px;
+}
+
+.lp-st-team {
+  text-align: left !important;
+  color: #94a3b8 !important;
+  font-size: 0.75rem;
+  min-width: 100px;
+}
+
+.lp-st-highlight {
+  font-weight: 700;
+  color: #22d3ee !important;
+}
+
+.lp-st-highlight-head {
+  color: #22d3ee !important;
 }

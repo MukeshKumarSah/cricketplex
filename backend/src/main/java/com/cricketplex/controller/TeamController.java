@@ -16,12 +16,14 @@ import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.TeamService;
 import com.cricketplex.service.FixtureService;
+import com.cricketplex.service.WeatherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -37,6 +39,22 @@ public class TeamController {
     private final TeamRepository teamRepository;
     private final FixtureRepository fixtureRepository;
     private final MatchLineupRepository matchLineupRepository;
+    private final WeatherService weatherService;
+
+    /**
+     * Check whether a country still has available league slots for new teams.
+     * Also returns the country's UTC match start time.
+     */
+    @GetMapping("/check-availability")
+    public ResponseEntity<?> checkAvailability(@RequestParam String country) {
+        boolean available = teamService.isCountryAvailable(country);
+        String matchTime = FixtureService.getMatchStartTime(country);
+        return ResponseEntity.ok(Map.of(
+                "country", country,
+                "available", available,
+                "matchStartTimeUtc", matchTime
+        ));
+    }
 
     @PostMapping("/setup")
     public ResponseEntity<?> setupTeam(@AuthenticationPrincipal UserPrincipal principal,
@@ -105,6 +123,7 @@ public class TeamController {
             leagueInfo.put("division", league.getDivision());
             leagueInfo.put("leagueNumber", league.getLeagueNumber());
             leagueInfo.put("season", league.getSeason());
+            leagueInfo.put("matchStartTimeUtc", league.getMatchStartTime());
             leagueInfo.put("position", position);
             leagueInfo.put("totalTeams", allInLeague.size());
             leagues.add(leagueInfo);
@@ -139,11 +158,16 @@ public class TeamController {
         // Batch-load fixture IDs that have a saved lineup
         Set<UUID> linedUpFixtures = new HashSet<>(matchLineupRepository.findFixtureIdsByTeamId(myTeam.getId()));
 
+        LocalDate today = LocalDate.now();
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (Fixture f : all) {
             League league = f.getLeague();
-            if (season != null && !league.getSeason().equals(season)) continue;
-            if (format != null && !league.getFormat().equalsIgnoreCase(format)) continue;
+            boolean isFriendly = league == null;
+            String fFormat = isFriendly ? f.getFormat() : league.getFormat();
+
+            if (season != null && (isFriendly || !league.getSeason().equals(season))) continue;
+            if (format != null && (fFormat == null || !fFormat.equalsIgnoreCase(format))) continue;
 
             boolean isHome = f.getHomeTeam().getId().equals(myTeam.getId());
             Team opponent = isHome ? f.getAwayTeam() : f.getHomeTeam();
@@ -151,9 +175,11 @@ public class TeamController {
             Map<String, Object> match = new LinkedHashMap<>();
             match.put("id", f.getId());
             match.put("matchDate", f.getMatchDate().toString());
-            match.put("format", league.getFormat());
+            match.put("matchStartTimeUtc", isFriendly ? null : league.getMatchStartTime());
+            match.put("format", fFormat);
             match.put("round", f.getRound());
-            match.put("leagueLabel", league.getDivision() + "." + league.getLeagueNumber());
+            match.put("leagueLabel", isFriendly ? "Friendly" : league.getDivision() + "." + league.getLeagueNumber());
+            match.put("matchType", isFriendly ? "FRIENDLY" : "LEAGUE");
             match.put("homeTeamName", f.getHomeTeam().getTeamName());
             match.put("homeTeamPicUrl", f.getHomeTeam().getTeamProfilePicUrl());
             match.put("homeIsBot", f.getHomeTeam().getIsBot());
@@ -166,8 +192,10 @@ public class TeamController {
             match.put("opponentIsBot", opponent.getIsBot());
             match.put("status", f.getStatus());
             match.put("pitchType", f.getPitchType());
-            match.put("season", league.getSeason());
+            match.put("season", isFriendly ? null : league.getSeason());
             match.put("lineupSet", linedUpFixtures.contains(f.getId()));
+            match.put("weather", weatherService.getMatchWeather(
+                    f.getHomeTeam().getCountry(), f.getMatchDate(), today));
             result.add(match);
         }
 

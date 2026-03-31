@@ -4,6 +4,7 @@ export const signup = (data) => API.post('/auth/signup', data);
 export const login = (data) => API.post('/auth/login', data);
 export const getMe = () => API.get('/auth/me');
 export const setupTeam = (data) => API.post('/team/setup', data);
+export const checkCountryAvailability = (country) => API.get(`/team/check-availability?country=${encodeURIComponent(country)}`);
 
 // Settings
 export const getSettings = () => API.get('/settings');
@@ -64,6 +65,7 @@ export const getMyMatches = (season, format) => {
 // League Detail
 export const getLeagueDetail = (id) => API.get(`/leagues/${id}`);
 export const getLeagueFixtures = (id) => API.get(`/leagues/${id}/fixtures`);
+export const getLeaguePlayerStats = (id) => API.get(`/leagues/${id}/stats`);
 
 // Admin - League Management
 export const getLeagueStats = () => API.get('/admin/leagues/stats');
@@ -81,3 +83,21 @@ export const deleteLeague = (id) => API.delete(`/admin/leagues/${id}`);
 // Lineup
 export const getLineupData = (fixtureId) => API.get(`/match/${fixtureId}/lineup`);
 export const saveLineup = (fixtureId, data) => API.post(`/match/${fixtureId}/lineup`, data);
+
+// Friendly Challenges
+export const getChallenges = () => API.get('/challenges');
+export const getChallengeableTeams = () => API.get('/challenges/teams');
+export const sendChallenge = (data) => API.post('/challenges/send', data);
+export const acceptChallenge = (id) => API.post(`/challenges/${id}/accept`);
+export const declineChallenge = (id) => API.post(`/challenges/${id}/decline`);
+export const cancelChallenge = (id) => API.post(`/challenges/${id}/cancel`);
+export const simulateChallenge = (id) => API.post(`/challenges/${id}/simulate`);
+
+// Match Result
+export const getMatchResult = (fixtureId) => API.get(`/match/result/${fixtureId}`);
+export const getCommentary = (fixtureId) => API.get(`/match/commentary/${fixtureId}`);
+export const simulateMatch = (fixtureId) => API.post(`/match/simulate/${fixtureId}`);
+export const getRivalry = (team1Id, team2Id) => API.get(`/match/rivalry/${team1Id}/${team2Id}`);
+
+// Weather
+export const getWeatherForecast = () => API.get('/weather/forecast');

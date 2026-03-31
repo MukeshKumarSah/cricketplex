@@ -81,7 +81,8 @@ public class LeagueService {
                           "division", l.getDivision(),
                           "leagueNumber", l.getLeagueNumber(),
                           "season", l.getSeason(),
-                          "format", l.getFormat()
+                          "format", l.getFormat(),
+                          "matchStartTime", l.getMatchStartTime()
                   ));
         }
 
@@ -148,6 +149,7 @@ public class LeagueService {
                     .format(fmt)
                     .division(division)
                     .leagueNumber(nextNum)
+                    .matchStartTime(FixtureService.getMatchStartTime(country.trim()))
                     .build();
             leagueRepository.save(league);
             createdLeagues.add(league);

@@ -1,0 +1,528 @@
+/* ============================================================
+   LiveMatch – Cricbuzz-style ball-by-ball viewer
+   ============================================================ */
+.lm-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #0a0f1a;
+}
+.lm-loading {
+  color: #94a3b8;
+  text-align: center;
+  padding: 80px 0;
+  font-size: 1.05rem;
+}
+
+/* ─── Sticky Score Bar ─── */
+.lm-score-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #0f172a 60%, #1a2740 100%);
+  border-bottom: 1px solid #1e293b;
+}
+.lm-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.15s;
+}
+.lm-back:hover { background: #1e293b; color: #e2e8f0; }
+
+.lm-score-info {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lm-team-name {
+  color: #f1f5f9;
+  font-weight: 700;
+  font-size: 1rem;
+}
+.lm-score-num {
+  color: #22d3ee;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: -1px;
+}
+.lm-overs-num {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+.lm-need {
+  color: #fbbf24;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.lm-bar-controls {
+  display: flex;
+  gap: 6px;
+}
+.lm-bar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.15rem;
+  transition: all 0.15s;
+}
+.lm-bar-btn:hover { background: #1e293b; color: #e2e8f0; }
+.lm-bar-btn.active { background: #22d3ee18; border-color: #22d3ee; color: #22d3ee; }
+.lm-bar-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ─── Tabs ─── */
+.lm-tabs {
+  display: flex;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
+}
+.lm-tab {
+  flex: 1;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lm-tab:hover { color: #94a3b8; }
+.lm-tab.active { color: #22d3ee; border-bottom-color: #22d3ee; }
+
+/* ─── Commentary Tab ─── */
+.lm-commentary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+}
+
+/* Batsmen & Bowler strip */
+.lm-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin: 12px 0 0;
+  background: #111827;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.lm-strip-batsmen {
+  display: flex;
+  gap: 16px;
+}
+.lm-strip-bat {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.lm-strip-bat.striker {
+  color: #f1f5f9;
+  font-weight: 700;
+}
+.lm-strip-bowler {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  padding: 3px 10px;
+  background: #1e293b;
+  border-radius: 6px;
+}
+
+/* This over chips */
+.lm-this-over {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  background: #111827;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+}
+.lm-over-label {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.lm-chip {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+}
+.ch-dot { background: #0f172a; color: #475569; border-color: #1e293b; }
+.ch-run { background: #1e293b; color: #e2e8f0; }
+.ch-four { background: #2563eb18; color: #60a5fa; border-color: #2563eb; }
+.ch-six { background: #7c3aed18; color: #a78bfa; border-color: #7c3aed; }
+.ch-wicket { background: #dc262618; color: #f87171; border-color: #dc2626; }
+.ch-extra { background: #d9770618; color: #fbbf24; border-color: #d97706; }
+
+/* ─── Feed ─── */
+.lm-feed {
+  flex: 1;
+  min-height: 340px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 24px;
+}
+.lm-feed::-webkit-scrollbar { width: 4px; }
+.lm-feed::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+.lm-feed-empty {
+  color: #475569;
+  text-align: center;
+  padding: 60px 0;
+  font-size: 1rem;
+  animation: lmPulse 1.5s ease-in-out infinite;
+}
+@keyframes lmPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Ball row */
+.lm-ball-row {
+  display: grid;
+  grid-template-columns: 44px 60px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #0f172a;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+.lm-ball-row.lm-latest {
+  background: #111827;
+  animation: lmSlide 0.3s ease-out;
+}
+@keyframes lmSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.lm-row-wicket { border-left-color: #f87171; background: #dc262608; }
+.lm-row-four { border-left-color: #60a5fa; background: #2563eb08; }
+.lm-row-six { border-left-color: #a78bfa; background: #7c3aed08; }
+
+.lm-ball-over {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding-top: 1px;
+}
+.lm-ball-result {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 0;
+  border-radius: 4px;
+  text-align: center;
+  background: #1e293b;
+  color: #94a3b8;
+}
+.lmr-dot { color: #475569; }
+.lmr-four { background: #2563eb18; color: #60a5fa; }
+.lmr-six { background: #7c3aed18; color: #a78bfa; }
+.lmr-wicket { background: #dc262618; color: #f87171; }
+
+.lm-ball-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lm-ball-players {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+.lm-ball-text {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* ─── Over Summary Block ─── */
+.lm-over-summary {
+  margin: 10px 0;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #111827 60%, #1a2740 100%);
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lm-os-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lm-os-title {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.lm-os-over-runs {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+.lm-os-score {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+.lm-os-score strong {
+  color: #22d3ee;
+  font-weight: 800;
+}
+.lm-os-chips {
+  display: flex;
+  gap: 5px;
+}
+.lm-os-players {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.lm-os-bat {
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+.lm-os-bowler {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* ─── Scorecard Tab ─── */
+.lm-scorecard {
+  padding: 16px;
+}
+.lm-sc-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.lm-sc-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  background: #0f172a;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lm-sc-tab:hover { background: #111827; }
+.lm-sc-tab.active { border-color: #22d3ee; background: #22d3ee0a; color: #f1f5f9; }
+.lm-sc-tab-score { font-size: 0.78rem; color: #64748b; }
+.lm-sc-tab.active .lm-sc-tab-score { color: #22d3ee; }
+
+.lm-sc-section { margin-bottom: 20px; }
+.lm-sc-section h3 {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 8px;
+}
+.lm-sc-table {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.lm-sc-head {
+  display: grid;
+  grid-template-columns: 1fr repeat(5, 42px);
+  gap: 4px;
+  padding: 8px 12px;
+  background: #111827;
+  border-bottom: 1px solid #1e293b;
+}
+.lm-sc-head .lm-sc-name { color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 600; }
+.lm-sc-head .lm-sc-num { color: #64748b; font-size: 0.72rem; text-align: center; font-weight: 600; }
+
+.lm-sc-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(5, 42px);
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #0f172a;
+  transition: background 0.15s;
+}
+.lm-sc-row:hover { background: #111827; }
+.lm-sc-row.lm-sc-notout { background: #22d3ee06; }
+.lm-sc-row.lm-sc-haul { background: #dc262606; }
+
+.lm-sc-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.lm-sc-name { color: #e2e8f0; font-size: 0.85rem; font-weight: 600; }
+.lm-sc-dismissal { color: #64748b; font-size: 0.72rem; font-weight: 400; }
+.lm-sc-num {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.lm-sc-milestone { color: #fbbf24; font-weight: 700; }
+
+.lm-sc-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #111827;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+/* ─── Overlays ─── */
+.lm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+}
+.lm-overlay-card {
+  background: linear-gradient(135deg, #0f172a 60%, #1a2740 100%);
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 36px 44px;
+  text-align: center;
+  max-width: 480px;
+  width: 90%;
+}
+.lm-overlay-card h2 {
+  color: #f1f5f9;
+  font-size: 1.25rem;
+  margin: 0 0 10px;
+}
+.lm-overlay-icon {
+  font-size: 2.8rem;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+.lm-overlay-score {
+  color: #22d3ee;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 4px 0;
+}
+.lm-overlay-target {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  margin: 8px 0 18px;
+}
+.lm-overlay-motm {
+  color: #22d3ee;
+  font-size: 0.88rem;
+  margin: 4px 0 14px;
+}
+.lm-overlay-scores {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.lm-overlay-score-item {
+  color: #94a3b8;
+  font-size: 0.88rem;
+  padding: 6px 14px;
+  background: #1e293b;
+  border-radius: 8px;
+}
+.lm-overlay-btn {
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid #22d3ee;
+  background: #22d3ee18;
+  color: #22d3ee;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lm-overlay-btn:hover { background: #22d3ee30; }
+
+.lm-overlay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lm-overlay-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid #22d3ee;
+  background: #22d3ee14;
+  color: #22d3ee;
+}
+.lm-overlay-actions button:hover { background: #22d3ee28; }
+.lm-overlay-back {
+  border-color: #334155 !important;
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+.lm-overlay-back:hover {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}

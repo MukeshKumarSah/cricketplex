@@ -23,4 +23,6 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     @Query("SELECT f FROM Fixture f WHERE (f.homeTeam = :team OR f.awayTeam = :team) ORDER BY f.matchDate ASC, f.round ASC")
     List<Fixture> findAllByTeamOrderByMatchDate(Team team);
+
+    List<Fixture> findByStatusAndMatchDateLessThanEqual(String status, LocalDate date);
 }

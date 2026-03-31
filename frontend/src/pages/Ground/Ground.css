@@ -254,6 +254,9 @@
   color: #64748b;
   font-family: monospace;
 }
+.match-time {
+  color: #22d3ee;
+}
 
 /*  Pitch Picker  */
 .match-pitch-picker {

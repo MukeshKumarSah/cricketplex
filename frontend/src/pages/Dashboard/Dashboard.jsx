@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -208,6 +208,8 @@ export default function Dashboard() {
   const [team, setTeam] = useState(null);
   const [totalSeats, setTotalSeats] = useState(0);
   const [myLeagues, setMyLeagues] = useState([]);
+  const [weatherForecast, setWeatherForecast] = useState(null);
+  const [weatherCountry, setWeatherCountry] = useState('');
 
   useEffect(() => {
     getSettings()
@@ -220,6 +222,12 @@ export default function Dashboard() {
       .catch(() => {});
     getMyLeagues()
       .then((res) => setMyLeagues(res.data.leagues || []))
+      .catch(() => {});
+    getWeatherForecast()
+      .then((res) => {
+        setWeatherForecast(res.data.forecast || []);
+        setWeatherCountry(res.data.country || '');
+      })
       .catch(() => {});
   }, []);
 
@@ -291,7 +299,33 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* ── Weather Forecast ── */}
+      {weatherForecast && weatherForecast.length > 0 && (
+        <section className="dash-card dash-weather-card">
+          <div className="dash-card-header">
+            <span className="dash-card-icon">🌤️</span>
+            <h2>{weatherCountry} — 5-Day Forecast</h2>
+          </div>
+          <div className="dash-weather-grid">
+            {weatherForecast.map((day, i) => {
+              const dt = new Date(day.date + 'T00:00:00');
+              const label = i === 0 ? 'Today' : dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              return (
+                <div key={day.date} className="dash-weather-day">
+                  <span className="dash-weather-date">{label}</span>
+                  <span className="dash-weather-icon">{day.icon}</span>
+                  <span className="dash-weather-cond">{day.condition}</span>
+                  <span className="dash-weather-temp">{day.temperature}°C</span>
+                  <span className="dash-weather-humidity">{day.humidity}% humidity</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* ── Ground Info ── */}
+      {/* ── Home Ground ── */}
       <section className="dash-card dash-ground-card">
         <div className="dash-card-header">
           <HiOutlineBuildingOffice2 className="dash-card-icon" />

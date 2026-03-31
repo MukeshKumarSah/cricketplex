@@ -38,4 +38,12 @@ public class LineupController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return ResponseEntity.ok(lineupService.saveLineup(fixtureId, user, request));
     }
+
+    @GetMapping("/default-lineup")
+    public ResponseEntity<?> getDefaultLineup(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return ResponseEntity.ok(lineupService.getDefaultLineup(user));
+    }
 }

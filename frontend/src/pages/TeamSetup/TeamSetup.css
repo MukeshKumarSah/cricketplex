@@ -64,3 +64,34 @@
   background: #1e293b;
   color: #f1f5f9;
 }
+
+/* ── Country Info ── */
+.ts-country-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+}
+.ts-checking {
+  color: #64748b;
+  font-style: italic;
+}
+.ts-available {
+  color: #22c55e;
+  font-weight: 600;
+}
+.ts-full {
+  color: #ef4444;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+.ts-match-time {
+  color: #94a3b8;
+}
+.ts-match-time strong {
+  color: #22d3ee;
+}

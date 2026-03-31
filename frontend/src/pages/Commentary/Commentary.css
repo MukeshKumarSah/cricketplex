@@ -1,0 +1,239 @@
+/* ── Commentary Page ── */
+
+.commentary-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.comm-loading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem;
+  font-size: 1rem;
+}
+
+/* ── Header ── */
+.comm-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+}
+
+.comm-back {
+  background: none;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  color: #94a3b8;
+  padding: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+.comm-back:hover { color: #f1f5f9; border-color: #64748b; }
+
+.comm-header-icon {
+  font-size: 2rem;
+  color: #a78bfa;
+  flex-shrink: 0;
+}
+
+.comm-header h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.comm-summary {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0.2rem 0 0;
+}
+
+.comm-scorecard-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #10b98118;
+  color: #10b981;
+  border: 1px solid #10b98140;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.comm-scorecard-btn:hover { background: #10b98130; }
+
+/* ── Tabs Row ── */
+.comm-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.comm-innings-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.comm-inn-tab {
+  padding: 0.55rem 1.1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.comm-inn-tab.active {
+  border-color: #a78bfa;
+  color: #a78bfa;
+  background: #a78bfa10;
+}
+
+.comm-filters {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.comm-filter {
+  padding: 0.4rem 0.8rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.comm-filter.active {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+/* ── Feed ── */
+.comm-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.comm-over-group {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.comm-over-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+
+.comm-over-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.comm-over-summary {
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.comm-over-balls {
+  margin-left: auto;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.comm-ball-chip {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.chip-dot { background: #1e293b; color: #64748b; border: 1px solid #334155; }
+.chip-run { background: #334155; color: #cbd5e1; }
+.chip-four { background: #22d3ee20; color: #22d3ee; border: 1px solid #22d3ee40; }
+.chip-six { background: #f59e0b20; color: #f59e0b; border: 1px solid #f59e0b40; }
+.chip-wicket { background: #ef444420; color: #ef4444; border: 1px solid #ef444440; }
+.chip-extra { background: #a78bfa15; color: #a78bfa; border: 1px solid #a78bfa30; }
+
+/* ── Ball Rows ── */
+.comm-ball-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.comm-ball-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  border-bottom: 1px solid #1a2332;
+  font-size: 0.85rem;
+}
+.comm-ball-row:last-child { border-bottom: none; }
+
+.comm-wicket-row { background: #ef444408; }
+.comm-six-row { background: #f59e0b05; }
+.comm-four-row { background: #22d3ee05; }
+
+.comm-ball-num {
+  font-weight: 700;
+  color: #64748b;
+  font-size: 0.78rem;
+  min-width: 28px;
+}
+
+.comm-ball-players {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  min-width: 180px;
+}
+
+.comm-ball-result {
+  font-weight: 700;
+  font-size: 0.82rem;
+  min-width: 60px;
+  color: #cbd5e1;
+}
+
+.res-wicket { color: #ef4444; }
+.res-six { color: #f59e0b; }
+.res-four { color: #22d3ee; }
+.res-dot { color: #475569; }
+
+.comm-ball-text {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  flex: 1;
+}

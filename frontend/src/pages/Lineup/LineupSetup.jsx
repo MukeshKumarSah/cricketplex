@@ -72,6 +72,7 @@ export default function LineupSetup() {
   // Sorting for player pool
   const [sortKey, setSortKey] = useState('rating');
   const [sortDir, setSortDir] = useState('desc');
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -85,8 +86,8 @@ export default function LineupSetup() {
         setCustomBowling(Array.from({ length: totalOvers }, () => ({ bowlerId: null, aggression: 'N' })));
 
         // Restore saved lineup
-        if (res.data.savedLineup) {
-          const sl = res.data.savedLineup;
+        const sl = res.data.savedLineup || res.data.defaultLineup;
+        if (sl) {
           if (sl.captainId) setCaptainId(sl.captainId);
           if (sl.keeperId) setKeeperId(sl.keeperId);
           if (sl.tossChoice) setTossChoice(sl.tossChoice);
@@ -167,6 +168,20 @@ export default function LineupSetup() {
   const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 90;
   const maxPerBowler = format === 'T20' ? 4 : format === 'ODI' ? 10 : 30;
 
+  // Auto-apply template when selected bowlers change (and a template plan is active)
+  useEffect(() => {
+    if (!format || bowlingPlan === 'CUSTOM') return;
+    if (selectedBowlers.filter(Boolean).length < 5) return;
+    const templates = format === 'T20' ? T20_TEMPLATES : ODI_TEMPLATES;
+    const tpl = templates[bowlingPlan];
+    if (!tpl) return;
+    const newCb = tpl.map((bn) => ({
+      bowlerId: selectedBowlers[bn - 1] || null,
+      aggression: 'N',
+    }));
+    setCustomBowling(newCb);
+  }, [selectedBowlers, bowlingPlan, format]);
+
   /* ─── Handlers ─── */
 
   const setPlayerAtPosition = (idx, playerId) => {
@@ -223,13 +238,25 @@ export default function LineupSetup() {
       return;
     }
 
-    // Build bowling orders — always from customBowling (templates populate it too)
+    // Build bowling orders — use template when applicable, otherwise from customBowling
     const bowlingOrders = [];
-    customBowling.forEach((bo, i) => {
-      if (bo.bowlerId) {
-        bowlingOrders.push({ overNumber: i + 1, bowlerId: bo.bowlerId, aggression: bo.aggression });
+    if (bowlingPlan !== 'CUSTOM' && selectedBowlers.filter(Boolean).length === 5) {
+      // Generate from template + selected bowlers
+      const templates = format === 'T20' ? T20_TEMPLATES : ODI_TEMPLATES;
+      const tpl = templates[bowlingPlan];
+      if (tpl) {
+        tpl.forEach((bn, i) => {
+          const bid = selectedBowlers[bn - 1];
+          if (bid) bowlingOrders.push({ overNumber: i + 1, bowlerId: bid, aggression: 'N' });
+        });
       }
-    });
+    } else {
+      customBowling.forEach((bo, i) => {
+        if (bo.bowlerId) {
+          bowlingOrders.push({ overNumber: i + 1, bowlerId: bo.bowlerId, aggression: bo.aggression });
+        }
+      });
+    }
 
     const payload = {
       captainId,
@@ -237,6 +264,7 @@ export default function LineupSetup() {
       tossChoice: matchInfo.isHome ? null : tossChoice,
       batOrBowl,
       bowlingPlan,
+      saveAsDefault,
       players: playing11.map((id, i) => ({
         playerId: id,
         battingPosition: i + 1,
@@ -329,6 +357,14 @@ export default function LineupSetup() {
           <span className="lu-mi-detail">
             <HiOutlineMapPin /> {matchInfo.groundName || 'Home Ground'} · {matchInfo.pitchType}
           </span>
+          {matchInfo.weather?.available ? (
+            <span className="lu-mi-weather">
+              <span className="lu-mi-weather-icon">{matchInfo.weather.icon}</span>
+              {matchInfo.weather.condition} · {matchInfo.weather.temperature}°C · {matchInfo.weather.humidity}% humidity
+            </span>
+          ) : (
+            <span className="lu-mi-weather lu-mi-weather-na">Forecast not yet available</span>
+          )}
         </div>
       </div>
 
@@ -649,6 +685,14 @@ export default function LineupSetup() {
 
       {/* ═══ Save Button ═══ */}
       <div className="lu-save-bar">
+        <label className="lu-default-check">
+          <input
+            type="checkbox"
+            checked={saveAsDefault}
+            onChange={(e) => setSaveAsDefault(e.target.checked)}
+          />
+          Save as default order
+        </label>
         <button className="lu-save-btn" onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save Lineup'}
         </button>

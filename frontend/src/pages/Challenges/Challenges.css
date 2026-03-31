@@ -1,0 +1,396 @@
+/* ── Challenges Page ── */
+
+.challenges-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+.challenges-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem;
+  font-size: 1rem;
+}
+
+/* ── Header ── */
+.challenges-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.75rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 16px;
+}
+
+.challenges-header-icon {
+  font-size: 2rem;
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.challenges-header h1 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.challenges-subtitle {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+}
+
+.challenges-new-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: #f59e0b;
+  color: #0f172a;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.challenges-new-btn:hover {
+  background: #d97706;
+}
+
+/* ── Tabs ── */
+.challenges-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+}
+
+.challenges-tab {
+  flex: 1;
+  padding: 0.55rem 1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.challenges-tab.active {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+.challenges-tab:hover:not(.active) {
+  color: #cbd5e1;
+}
+
+/* ── Challenge Cards ── */
+.challenges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.challenge-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s;
+}
+.challenge-card:hover {
+  border-color: #475569;
+}
+
+.challenge-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.challenge-teams {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.challenge-team {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.challenge-team-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #334155;
+}
+
+.challenge-team-initials {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.challenge-team-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.challenge-vs {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.challenge-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.challenge-format {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid;
+}
+
+.challenge-date {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.challenge-pitch {
+  font-size: 0.78rem;
+  color: #64748b;
+  background: #0f172a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.challenge-status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.challenge-message {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+  padding-left: 0.5rem;
+  border-left: 3px solid #334155;
+}
+
+/* Lineup status */
+.challenge-lineup-status {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.82rem;
+}
+.lineup-set { color: #10b981; }
+.lineup-pending { color: #64748b; }
+
+/* Actions */
+.challenge-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ch-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.15s;
+}
+
+.ch-accept {
+  background: #10b98118;
+  color: #10b981;
+  border-color: #10b98140;
+}
+.ch-accept:hover { background: #10b98130; }
+
+.ch-decline {
+  background: #ef444418;
+  color: #ef4444;
+  border-color: #ef444440;
+}
+.ch-decline:hover { background: #ef444430; }
+
+.ch-cancel {
+  background: #6b728018;
+  color: #9ca3af;
+  border-color: #6b728040;
+}
+.ch-cancel:hover { background: #6b728030; }
+
+.ch-lineup {
+  background: #22d3ee18;
+  color: #22d3ee;
+  border-color: #22d3ee40;
+}
+.ch-lineup:hover { background: #22d3ee30; }
+
+.ch-simulate {
+  background: #f59e0b18;
+  color: #f59e0b;
+  border-color: #f59e0b40;
+}
+.ch-simulate:hover { background: #f59e0b30; }
+.ch-simulate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ch-scorecard {
+  background: #10b98118;
+  color: #10b981;
+  border-color: #10b98140;
+}
+.ch-scorecard:hover { background: #10b98130; }
+
+.ch-commentary {
+  background: #a78bfa18;
+  color: #a78bfa;
+  border-color: #a78bfa40;
+}
+.ch-commentary:hover { background: #a78bfa30; }
+
+/* ── New Challenge Modal ── */
+.challenge-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.challenge-modal {
+  width: 480px;
+  max-width: 95vw;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.challenge-modal h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.cm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cm-field label {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.cm-field select,
+.cm-field input {
+  padding: 0.55rem 0.75rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.cm-field select:focus,
+.cm-field input:focus {
+  border-color: #0ea5e9;
+}
+
+.cm-row {
+  display: flex;
+  gap: 1rem;
+}
+.cm-row .cm-field {
+  flex: 1;
+}
+
+.cm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.cm-cancel {
+  padding: 0.55rem 1.2rem;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cm-cancel:hover {
+  border-color: #64748b;
+  color: #e2e8f0;
+}
+
+.cm-send {
+  padding: 0.55rem 1.2rem;
+  background: #f59e0b;
+  border: none;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cm-send:hover { background: #d97706; }
+.cm-send:disabled { opacity: 0.5; cursor: not-allowed; }

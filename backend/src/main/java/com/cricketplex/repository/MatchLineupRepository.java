@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface MatchLineupRepository extends JpaRepository<MatchLineup, UUID> {
     Optional<MatchLineup> findByFixtureIdAndTeamId(UUID fixtureId, UUID teamId);
 
+    List<MatchLineup> findByFixtureId(UUID fixtureId);
+
     @Query("SELECT ml.fixture.id FROM MatchLineup ml WHERE ml.team.id = :teamId")
     List<UUID> findFixtureIdsByTeamId(@Param("teamId") UUID teamId);
 }

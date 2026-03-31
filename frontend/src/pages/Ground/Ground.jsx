@@ -203,7 +203,10 @@ export default function Ground() {
                       <span className="match-comp">{match.competition} · Div {match.leagueLabel} · R{match.round}</span>
                     </div>
                     <span className="match-opponent">{match.opponentName}</span>
-                    <span className="match-date">{format(parseISO(match.matchDate), 'EEE, dd MMM yyyy')}</span>
+                    <span className="match-date">
+                      {format(parseISO(match.matchDate), 'EEE, dd MMM yyyy')}
+                      {match.matchStartTimeUtc && <span className="match-time"> · {match.matchStartTimeUtc} UTC</span>}
+                    </span>
                   </div>
 
                   <div className="match-pitch-picker">

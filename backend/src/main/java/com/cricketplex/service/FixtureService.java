@@ -28,6 +28,37 @@ public class FixtureService {
     private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
 
     /**
+     * Country → UTC match start time (HH:mm).
+     * Chosen to reflect evening prime-time in each country's local timezone,
+     * which naturally distributes server load across the day.
+     */
+    private static final Map<String, String> COUNTRY_MATCH_TIMES = Map.ofEntries(
+            Map.entry("New Zealand",          "07:00"),
+            Map.entry("Australia",            "09:00"),
+            Map.entry("Bangladesh",           "13:00"),
+            Map.entry("Nepal",                "13:15"),
+            Map.entry("Sri Lanka",            "13:30"),
+            Map.entry("India",                "14:30"),
+            Map.entry("Pakistan",             "15:00"),
+            Map.entry("Afghanistan",          "15:30"),
+            Map.entry("Oman",                 "16:00"),
+            Map.entry("United Arab Emirates", "16:30"),
+            Map.entry("South Africa",         "17:00"),
+            Map.entry("Zimbabwe",             "17:30"),
+            Map.entry("Netherlands",          "18:00"),
+            Map.entry("Scotland",             "18:30"),
+            Map.entry("Ireland",              "19:00"),
+            Map.entry("England",              "19:30"),
+            Map.entry("West Indies",          "23:00"),
+            Map.entry("United States",        "00:00")
+    );
+
+    /** Get the UTC match start time for a country. */
+    public static String getMatchStartTime(String country) {
+        return COUNTRY_MATCH_TIMES.getOrDefault(country, "14:00");
+    }
+
+    /**
      * Balanced round-robin template for 8 teams (0-indexed positions).
      * Verified constraints:
      *  - Each team plays every other exactly once in rounds 1-7
@@ -212,6 +243,7 @@ public class FixtureService {
             Map<String, Object> roundData = new LinkedHashMap<>();
             roundData.put("round", entry.getKey());
             roundData.put("matchDate", roundDates.get(entry.getKey()));
+            roundData.put("matchStartTimeUtc", league.getMatchStartTime());
             roundData.put("matches", entry.getValue());
             result.add(roundData);
         }

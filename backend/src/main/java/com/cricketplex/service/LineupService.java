@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
@@ -13,9 +14,11 @@ import java.util.*;
 public class LineupService {
 
     private final MatchLineupRepository lineupRepository;
+    private final DefaultLineupRepository defaultLineupRepository;
     private final PlayerRepository playerRepository;
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
+    private final WeatherService weatherService;
 
     /* ═══ Bowling templates ═══ */
 
@@ -90,6 +93,8 @@ public class LineupService {
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
 
         League league = fixture.getLeague();
+        boolean isFriendly = "FRIENDLY".equals(fixture.getMatchType());
+        String format = isFriendly ? fixture.getFormat() : league.getFormat();
         boolean isHome = fixture.getHomeTeam().getId().equals(myTeam.getId());
         boolean isAway = fixture.getAwayTeam().getId().equals(myTeam.getId());
         if (!isHome && !isAway) {
@@ -103,15 +108,24 @@ public class LineupService {
         matchInfo.put("homeTeamPicUrl", fixture.getHomeTeam().getTeamProfilePicUrl());
         matchInfo.put("awayTeamName", fixture.getAwayTeam().getTeamName());
         matchInfo.put("awayTeamPicUrl", fixture.getAwayTeam().getTeamProfilePicUrl());
-        matchInfo.put("format", league.getFormat());
-        matchInfo.put("leagueId", league.getId());
-        matchInfo.put("leagueLabel", league.getCountry() + " Div " + league.getDivision() + "." + league.getLeagueNumber());
+        matchInfo.put("format", format);
+        if (isFriendly) {
+            matchInfo.put("leagueId", null);
+            matchInfo.put("leagueLabel", "Friendly");
+            matchInfo.put("matchType", "FRIENDLY");
+        } else {
+            matchInfo.put("leagueId", league.getId());
+            matchInfo.put("leagueLabel", league.getCountry() + " Div " + league.getDivision() + "." + league.getLeagueNumber());
+            matchInfo.put("matchType", "LEAGUE");
+        }
         matchInfo.put("matchDate", fixture.getMatchDate().toString());
         matchInfo.put("groundName", isHome ? fixture.getHomeTeam().getGroundName() : fixture.getAwayTeam().getGroundName());
         matchInfo.put("pitchType", fixture.getPitchType());
         matchInfo.put("isHome", isHome);
         matchInfo.put("round", fixture.getRound());
         matchInfo.put("status", fixture.getStatus());
+        matchInfo.put("weather", weatherService.getMatchWeather(
+                fixture.getHomeTeam().getCountry(), fixture.getMatchDate(), LocalDate.now()));
 
         // Squad players
         List<Player> squad = playerRepository.findByTeam(myTeam);
@@ -175,10 +189,20 @@ public class LineupService {
             savedLineup.put("bowlingOrders", savedBowling);
         }
 
+        // Default lineup (returned when no saved lineup for this fixture)
+        Map<String, Object> defaultLineup = null;
+        if (savedLineup == null) {
+            Optional<DefaultLineup> defOpt = defaultLineupRepository.findByTeamId(myTeam.getId());
+            if (defOpt.isPresent()) {
+                defaultLineup = defOpt.get().getLineupData();
+            }
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("matchInfo", matchInfo);
         result.put("squad", playerList);
         result.put("savedLineup", savedLineup);
+        result.put("defaultLineup", defaultLineup);
         return result;
     }
 
@@ -233,7 +257,7 @@ public class LineupService {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> players = (List<Map<String, Object>>) request.get("players");
         if (players != null) {
-            String format = fixture.getLeague().getFormat();
+            String format = (fixture.getLeague() != null) ? fixture.getLeague().getFormat() : fixture.getFormat();
             int maxPlayers = 11;
             int count = 0;
             Set<String> playerIdSet = new HashSet<>();
@@ -291,6 +315,40 @@ public class LineupService {
 
         lineupRepository.save(lineup);
 
+        // Save as default if requested
+        Object saveAsDefault = request.get("saveAsDefault");
+        if (Boolean.TRUE.equals(saveAsDefault)) {
+            saveDefaultLineup(myTeam, request);
+        }
+
         return Map.of("id", lineup.getId(), "status", "saved");
+    }
+
+    /* ═══ Default lineup ═══ */
+
+    @Transactional
+    public void saveDefaultLineup(Team team, Map<String, Object> lineupData) {
+        // Strip fixture-specific fields, keep the order/plan
+        Map<String, Object> data = new LinkedHashMap<>(lineupData);
+        data.remove("saveAsDefault");
+        data.remove("tossChoice");
+        data.remove("batOrBowl");
+
+        DefaultLineup def = defaultLineupRepository.findByTeamId(team.getId())
+                .orElse(DefaultLineup.builder().team(team).build());
+        def.setLineupData(data);
+        defaultLineupRepository.save(def);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDefaultLineup(User user) {
+        Team team = teamRepository.findByOwner(user)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+        Optional<DefaultLineup> opt = defaultLineupRepository.findByTeamId(team.getId());
+        if (opt.isEmpty()) return Map.of("found", false);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("found", true);
+        result.put("lineupData", opt.get().getLineupData());
+        return result;
     }
 }

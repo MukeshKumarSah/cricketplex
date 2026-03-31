@@ -132,6 +132,7 @@ export default function Matches() {
               <span className="mt-col-date">Date</span>
               <span className="mt-col-format">Format</span>
               <span className="mt-col-fixture">Fixture</span>
+              <span className="mt-col-weather">Weather</span>
               <span className="mt-col-action">
                 {activeTab === 'upcoming' ? 'Action' : 'Result'}
               </span>
@@ -145,6 +146,7 @@ export default function Matches() {
                   <div className="mt-col-date">
                     <span className="matches-date">{formatDate(m.matchDate)}</span>
                     <span className="matches-round">R{m.round} · Div {m.leagueLabel}</span>
+                    {m.matchStartTimeUtc && <span className="matches-time">{m.matchStartTimeUtc} UTC</span>}
                   </div>
 
                   {/* Format */}
@@ -196,6 +198,21 @@ export default function Matches() {
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Weather */}
+                  <div className="mt-col-weather">
+                    {m.weather?.available ? (
+                      <div className="matches-weather">
+                        <span className="matches-weather-icon">{m.weather.icon}</span>
+                        <div className="matches-weather-info">
+                          <span className="matches-weather-condition">{m.weather.condition}</span>
+                          <span className="matches-weather-temp">{m.weather.temperature}°C · {m.weather.humidity}%</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="matches-weather-na">Forecast N/A</span>
+                    )}
                   </div>
 
                   {/* Action / Result */}

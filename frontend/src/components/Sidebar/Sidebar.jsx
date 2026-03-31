@@ -19,6 +19,7 @@ import {
   HiOutlineShieldCheck,
   HiOutlineMagnifyingGlass,
   HiOutlineGlobeAlt,
+  HiOutlineBolt,
 } from 'react-icons/hi2';
 import './Sidebar.css';
 
@@ -26,6 +27,7 @@ const menuItems = [
   { label: 'Dashboard', icon: HiOutlineHome, path: '/' },
   { label: 'Squad', icon: HiOutlineUserGroup, path: '/squad' },
   { label: 'Matches', icon: HiOutlineTrophy, path: '/matches' },
+  { label: 'Challenges', icon: HiOutlineBolt, path: '/challenges' },
   { label: 'Academy', icon: HiOutlineAcademicCap, path: '/academy' },
   { label: 'Finances', icon: HiOutlineBanknotes, path: '/finances' },
   { label: 'Transfer Market', icon: HiOutlineArrowsRightLeft, path: '/transfer-market' },

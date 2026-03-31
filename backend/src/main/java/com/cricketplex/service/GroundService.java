@@ -83,6 +83,7 @@ public class GroundService {
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Fixture f : fixtures) {
+            if (f.getLeague() == null) continue; // skip friendly matches
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("id", f.getId());
             map.put("opponentName", f.getAwayTeam().getTeamName());
@@ -94,6 +95,7 @@ public class GroundService {
             map.put("round", f.getRound());
             map.put("leagueLabel", f.getLeague().getDivision() + "." + f.getLeague().getLeagueNumber());
             map.put("pitchType", f.getPitchType());
+            map.put("matchStartTimeUtc", f.getLeague().getMatchStartTime());
             result.add(map);
         }
         return result;

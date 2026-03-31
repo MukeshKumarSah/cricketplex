@@ -1,0 +1,373 @@
+package com.cricketplex.controller;
+
+import com.cricketplex.entity.*;
+import com.cricketplex.repository.BallEventRepository;
+import com.cricketplex.repository.InningsRepository;
+import com.cricketplex.repository.MatchResultRepository;
+import com.cricketplex.repository.UserRepository;
+import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.MatchEngine;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+@RestController
+@RequestMapping("/api/match")
+@RequiredArgsConstructor
+public class MatchSimController {
+
+    private static final int BALL_INTERVAL_SECONDS = 5;
+    private static final int INNINGS_BREAK_SECONDS = 300;
+
+    private final MatchEngine matchEngine;
+    private final MatchResultRepository matchResultRepository;
+    private final InningsRepository inningsRepository;
+    private final BallEventRepository ballEventRepository;
+    private final UserRepository userRepository;
+    private final com.cricketplex.repository.FixtureRepository fixtureRepository;
+
+    /**
+     * Simulate a match for a given fixture.
+     */
+    @PostMapping("/simulate/{fixtureId}")
+    public ResponseEntity<?> simulateMatch(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId) {
+
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        try {
+            MatchResult result = matchEngine.simulateMatch(fixtureId);
+            return ResponseEntity.ok(buildResultResponse(result));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get match result for a fixture.
+     */
+    @GetMapping("/result/{fixtureId}")
+    public ResponseEntity<?> getMatchResult(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId) {
+
+        Optional<MatchResult> opt = matchResultRepository.findByFixtureId(fixtureId);
+        if (opt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("found", false));
+        }
+
+        MatchResult mr = opt.get();
+        autoCompleteIfExpired(mr);
+        return ResponseEntity.ok(buildResultResponse(mr));
+    }
+
+    // ─── Response builder ───────────────────────────────────────
+
+    private Map<String, Object> buildResultResponse(MatchResult result) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("found", true);
+        resp.put("id", result.getId());
+        resp.put("fixtureId", result.getFixture().getId());
+
+        // Fixture info
+        Fixture fixture = result.getFixture();
+        resp.put("homeTeamName", fixture.getHomeTeam().getTeamName());
+        resp.put("homeTeamId", fixture.getHomeTeam().getId());
+        resp.put("homeTeamPicUrl", fixture.getHomeTeam().getTeamProfilePicUrl());
+        resp.put("awayTeamName", fixture.getAwayTeam().getTeamName());
+        resp.put("awayTeamId", fixture.getAwayTeam().getId());
+        resp.put("awayTeamPicUrl", fixture.getAwayTeam().getTeamProfilePicUrl());
+        String format = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();
+        resp.put("format", format);
+        resp.put("matchDate", fixture.getMatchDate() != null ? fixture.getMatchDate().toString() : null);
+        resp.put("matchStartTimeUtc", fixture.getLeague() != null ? fixture.getLeague().getMatchStartTime() : null);
+        resp.put("groundName", fixture.getHomeTeam().getGroundName());
+        resp.put("pitchType", fixture.getPitchType());
+        resp.put("matchType", fixture.getMatchType());
+        resp.put("fixtureStatus", fixture.getStatus());
+        resp.put("createdAt", result.getCreatedAt() != null
+                ? result.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null);
+
+        // Ball counts per innings for time-based calculation
+        List<Integer> ballCounts = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            long count = ballEventRepository.countByInningsId(inn.getId());
+            ballCounts.add((int) count);
+        }
+        resp.put("ballCounts", ballCounts);
+        resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
+        resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
+
+        // Toss
+        resp.put("tossWinner", result.getTossWinner().getTeamName());
+        resp.put("tossWinnerId", result.getTossWinner().getId());
+        resp.put("tossDecision", result.getTossDecision());
+
+        // Result
+        resp.put("resultType", result.getResultType());
+        resp.put("resultMargin", result.getResultMargin());
+        if (result.getWinner() != null) {
+            resp.put("winner", result.getWinner().getTeamName());
+            resp.put("winnerId", result.getWinner().getId());
+        }
+
+        // Man of the match
+        if (result.getManOfMatch() != null) {
+            resp.put("manOfMatch", result.getManOfMatch().getFirstName() + " " + result.getManOfMatch().getLastName());
+            resp.put("manOfMatchId", result.getManOfMatch().getId());
+        }
+
+        // Summary line
+        resp.put("summary", buildSummaryLine(result));
+
+        // Innings
+        List<Map<String, Object>> inningsList = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            inningsList.add(buildInningsResponse(inn));
+        }
+        resp.put("innings", inningsList);
+
+        return resp;
+    }
+
+    private Map<String, Object> buildInningsResponse(Innings inn) {
+        Map<String, Object> innMap = new LinkedHashMap<>();
+        innMap.put("inningsNumber", inn.getInningsNumber());
+        innMap.put("battingTeam", inn.getBattingTeam().getTeamName());
+        innMap.put("battingTeamId", inn.getBattingTeam().getId());
+        innMap.put("bowlingTeam", inn.getBowlingTeam().getTeamName());
+        innMap.put("totalRuns", inn.getTotalRuns());
+        innMap.put("totalWickets", inn.getTotalWickets());
+        innMap.put("totalOvers", inn.getTotalOvers());
+        innMap.put("extras", inn.getExtras());
+        innMap.put("allOut", inn.getAllOut());
+        innMap.put("scoreDisplay", inn.getTotalRuns() + "/" + inn.getTotalWickets()
+                + " (" + formatOvers(inn.getTotalOvers()) + " ov)");
+
+        // Batting scorecard
+        List<Map<String, Object>> batCards = new ArrayList<>();
+        List<BattingScorecard> sortedBat = new ArrayList<>(inn.getBattingCards());
+        sortedBat.sort(Comparator.comparingInt(BattingScorecard::getBattingPosition));
+        for (BattingScorecard bc : sortedBat) {
+            Map<String, Object> card = new LinkedHashMap<>();
+            card.put("playerId", bc.getPlayer().getId());
+            card.put("playerName", bc.getPlayer().getFirstName() + " " + bc.getPlayer().getLastName());
+            card.put("battingPosition", bc.getBattingPosition());
+            card.put("runs", bc.getRunsScored());
+            card.put("balls", bc.getBallsFaced());
+            card.put("fours", bc.getFours());
+            card.put("sixes", bc.getSixes());
+            card.put("strikeRate", bc.getStrikeRate());
+            card.put("dismissal", bc.getDismissalType());
+            if (bc.getBowler() != null) {
+                card.put("bowler", bc.getBowler().getFirstName() + " " + bc.getBowler().getLastName());
+            }
+            if (bc.getFielder() != null) {
+                card.put("fielder", bc.getFielder().getFirstName() + " " + bc.getFielder().getLastName());
+            }
+            card.put("notOut", bc.getDismissalType() == null);
+            batCards.add(card);
+        }
+        innMap.put("battingCard", batCards);
+
+        // Bowling scorecard
+        List<Map<String, Object>> bowlCards = new ArrayList<>();
+        List<BowlingScorecard> sortedBowl = new ArrayList<>(inn.getBowlingCards());
+        sortedBowl.sort((a, b) -> Double.compare(b.getWickets(), a.getWickets()));
+        for (BowlingScorecard bc : sortedBowl) {
+            Map<String, Object> card = new LinkedHashMap<>();
+            card.put("playerId", bc.getPlayer().getId());
+            card.put("playerName", bc.getPlayer().getFirstName() + " " + bc.getPlayer().getLastName());
+            card.put("overs", formatOvers(bc.getOvers()));
+            card.put("maidens", bc.getMaidens());
+            card.put("runs", bc.getRunsConceded());
+            card.put("wickets", bc.getWickets());
+            card.put("economy", bc.getEconomy());
+            card.put("dotBalls", bc.getDotBalls());
+            card.put("wides", bc.getWides());
+            card.put("noBalls", bc.getNoBalls());
+            bowlCards.add(card);
+        }
+        innMap.put("bowlingCard", bowlCards);
+
+        return innMap;
+    }
+
+    private String buildSummaryLine(MatchResult result) {
+        if ("TIE".equals(result.getResultType())) {
+            return "Match tied!";
+        }
+        if (result.getWinner() == null) {
+            return "Match drawn";
+        }
+        String winner = result.getWinner().getTeamName();
+        if ("RUNS".equals(result.getResultType())) {
+            return winner + " won by " + result.getResultMargin() + " runs";
+        }
+        if ("WICKETS".equals(result.getResultType())) {
+            return winner + " won by " + result.getResultMargin() + " wickets";
+        }
+        return winner + " won";
+    }
+
+    private String formatOvers(Double overs) {
+        if (overs == null) return "0";
+        int full = overs.intValue();
+        int balls = (int) Math.round((overs - full) * 10);
+        if (balls >= 6) {
+            full++;
+            balls = 0;
+        }
+        return balls > 0 ? full + "." + balls : String.valueOf(full);
+    }
+
+    /**
+     * Auto-complete fixture if enough time has elapsed since match started.
+     */
+    private void autoCompleteIfExpired(MatchResult result) {
+        Fixture fixture = result.getFixture();
+        if (!"IN_PROGRESS".equals(fixture.getStatus())) return;
+        if (result.getCreatedAt() == null) return;
+
+        long totalBalls = 0;
+        for (Innings inn : result.getInningsList()) {
+            totalBalls += ballEventRepository.countByInningsId(inn.getId());
+        }
+        int inningsCount = result.getInningsList().size();
+        int breakTime = inningsCount > 1 ? INNINGS_BREAK_SECONDS : 0;
+        long totalSeconds = totalBalls * BALL_INTERVAL_SECONDS + breakTime;
+        long elapsed = ChronoUnit.SECONDS.between(result.getCreatedAt(), LocalDateTime.now());
+
+        if (elapsed >= totalSeconds) {
+            fixture.setStatus("COMPLETED");
+            fixtureRepository.save(fixture);
+        }
+    }
+
+    /**
+     * Get ball-by-ball commentary for a match.
+     */
+    @GetMapping("/commentary/{fixtureId}")
+    public ResponseEntity<?> getCommentary(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId) {
+
+        Optional<MatchResult> opt = matchResultRepository.findByFixtureId(fixtureId);
+        if (opt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("found", false));
+        }
+
+        MatchResult result = opt.get();
+        autoCompleteIfExpired(result);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("found", true);
+        resp.put("summary", buildSummaryLine(result));
+        resp.put("createdAt", result.getCreatedAt() != null
+                ? result.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null);
+        resp.put("fixtureStatus", result.getFixture().getStatus());
+
+        // Ball counts per innings
+        List<Integer> ballCounts = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            long count = ballEventRepository.countByInningsId(inn.getId());
+            ballCounts.add((int) count);
+        }
+        resp.put("ballCounts", ballCounts);
+        resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
+        resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
+        resp.put("tossWinner", result.getTossWinner().getTeamName());
+        resp.put("tossDecision", result.getTossDecision());
+
+        List<Map<String, Object>> inningsList = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            Map<String, Object> innMap = new LinkedHashMap<>();
+            innMap.put("inningsNumber", inn.getInningsNumber());
+            innMap.put("battingTeam", inn.getBattingTeam().getTeamName());
+            innMap.put("bowlingTeam", inn.getBowlingTeam().getTeamName());
+            innMap.put("scoreDisplay", inn.getTotalRuns() + "/" + inn.getTotalWickets()
+                    + " (" + formatOvers(inn.getTotalOvers()) + " ov)");
+
+            List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+            List<Map<String, Object>> balls = new ArrayList<>();
+            for (BallEvent be : events) {
+                Map<String, Object> b = new LinkedHashMap<>();
+                b.put("over", be.getOverNumber() - 1);
+                b.put("ball", be.getBallNumber());
+                b.put("overBall", (be.getOverNumber() - 1) + "." + be.getBallNumber());
+                b.put("batsman", be.getBatsman().getFirstName() + " " + be.getBatsman().getLastName());
+                b.put("bowler", be.getBowler().getFirstName() + " " + be.getBowler().getLastName());
+                b.put("runs", be.getRuns());
+                b.put("isWicket", be.getIsWicket());
+                b.put("isBoundary", be.getIsBoundary());
+                b.put("isSix", be.getIsSix());
+                b.put("isWide", be.getIsWide());
+                b.put("isNoBall", be.getIsNoBall());
+                b.put("isBye", be.getIsBye());
+                b.put("isLegBye", be.getIsLegBye());
+                b.put("dismissalType", be.getDismissalType());
+                if (be.getFielder() != null) {
+                    b.put("fielder", be.getFielder().getFirstName() + " " + be.getFielder().getLastName());
+                }
+                b.put("commentary", be.getCommentary());
+                balls.add(b);
+            }
+            innMap.put("ballEvents", balls);
+            inningsList.add(innMap);
+        }
+        resp.put("innings", inningsList);
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Get head-to-head rivalry between two teams.
+     */
+    @GetMapping("/rivalry/{team1Id}/{team2Id}")
+    public ResponseEntity<?> getRivalry(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID team1Id,
+            @PathVariable UUID team2Id) {
+
+        List<MatchResult> results = matchResultRepository.findBetweenTeams(team1Id, team2Id);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        int team1Wins = 0, team2Wins = 0, draws = 0, ties = 0;
+
+        List<Map<String, Object>> matches = new ArrayList<>();
+        for (MatchResult mr : results) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("date", mr.getFixture().getMatchDate() != null ? mr.getFixture().getMatchDate().toString() : null);
+            m.put("format", mr.getFixture().getLeague() != null ? mr.getFixture().getLeague().getFormat() : mr.getFixture().getFormat());
+            m.put("homeTeam", mr.getFixture().getHomeTeam().getTeamName());
+            m.put("awayTeam", mr.getFixture().getAwayTeam().getTeamName());
+            m.put("summary", buildSummaryLine(mr));
+            m.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
+
+            if (mr.getWinner() != null) {
+                if (mr.getWinner().getId().equals(team1Id)) team1Wins++;
+                else if (mr.getWinner().getId().equals(team2Id)) team2Wins++;
+            } else if ("TIE".equals(mr.getResultType())) {
+                ties++;
+            } else {
+                draws++;
+            }
+            matches.add(m);
+        }
+
+        resp.put("totalMatches", results.size());
+        resp.put("team1Wins", team1Wins);
+        resp.put("team2Wins", team2Wins);
+        resp.put("draws", draws);
+        resp.put("ties", ties);
+        resp.put("matches", matches);
+        return ResponseEntity.ok(resp);
+    }
+}

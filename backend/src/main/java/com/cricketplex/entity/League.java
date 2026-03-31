@@ -37,6 +37,10 @@ public class League {
     @Builder.Default
     private Integer season = 1;
 
+    @Column(name = "match_start_time", nullable = false, length = 5)
+    @Builder.Default
+    private String matchStartTime = "14:00";
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

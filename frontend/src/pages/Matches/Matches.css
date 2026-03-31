@@ -154,7 +154,7 @@
 
 .matches-table-head {
   display: grid;
-  grid-template-columns: 140px 100px 1fr 140px;
+  grid-template-columns: 140px 100px 1fr 150px 140px;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   background: #0f172a;
@@ -168,7 +168,7 @@
 
 .matches-row {
   display: grid;
-  grid-template-columns: 140px 100px 1fr 140px;
+  grid-template-columns: 140px 100px 1fr 150px 140px;
   gap: 1rem;
   padding: 0.8rem 1.25rem;
   align-items: center;
@@ -200,6 +200,10 @@
 .matches-round {
   font-size: 0.72rem;
   color: #64748b;
+}
+.matches-time {
+  font-size: 0.72rem;
+  color: #22d3ee;
 }
 
 /* ── Format Column ── */
@@ -343,6 +347,41 @@
   margin-right: 4px;
 }
 
+/* Weather column */
+.matches-weather {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.matches-weather-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.matches-weather-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.matches-weather-condition {
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.matches-weather-temp {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.matches-weather-na {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-style: italic;
+}
+
 .matches-live-btn {
   background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
@@ -374,7 +413,7 @@
 
   .matches-table-head,
   .matches-row {
-    grid-template-columns: 100px 70px 1fr 100px;
+    grid-template-columns: 100px 70px 1fr 110px 100px;
     gap: 0.5rem;
     padding: 0.6rem 0.8rem;
   }

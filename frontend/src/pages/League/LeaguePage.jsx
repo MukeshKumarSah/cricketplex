@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getLeagueDetail, getLeagueFixtures } from '../../api/auth';
+import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
   HiOutlineGlobeAlt,
@@ -16,6 +16,12 @@ const TABS = [
   { key: 'stats', label: 'Stats', icon: HiOutlineChartBar },
 ];
 
+const STAT_TABS = [
+  { key: 'batting', label: 'Batting' },
+  { key: 'bowling', label: 'Bowling' },
+  { key: 'fielding', label: 'Fielding' },
+];
+
 export default function LeaguePage() {
   const { id } = useParams();
   const [league, setLeague] = useState(null);
@@ -23,6 +29,9 @@ export default function LeaguePage() {
   const [activeTab, setActiveTab] = useState('standings');
   const [fixtureData, setFixtureData] = useState(null);
   const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [activeStatTab, setActiveStatTab] = useState('batting');
 
   useEffect(() => {
     setLoading(true);
@@ -40,7 +49,14 @@ export default function LeaguePage() {
         .catch(() => toast.error('Failed to load fixtures'))
         .finally(() => setFixturesLoading(false));
     }
-  }, [activeTab, id, fixtureData]);
+    if (activeTab === 'stats' && !statsData) {
+      setStatsLoading(true);
+      getLeaguePlayerStats(id)
+        .then((res) => setStatsData(res.data))
+        .catch(() => toast.error('Failed to load stats'))
+        .finally(() => setStatsLoading(false));
+    }
+  }, [activeTab, id, fixtureData, statsData]);
 
   if (loading) {
     return (
@@ -67,6 +83,7 @@ export default function LeaguePage() {
           <h1>{league.country} {league.format} {league.leagueId}</h1>
           <p className="lp-subtitle">
             Division {league.division} · League {league.leagueNumber} · Season {league.season} · {league.totalTeams} Teams
+            {league.matchStartTimeUtc && <> · Match Time: {league.matchStartTimeUtc} UTC</>}
           </p>
         </div>
       </div>
@@ -161,6 +178,9 @@ export default function LeaguePage() {
                               day: 'numeric',
                             })
                           : ''}
+                        {round.matchStartTimeUtc && (
+                          <span className="lp-round-time"> · {round.matchStartTimeUtc} UTC</span>
+                        )}
                       </span>
                     </div>
                     <div className="lp-round-matches">
@@ -212,9 +232,165 @@ export default function LeaguePage() {
         )}
 
         {activeTab === 'stats' && (
-          <div className="lp-coming-soon">
-            <HiOutlineChartBar className="lp-coming-icon" />
-            <p>Stats coming soon</p>
+          <div className="lp-stats">
+            {statsLoading ? (
+              <div className="lp-loading">Loading stats...</div>
+            ) : !statsData || (statsData.batting.length === 0 && statsData.bowling.length === 0 && statsData.fielding.length === 0) ? (
+              <div className="lp-coming-soon">
+                <HiOutlineChartBar className="lp-coming-icon" />
+                <p>No stats available yet — matches haven't been played</p>
+              </div>
+            ) : (
+              <>
+                <div className="lp-stat-tabs">
+                  {STAT_TABS.map((st) => (
+                    <button
+                      key={st.key}
+                      className={`lp-stat-tab ${activeStatTab === st.key ? 'active' : ''}`}
+                      onClick={() => setActiveStatTab(st.key)}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Batting Stats */}
+                {activeStatTab === 'batting' && (
+                  <div className="lp-stat-table-wrap">
+                    <table className="lp-stat-table">
+                      <thead>
+                        <tr>
+                          <th className="lp-st-pos">#</th>
+                          <th className="lp-st-player">Player</th>
+                          <th className="lp-st-team">Team</th>
+                          <th>Bat</th>
+                          <th>M</th>
+                          <th>Inn</th>
+                          <th>NO</th>
+                          <th>Runs</th>
+                          <th>BF</th>
+                          <th>HS</th>
+                          <th>SR</th>
+                          <th>Avg</th>
+                          <th>100s</th>
+                          <th>50s</th>
+                          <th>4s</th>
+                          <th>6s</th>
+                          <th>0s</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statsData.batting.map((b, i) => (
+                          <tr key={b.playerId}>
+                            <td className="lp-st-pos">{i + 1}</td>
+                            <td className="lp-st-player">{b.playerName}</td>
+                            <td className="lp-st-team">{b.teamName}</td>
+                            <td>{b.batHand}</td>
+                            <td>{b.matches}</td>
+                            <td>{b.innings}</td>
+                            <td>{b.notOuts}</td>
+                            <td className="lp-st-highlight">{b.runs}</td>
+                            <td>{b.balls}</td>
+                            <td>{b.highScore}</td>
+                            <td>{b.strikeRate}</td>
+                            <td>{b.average}</td>
+                            <td>{b.hundreds}</td>
+                            <td>{b.fifties}</td>
+                            <td>{b.fours}</td>
+                            <td>{b.sixes}</td>
+                            <td>{b.ducks}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Bowling Stats */}
+                {activeStatTab === 'bowling' && (
+                  <div className="lp-stat-table-wrap">
+                    <table className="lp-stat-table">
+                      <thead>
+                        <tr>
+                          <th className="lp-st-pos">#</th>
+                          <th className="lp-st-player">Player</th>
+                          <th className="lp-st-team">Team</th>
+                          <th>Type</th>
+                          <th>M</th>
+                          <th>Inn</th>
+                          <th>Balls</th>
+                          <th>Mdns</th>
+                          <th>Runs</th>
+                          <th className="lp-st-highlight-head">Wkts</th>
+                          <th>BB</th>
+                          <th>Avg</th>
+                          <th>SR</th>
+                          <th>Econ</th>
+                          <th>3WI</th>
+                          <th>5WI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statsData.bowling.map((b, i) => (
+                          <tr key={b.playerId}>
+                            <td className="lp-st-pos">{i + 1}</td>
+                            <td className="lp-st-player">{b.playerName}</td>
+                            <td className="lp-st-team">{b.teamName}</td>
+                            <td>{b.bowlType}</td>
+                            <td>{b.matches}</td>
+                            <td>{b.innings}</td>
+                            <td>{b.balls}</td>
+                            <td>{b.maidens}</td>
+                            <td>{b.runs}</td>
+                            <td className="lp-st-highlight">{b.wickets}</td>
+                            <td>{b.bestBowling}</td>
+                            <td>{b.average}</td>
+                            <td>{b.strikeRate}</td>
+                            <td>{b.economy}</td>
+                            <td>{b.threeWI}</td>
+                            <td>{b.fiveWI}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Fielding Stats */}
+                {activeStatTab === 'fielding' && (
+                  <div className="lp-stat-table-wrap">
+                    <table className="lp-stat-table">
+                      <thead>
+                        <tr>
+                          <th className="lp-st-pos">#</th>
+                          <th className="lp-st-player">Player</th>
+                          <th className="lp-st-team">Team</th>
+                          <th>M</th>
+                          <th>Catches</th>
+                          <th>Stumpings</th>
+                          <th>Runouts</th>
+                          <th className="lp-st-highlight-head">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {statsData.fielding.map((f, i) => (
+                          <tr key={f.playerId}>
+                            <td className="lp-st-pos">{i + 1}</td>
+                            <td className="lp-st-player">{f.playerName}</td>
+                            <td className="lp-st-team">{f.teamName}</td>
+                            <td>{f.matches}</td>
+                            <td>{f.catches}</td>
+                            <td>{f.stumpings}</td>
+                            <td>{f.runouts}</td>
+                            <td className="lp-st-highlight">{f.total}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

@@ -17,6 +17,8 @@ import Search from '../Search/Search';
 import LeaguePage from '../League/LeaguePage';
 import Matches from '../Matches/Matches';
 import LineupSetup from '../Lineup/LineupSetup';
+import Challenges from '../Challenges/Challenges';
+import MatchCenter from '../MatchCenter/MatchCenter';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -199,6 +201,22 @@ export default function Home() {
             <Route
               path="match/:fixtureId/lineup"
               element={<LineupSetup />}
+            />
+            <Route
+              path="match/:fixtureId/scorecard"
+              element={<MatchCenter />}
+            />
+            <Route
+              path="match/:fixtureId/commentary"
+              element={<MatchCenter />}
+            />
+            <Route
+              path="match/:fixtureId/live"
+              element={<MatchCenter />}
+            />
+            <Route
+              path="challenges"
+              element={<Challenges />}
             />
             {user?.role === 'ADMIN' && (
               <Route
