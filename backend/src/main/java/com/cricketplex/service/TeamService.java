@@ -48,6 +48,28 @@ public class TeamService {
                 .build();
         team = teamRepository.save(team);
 
+        // Generate 16 players for this team
+        generateSquadForTeam(team);
+
+        // Assign team to leagues (one per format: T20, ODI, FC)
+        assignTeamToLeagues(team);
+
+
+        owner.setTeamSetupDone(true);
+        userRepository.save(owner);
+        return team;
+    }
+
+    /**
+     * Generate 16 players for any team (user or bot).
+     * Composition: 6 batsmen (4 RH + 2 LH), 2 keepers (1 RH + 1 LH),
+     * 4 bowlers + 4 all-rounders with specific bowl-type mix.
+     */
+    public void generateSquadForTeam(Team team) {
+        // Skip if team already has players
+        List<Player> existing = playerRepository.findByTeam(team);
+        if (!existing.isEmpty()) return;
+
         // Fetch name pool from ALL countries
         List<PlayerFirstName> poolFirst = firstNameRepo.findAll();
         List<PlayerLastName> poolLast = lastNameRepo.findAll();
@@ -56,35 +78,18 @@ public class TeamService {
             throw new IllegalArgumentException("No player names available. Admin must add name pools first.");
         }
 
-        // Load all existing name combos globally to ensure uniqueness
         Set<String> globalUsed = playerRepository.findAllNameCombos();
         Set<String> localUsed = new HashSet<>();
-
         Random rng = new Random();
         List<Player> squad = new ArrayList<>(SQUAD_SIZE);
 
-        // ── 1. Batsmen: 6 (4 RH, 2 LH) ──
-        generateBatsmen(squad, team, poolFirst, poolLast,
-                rng, globalUsed, localUsed);
-
-        // ── 2. Keepers: 2 (1 RH, 1 LH) ──
-        generateKeepers(squad, team, poolFirst, poolLast,
-                rng, globalUsed, localUsed);
-
-        // ── 3. Bowlers + All-Rounders: 8 with specific bowl-types ──
-        generateBowlersAndArs(squad, team, poolFirst, poolLast,
-                rng, globalUsed, localUsed);
+        generateBatsmen(squad, team, poolFirst, poolLast, rng, globalUsed, localUsed);
+        generateKeepers(squad, team, poolFirst, poolLast, rng, globalUsed, localUsed);
+        generateBowlersAndArs(squad, team, poolFirst, poolLast, rng, globalUsed, localUsed);
 
         if (!squad.isEmpty()) {
             playerRepository.saveAll(squad);
         }
-
-        // Assign team to leagues (one per format: T20, ODI, FC)
-        assignTeamToLeagues(team);
-
-        owner.setTeamSetupDone(true);
-        userRepository.save(owner);
-        return team;
     }
 
     /**

@@ -147,6 +147,12 @@
 .tl-row:hover {
   background: rgba(255, 255, 255, 0.02);
 }
+.tl-row-clickable {
+  cursor: pointer;
+}
+.tl-row-clickable:hover {
+  background: rgba(34, 211, 238, 0.04);
+}
 
 /* ── Team cell ── */
 .tl-team-info {

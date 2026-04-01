@@ -1310,24 +1310,19 @@ public class MatchEngine {
         Optional<MatchLineup> existing = matchLineupRepository.findByFixtureIdAndTeamId(fixture.getId(), team.getId());
         if (existing.isPresent()) return existing.get();
 
-        // Auto-generate for bot teams
-        if (!Boolean.TRUE.equals(team.getIsBot())) {
-            throw new IllegalStateException("No lineup found for non-bot team: " + team.getTeamName());
-        }
+        // Auto-generate lineup for any team without one (bot or user who forgot)
+        log.info("No lineup found for team {} — auto-generating", team.getTeamName());
 
         List<Player> squad = playerRepository.findByTeam(team);
         if (squad.size() < 11) {
-            throw new IllegalStateException("Bot team " + team.getTeamName() + " has fewer than 11 players");
+            throw new IllegalStateException("Team " + team.getTeamName() + " has fewer than 11 players (" + squad.size() + ")");
         }
 
-        // Sort by rating descending
-        squad.sort((a, b) -> Integer.compare(b.getRating(), a.getRating()));
+        // Pick best 11 using: 5 BAT + 1 KP + 2 AR + 3 BOWL
+        List<Player> selected = autoSelectPlaying11(squad);
 
-        // Pick best 11 ensuring role balance
-        List<Player> selected = selectBotPlaying11(squad);
-
-        // Sort selected by role for batting order
-        List<Player> battingOrder = buildBotBattingOrder(selected);
+        // Build batting order
+        List<Player> battingOrder = buildAutoBattingOrder(selected);
 
         MatchLineup lineup = MatchLineup.builder()
                 .fixture(fixture)
@@ -1335,22 +1330,22 @@ public class MatchEngine {
                 .bowlingPlan("BALANCED")
                 .build();
 
-        // Find keeper
+        // Keeper = best keeper-rated among KEEPERs selected, fallback to highest keeperRating
         Player keeper = selected.stream()
                 .filter(p -> "KEEPER".equals(p.getRole()))
-                .findFirst()
+                .max(Comparator.comparingInt(Player::getKeeperRating))
                 .orElse(selected.stream()
                         .max(Comparator.comparingInt(Player::getKeeperRating))
                         .orElse(selected.get(0)));
         lineup.setKeeper(keeper);
 
-        // Captain = highest rated
+        // Captain = highest overall rating
         Player captain = selected.stream()
                 .max(Comparator.comparingInt(Player::getRating))
                 .orElse(selected.get(0));
         lineup.setCaptain(captain);
 
-        // Build batting order
+        // Build batting positions
         for (int i = 0; i < battingOrder.size(); i++) {
             LineupPlayer lp = LineupPlayer.builder()
                     .lineup(lineup)
@@ -1361,27 +1356,15 @@ public class MatchEngine {
             lineup.getPlayers().add(lp);
         }
 
-        // Build bowling orders
+        // Bowling: top 5 by bowlRating from the selected 11
         List<Player> topBowlers = selected.stream()
-                .filter(p -> p.getBowlRating() >= 25)
                 .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
                 .limit(5)
                 .toList();
 
-        List<Player> bowlers = new ArrayList<>(topBowlers);
-        if (bowlers.size() < 5) {
-            // Add more players by bowl rating
-            List<Player> extras = selected.stream()
-                    .filter(p -> !topBowlers.contains(p))
-                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
-                    .limit(5 - bowlers.size())
-                    .toList();
-            bowlers.addAll(extras);
-        }
-
         int maxOvers = getMaxOvers(format);
         for (int over = 1; over <= maxOvers; over++) {
-            Player bowler = bowlers.get((over - 1) % bowlers.size());
+            Player bowler = topBowlers.get((over - 1) % topBowlers.size());
             BowlingOrder bo = BowlingOrder.builder()
                     .lineup(lineup)
                     .overNumber(over)
@@ -1394,71 +1377,108 @@ public class MatchEngine {
         return matchLineupRepository.save(lineup);
     }
 
-    private List<Player> selectBotPlaying11(List<Player> squad) {
+    /**
+     * Auto-select playing 11: 5 BATSMAN + 1 KEEPER + 2 ALL_ROUNDER + 3 BOWLER.
+     * Selection criteria:
+     *  - 5 batsmen with highest batRating
+     *  - 1 keeper with highest keeperRating
+     *  - 2 all-rounders with highest combined (batRating + bowlRating)
+     *  - 3 bowlers with highest bowlRating
+     * Falls back to fill any shortfall from remaining players.
+     */
+    private List<Player> autoSelectPlaying11(List<Player> squad) {
         List<Player> selected = new ArrayList<>();
-        int batsmen = 0, bowlers = 0, allRounders = 0, keepers = 0;
+        Set<UUID> pickedIds = new HashSet<>();
 
-        for (Player p : squad) {
-            if (selected.size() >= 11) break;
-            String role = p.getRole();
-            switch (role) {
-                case "KEEPER" -> {
-                    if (keepers < 1) { selected.add(p); keepers++; }
-                }
-                case "BATSMAN" -> {
-                    if (batsmen < 4) { selected.add(p); batsmen++; }
-                }
-                case "ALL_ROUNDER" -> {
-                    if (allRounders < 3) { selected.add(p); allRounders++; }
-                }
-                case "BOWLER" -> {
-                    if (bowlers < 4) { selected.add(p); bowlers++; }
-                }
-            }
+        // 1. Best keeper by keeperRating
+        squad.stream()
+                .filter(p -> "KEEPER".equals(p.getRole()))
+                .max(Comparator.comparingInt(Player::getKeeperRating))
+                .ifPresent(p -> { selected.add(p); pickedIds.add(p.getId()); });
+
+        // Fallback: if no KEEPER found, pick player with highest keeperRating
+        if (selected.isEmpty()) {
+            squad.stream()
+                    .max(Comparator.comparingInt(Player::getKeeperRating))
+                    .ifPresent(p -> { selected.add(p); pickedIds.add(p.getId()); });
         }
 
-        // Fill remaining with best available
-        for (Player p : squad) {
-            if (selected.size() >= 11) break;
-            if (!selected.contains(p)) {
-                selected.add(p);
-            }
+        // 2. Top 5 batsmen by batRating
+        squad.stream()
+                .filter(p -> "BATSMAN".equals(p.getRole()) && !pickedIds.contains(p.getId()))
+                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating()))
+                .limit(5)
+                .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
+
+        // 3. Top 2 all-rounders by combined bat+bowl
+        squad.stream()
+                .filter(p -> "ALL_ROUNDER".equals(p.getRole()) && !pickedIds.contains(p.getId()))
+                .sorted((a, b) -> Integer.compare(
+                        b.getBatRating() + b.getBowlRating(),
+                        a.getBatRating() + a.getBowlRating()))
+                .limit(2)
+                .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
+
+        // 4. Top 3 bowlers by bowlRating
+        squad.stream()
+                .filter(p -> "BOWLER".equals(p.getRole()) && !pickedIds.contains(p.getId()))
+                .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                .limit(3)
+                .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
+
+        // 5. Fill remaining slots if any role was short
+        if (selected.size() < 11) {
+            squad.stream()
+                    .filter(p -> !pickedIds.contains(p.getId()))
+                    .sorted((a, b) -> Integer.compare(b.getRating(), a.getRating()))
+                    .limit(11 - selected.size())
+                    .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
         }
 
         return selected.subList(0, Math.min(11, selected.size()));
     }
 
-    private List<Player> buildBotBattingOrder(List<Player> selected) {
+    /**
+     * Build batting order from selected 11:
+     * 1-5: batsmen sorted by batRating desc
+     * 6: keeper
+     * 7-8: all-rounders sorted by batRating desc
+     * 9-11: bowlers sorted by bowlRating desc (tail)
+     */
+    private List<Player> buildAutoBattingOrder(List<Player> selected) {
         List<Player> order = new ArrayList<>();
-        List<Player> pool = new ArrayList<>(selected);
 
-        // Openers: 2 best batsmen
-        pool.sort((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating()));
-        for (int i = 0; i < Math.min(2, pool.size()); i++) {
-            order.add(pool.get(i));
-        }
-        pool.removeAll(order);
+        // Batsmen first (by batting skill)
+        List<Player> bats = selected.stream()
+                .filter(p -> "BATSMAN".equals(p.getRole()))
+                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating()))
+                .toList();
+        order.addAll(bats);
 
-        // #3-#5: next best batsmen/all-rounders
-        pool.sort((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating()));
-        for (int i = 0; i < Math.min(3, pool.size()); i++) {
-            order.add(pool.get(i));
-        }
-        pool.subList(0, Math.min(3, pool.size())).clear();
+        // Keeper
+        selected.stream()
+                .filter(p -> "KEEPER".equals(p.getRole()))
+                .findFirst()
+                .ifPresent(order::add);
 
-        // #6-#7: Keeper + all rounder
-        List<Player> middle = new ArrayList<>(pool);
-        middle.sort((a, b) -> Integer.compare(
-                b.getBatRating() + b.getBowlRating(),
-                a.getBatRating() + a.getBowlRating()));
-        for (int i = 0; i < Math.min(2, middle.size()); i++) {
-            order.add(middle.get(i));
-        }
-        pool.removeAll(order);
+        // All-rounders (by bat skill)
+        List<Player> ars = selected.stream()
+                .filter(p -> "ALL_ROUNDER".equals(p.getRole()))
+                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating()))
+                .toList();
+        order.addAll(ars);
 
-        // #8-#11: bowlers
-        pool.sort((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()));
-        order.addAll(pool);
+        // Bowlers (by bowl skill — tailenders)
+        List<Player> bowls = selected.stream()
+                .filter(p -> "BOWLER".equals(p.getRole()))
+                .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                .toList();
+        order.addAll(bowls);
+
+        // Any remaining players not yet categorized
+        selected.stream()
+                .filter(p -> !order.contains(p))
+                .forEach(order::add);
 
         return order;
     }

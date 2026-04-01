@@ -35,6 +35,13 @@ export const updateMatchPitch = (matchId, pitchType) =>
 // Team List
 export const getTeamList = () => API.get('/teams');
 
+// Team Profile (public, any team)
+export const getTeamProfile = (teamId) => API.get(`/teams/${teamId}`);
+export const getTeamSquad = (teamId) => API.get(`/teams/${teamId}/squad`);
+export const getTeamMatches = (teamId) => API.get(`/teams/${teamId}/matches`);
+export const getTeamLeagues = (teamId) => API.get(`/teams/${teamId}/leagues`);
+export const getTeamGround = (teamId) => API.get(`/teams/${teamId}/ground`);
+
 // Squad
 export const getSquad = () => API.get('/squad');
 
@@ -98,6 +105,7 @@ export const getMatchResult = (fixtureId) => API.get(`/match/result/${fixtureId}
 export const getCommentary = (fixtureId) => API.get(`/match/commentary/${fixtureId}`);
 export const simulateMatch = (fixtureId) => API.post(`/match/simulate/${fixtureId}`);
 export const getRivalry = (team1Id, team2Id) => API.get(`/match/rivalry/${team1Id}/${team2Id}`);
+export const getFixturePreview = (fixtureId) => API.get(`/match/preview/${fixtureId}`);
 
 // Weather
 export const getWeatherForecast = () => API.get('/weather/forecast');

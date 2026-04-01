@@ -2,7 +2,9 @@ package com.cricketplex.service;
 
 import com.cricketplex.dto.*;
 import com.cricketplex.entity.Role;
+import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
+import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -12,11 +14,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -75,6 +80,7 @@ public class AuthService {
     }
 
     public AuthResponse.UserInfo getCurrentUser(User user) {
+        Optional<Team> teamOpt = teamRepository.findByOwner(user);
         return AuthResponse.UserInfo.builder()
                 .id(user.getId().toString())
                 .name(user.getName())
@@ -85,10 +91,12 @@ public class AuthService {
                 .isSubAdmin(user.getIsSubAdmin())
                 .teamSetupDone(user.getTeamSetupDone())
                 .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
+                .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
                 .build();
     }
 
     private AuthResponse buildAuthResponse(String token, User user) {
+        Optional<Team> teamOpt = teamRepository.findByOwner(user);
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
@@ -102,6 +110,7 @@ public class AuthService {
                         .isSubAdmin(user.getIsSubAdmin())
                         .teamSetupDone(user.getTeamSetupDone())
                         .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
+                        .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
                         .build())
                 .build();
     }

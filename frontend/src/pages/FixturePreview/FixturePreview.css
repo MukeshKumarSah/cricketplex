@@ -1,0 +1,410 @@
+.fp-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.fp-loading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 64px 0;
+  font-size: 15px;
+}
+
+/* ── Header ───────────────────────── */
+.fp-header {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.fp-header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.fp-format-badge {
+  background: #22d3ee22;
+  color: #22d3ee;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fp-league-link {
+  color: #818cf8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.fp-league-link:hover {
+  text-decoration: underline;
+}
+
+.fp-round {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Teams row */
+.fp-teams-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 18px;
+}
+
+.fp-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  min-width: 100px;
+}
+.fp-team:hover {
+  opacity: 0.8;
+}
+
+.fp-team-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #1e293b;
+}
+
+.fp-team-initials {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #1e293b;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border: 2px solid #334155;
+}
+
+.fp-team-name {
+  color: #f1f5f9;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fp-bot {
+  background: #334155;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.fp-vs-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.fp-vs {
+  font-size: 22px;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 2px;
+}
+
+.fp-status-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fp-status-tag[data-status='SCHEDULED'] {
+  background: #334155;
+  color: #94a3b8;
+}
+.fp-status-tag[data-status='IN_PROGRESS'] {
+  background: #dc262622;
+  color: #f87171;
+  animation: fpPulse 1.5s infinite;
+}
+.fp-status-tag[data-status='COMPLETED'] {
+  background: #16a34a22;
+  color: #4ade80;
+}
+
+@keyframes fpPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.fp-header-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+.fp-header-details span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.fp-header-details svg {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* ── Cards grid ───────────────────── */
+.fp-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.fp-card {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.fp-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0 0 14px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fp-card-icon {
+  font-size: 16px;
+  color: #22d3ee;
+}
+
+/* Pitch */
+.fp-pitch-type {
+  display: inline-block;
+  background: #22d3ee18;
+  color: #22d3ee;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.fp-pitch-desc {
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Weather */
+.fp-weather {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.fp-weather-icon {
+  font-size: 36px;
+}
+.fp-weather-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fp-weather-condition {
+  color: #f1f5f9;
+  font-size: 15px;
+  font-weight: 600;
+}
+.fp-weather-temp {
+  color: #94a3b8;
+  font-size: 13px;
+}
+.fp-weather-unavailable {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── Rivalry card ─────────────────── */
+.fp-rivalry-card {
+  margin-bottom: 20px;
+}
+
+.fp-no-rivalry {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+  font-style: italic;
+}
+
+.fp-rivalry-summary {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 8px;
+}
+
+.fp-rival-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.fp-rival-count {
+  font-size: 28px;
+  font-weight: 800;
+}
+.fp-rival-label {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 100px;
+}
+
+.fp-rival-home .fp-rival-count { color: #22d3ee; }
+.fp-rival-away .fp-rival-count { color: #f59e0b; }
+.fp-rival-draw .fp-rival-count { color: #64748b; }
+
+.fp-rival-total {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* Recent results */
+.fp-recent-title {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+}
+
+.fp-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  margin-bottom: 6px;
+}
+
+.fp-recent-date {
+  color: #64748b;
+  font-size: 11px;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.fp-recent-format {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.fp-recent-summary {
+  color: #cbd5e1;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Action buttons ───────────────── */
+.fp-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fp-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.fp-btn:hover {
+  transform: translateY(-1px);
+}
+.fp-btn:active {
+  transform: translateY(0);
+}
+
+.fp-btn-primary {
+  background: #3b82f6;
+  color: #fff;
+}
+.fp-btn-primary:hover {
+  background: #2563eb;
+}
+
+.fp-btn-accent {
+  background: #22d3ee;
+  color: #0a0f1a;
+}
+.fp-btn-accent:hover {
+  background: #06b6d4;
+}
+
+/* ── Responsive ───────────────────── */
+@media (max-width: 540px) {
+  .fp-cards {
+    grid-template-columns: 1fr;
+  }
+  .fp-teams-row {
+    gap: 16px;
+  }
+  .fp-team-logo, .fp-team-initials {
+    width: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+  .fp-rivalry-summary {
+    gap: 20px;
+  }
+}

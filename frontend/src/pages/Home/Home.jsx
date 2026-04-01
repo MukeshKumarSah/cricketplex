@@ -19,6 +19,8 @@ import Matches from '../Matches/Matches';
 import LineupSetup from '../Lineup/LineupSetup';
 import Challenges from '../Challenges/Challenges';
 import MatchCenter from '../MatchCenter/MatchCenter';
+import TeamProfile from '../TeamProfile/TeamProfile';
+import FixturePreview from '../FixturePreview/FixturePreview';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -84,14 +86,14 @@ export default function Home() {
             <div className="header-info-item">
               <HiOutlineCalendarDays className="header-info-icon" />
               <span className="header-info-text">
-                {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
               </span>
             </div>
             <div className="header-info-divider" />
             <div className="header-info-item">
               <HiOutlineClock className="header-info-icon" />
               <span className="header-info-text">
-                {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' })} UTC
               </span>
             </div>
             <div className="header-info-divider" />
@@ -179,6 +181,10 @@ export default function Home() {
               element={<TeamList />}
             />
             <Route
+              path="team/:teamId"
+              element={<TeamProfile />}
+            />
+            <Route
               path="squad"
               element={<Squad />}
             />
@@ -201,6 +207,10 @@ export default function Home() {
             <Route
               path="match/:fixtureId/lineup"
               element={<LineupSetup />}
+            />
+            <Route
+              path="match/:fixtureId/preview"
+              element={<FixturePreview />}
             />
             <Route
               path="match/:fixtureId/scorecard"

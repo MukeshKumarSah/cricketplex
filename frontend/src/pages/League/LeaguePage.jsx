@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -24,6 +24,7 @@ const STAT_TABS = [
 
 export default function LeaguePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [league, setLeague] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('standings');
@@ -172,10 +173,11 @@ export default function LeaguePage() {
                       <span className="lp-round-label">Round {round.round}</span>
                       <span className="lp-round-date">
                         {round.matchDate
-                          ? new Date(round.matchDate + 'T00:00:00').toLocaleDateString('en-US', {
+                          ? new Date(round.matchDate + 'T00:00:00Z').toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric',
+                              timeZone: 'UTC',
                             })
                           : ''}
                         {round.matchStartTimeUtc && (
@@ -185,7 +187,17 @@ export default function LeaguePage() {
                     </div>
                     <div className="lp-round-matches">
                       {round.matches.map((m) => (
-                        <div key={m.id} className="lp-match-card">
+                        <div
+                          key={m.id}
+                          className="lp-match-card lp-match-clickable"
+                          onClick={() => {
+                            if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') {
+                              navigate(`/match/${m.id}/scorecard`);
+                            } else {
+                              navigate(`/match/${m.id}/preview`);
+                            }
+                          }}
+                        >
                           <div className="lp-match-team lp-match-home">
                             {m.homeTeam.teamProfilePicUrl ? (
                               <img
@@ -203,7 +215,12 @@ export default function LeaguePage() {
                               {m.homeTeam.isBot && <span className="lp-bot-badge">BOT</span>}
                             </span>
                           </div>
-                          <span className="lp-match-vs">vs</span>
+                          <div className="lp-match-center">
+                            <span className="lp-match-vs">vs</span>
+                            {m.status === 'COMPLETED' && <span className="lp-match-status lp-status-completed">Completed</span>}
+                            {m.status === 'IN_PROGRESS' && <span className="lp-match-status lp-status-live">LIVE</span>}
+                            {m.status === 'SCHEDULED' && <span className="lp-match-status lp-status-scheduled">Scheduled</span>}
+                          </div>
                           <div className="lp-match-team lp-match-away">
                             <span className="lp-match-name lp-match-name-right">
                               {m.awayTeam.teamName}
@@ -367,6 +384,7 @@ export default function LeaguePage() {
                           <th className="lp-st-team">Team</th>
                           <th>M</th>
                           <th>Catches</th>
+                          <th>Keeper Ct</th>
                           <th>Stumpings</th>
                           <th>Runouts</th>
                           <th className="lp-st-highlight-head">Total</th>
@@ -379,7 +397,8 @@ export default function LeaguePage() {
                             <td className="lp-st-player">{f.playerName}</td>
                             <td className="lp-st-team">{f.teamName}</td>
                             <td>{f.matches}</td>
-                            <td>{f.catches}</td>
+                            <td>{f.fielderCatches}</td>
+                            <td>{f.keeperCatches}</td>
                             <td>{f.stumpings}</td>
                             <td>{f.runouts}</td>
                             <td className="lp-st-highlight">{f.total}</td>

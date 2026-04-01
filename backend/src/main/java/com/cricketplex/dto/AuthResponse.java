@@ -25,5 +25,6 @@ public class AuthResponse {
         private Boolean isSubAdmin;
         private Boolean teamSetupDone;
         private String profilePicUrl;
+        private String teamId;
     }
 }

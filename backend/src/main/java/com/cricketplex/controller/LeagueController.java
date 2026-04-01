@@ -18,6 +18,7 @@ public class LeagueController {
     private final LeagueTeamRepository leagueTeamRepository;
     private final FixtureRepository fixtureRepository;
     private final MatchResultRepository matchResultRepository;
+    private final BallEventRepository ballEventRepository;
     private final FixtureService fixtureService;
 
     @GetMapping("/{id}")
@@ -60,7 +61,7 @@ public class LeagueController {
             for (Innings inn : mr.getInningsList()) {
                 UUID batTeamId = inn.getBattingTeam().getId();
                 UUID bowlTeamId = inn.getBowlingTeam().getId();
-                double overs = inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0;
+                double overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
                 int runs = inn.getTotalRuns() != null ? inn.getTotalRuns() : 0;
 
                 double[] batNrr = nrrData.get(batTeamId);
@@ -196,10 +197,22 @@ public class LeagueController {
         Map<UUID, FieldAgg> fieldMap = new LinkedHashMap<>();
         // Track matches per player per team
         Map<UUID, Set<UUID>> playerMatches = new LinkedHashMap<>();
+        // Track dot balls per batsman across innings
+        Map<UUID, Integer> batsmanDots = new LinkedHashMap<>();
 
         for (MatchResult mr : completedResults) {
             UUID matchId = mr.getFixture().getId();
             for (Innings inn : mr.getInningsList()) {
+                // Count dot balls per batsman from ball events
+                List<BallEvent> events = ballEventRepository
+                        .findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+                for (BallEvent be : events) {
+                    if (be.getRuns() == 0 && !be.getIsWide() && !be.getIsNoBall()
+                            && !be.getIsBye() && !be.getIsLegBye()) {
+                        batsmanDots.merge(be.getBatsman().getId(), 1, Integer::sum);
+                    }
+                }
+
                 // Batting
                 for (BattingScorecard bc : inn.getBattingCards()) {
                     UUID pid = bc.getPlayer().getId();
@@ -214,8 +227,6 @@ public class LeagueController {
                     if (bc.getRunsScored() >= 100) agg.hundreds++;
                     if (bc.getRunsScored() >= 50 && bc.getRunsScored() < 100) agg.fifties++;
                     if (bc.getRunsScored() == 0 && bc.getDismissalType() != null) agg.ducks++;
-                    agg.dots += (int) bc.getBallsFaced() - bc.getFours() - bc.getSixes()
-                            - countNonBoundaryRuns(bc);
                     if (bc.getRunsScored() > agg.highScore ||
                         (bc.getRunsScored() == agg.highScore && bc.getDismissalType() == null && !agg.highScoreNotOut)) {
                         agg.highScore = bc.getRunsScored();
@@ -254,8 +265,9 @@ public class LeagueController {
                         FieldAgg fagg = fieldMap.computeIfAbsent(fid, k -> new FieldAgg(bc.getFielder()));
 
                         if ("CAUGHT".equals(dismissal) || "C&B".equals(dismissal)) {
-                            // Check if fielder is the keeper
                             fagg.fielderCatches++;
+                        } else if ("CAUGHT_BEHIND".equals(dismissal)) {
+                            fagg.keeperCatches++;
                         } else if ("STUMPED".equals(dismissal)) {
                             fagg.keeperStumpings++;
                         } else if ("RUN_OUT".equals(dismissal) || "RUNOUT".equals(dismissal)) {
@@ -273,7 +285,7 @@ public class LeagueController {
             int dismissals = agg.innings - agg.notOuts;
             double avg = dismissals > 0 ? (double) agg.runs / dismissals : (agg.runs > 0 ? agg.runs : 0);
             double sr = agg.balls > 0 ? (double) agg.runs / agg.balls * 100.0 : 0;
-            // Compute dots: balls where 0 runs scored (simplification: balls - (balls that scored runs))
+            int dots = batsmanDots.getOrDefault(agg.player.getId(), 0);
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("playerId", agg.player.getId());
@@ -294,6 +306,7 @@ public class LeagueController {
             row.put("fours", agg.fours);
             row.put("sixes", agg.sixes);
             row.put("ducks", agg.ducks);
+            row.put("dots", dots);
             batting.add(row);
         }
         batting.sort((a, b) -> Integer.compare((int) b.get("runs"), (int) a.get("runs")));
@@ -334,7 +347,7 @@ public class LeagueController {
         List<Map<String, Object>> fielding = new ArrayList<>();
         for (FieldAgg agg : fieldMap.values()) {
             int matches = playerMatches.getOrDefault(agg.player.getId(), Set.of()).size();
-            int total = agg.fielderCatches + agg.keeperStumpings + agg.runouts;
+            int total = agg.fielderCatches + agg.keeperCatches + agg.keeperStumpings + agg.runouts;
             if (total == 0) continue;
 
             Map<String, Object> row = new LinkedHashMap<>();
@@ -343,7 +356,8 @@ public class LeagueController {
             row.put("teamName", agg.player.getTeam().getTeamName());
             row.put("teamId", agg.player.getTeam().getId());
             row.put("matches", matches);
-            row.put("catches", agg.fielderCatches);
+            row.put("fielderCatches", agg.fielderCatches);
+            row.put("keeperCatches", agg.keeperCatches);
             row.put("stumpings", agg.keeperStumpings);
             row.put("runouts", agg.runouts);
             row.put("total", total);
@@ -378,15 +392,14 @@ public class LeagueController {
 
     private static class FieldAgg {
         Player player;
-        int fielderCatches, keeperStumpings, runouts;
+        int fielderCatches, keeperCatches, keeperStumpings, runouts;
         FieldAgg(Player p) { this.player = p; }
     }
 
-    private int countNonBoundaryRuns(BattingScorecard bc) {
-        // Approximate: total runs minus 4s*4 and 6s*6, remaining are singles/doubles/triples
-        int boundaryRuns = bc.getFours() * 4 + bc.getSixes() * 6;
-        int nonBoundary = bc.getRunsScored() - boundaryRuns;
-        return Math.max(0, nonBoundary); // balls that scored 1,2,3
+    private double oversToDecimal(double overs) {
+        int fullOvers = (int) overs;
+        int extraBalls = (int) Math.round((overs - fullOvers) * 10);
+        return fullOvers + extraBalls / 6.0;
     }
 
     private int oversToTotalBalls(double overs) {

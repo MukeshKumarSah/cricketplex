@@ -118,6 +118,7 @@ public class BotTeamService {
     private final TeamRepository teamRepository;
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
+    private final TeamService teamService;
 
     /**
      * Generate bot teams for all 18 countries.
@@ -186,6 +187,11 @@ public class BotTeamService {
                             .build();
 
                     bot = teamRepository.save(bot);
+                    try {
+                        teamService.generateSquadForTeam(bot);
+                    } catch (Exception e) {
+                        log.warn("Could not generate squad for bot team {}: {}", bot.getTeamName(), e.getMessage());
+                    }
                     existingNames.add(teamName.toLowerCase());
                     createdTeams.add(bot);
                     cityIdx++;
@@ -292,6 +298,11 @@ public class BotTeamService {
                         .fans(div <= 1 ? 5000 + rng.nextInt(5000) : 1000 + rng.nextInt(3000))
                         .build();
                 bot = teamRepository.save(bot);
+                try {
+                    teamService.generateSquadForTeam(bot);
+                } catch (Exception e) {
+                    log.warn("Could not generate squad for bot team {}: {}", bot.getTeamName(), e.getMessage());
+                }
                 existingNames.add(teamName.toLowerCase());
 
                 // Assign to this league

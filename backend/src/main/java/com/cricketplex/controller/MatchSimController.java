@@ -1,17 +1,16 @@
 package com.cricketplex.controller;
 
 import com.cricketplex.entity.*;
-import com.cricketplex.repository.BallEventRepository;
-import com.cricketplex.repository.InningsRepository;
-import com.cricketplex.repository.MatchResultRepository;
-import com.cricketplex.repository.UserRepository;
+import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.MatchEngine;
+import com.cricketplex.service.WeatherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -30,7 +29,10 @@ public class MatchSimController {
     private final InningsRepository inningsRepository;
     private final BallEventRepository ballEventRepository;
     private final UserRepository userRepository;
-    private final com.cricketplex.repository.FixtureRepository fixtureRepository;
+    private final FixtureRepository fixtureRepository;
+    private final TeamRepository teamRepository;
+    private final MatchLineupRepository matchLineupRepository;
+    private final WeatherService weatherService;
 
     /**
      * Simulate a match for a given fixture.
@@ -325,6 +327,108 @@ public class MatchSimController {
             inningsList.add(innMap);
         }
         resp.put("innings", inningsList);
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Get fixture preview — teams, pitch, weather, rivalry, lineup status.
+     */
+    @GetMapping("/preview/{fixtureId}")
+    public ResponseEntity<?> getFixturePreview(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId) {
+
+        Fixture f = fixtureRepository.findById(fixtureId)
+                .orElse(null);
+        if (f == null) return ResponseEntity.notFound().build();
+
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Optional<Team> userTeam = teamRepository.findByOwner(user);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("fixtureId", f.getId());
+        resp.put("status", f.getStatus());
+        resp.put("matchDate", f.getMatchDate() != null ? f.getMatchDate().toString() : null);
+        resp.put("pitchType", f.getPitchType());
+        resp.put("round", f.getRound());
+        resp.put("matchNumber", f.getMatchNumber());
+
+        boolean isFriendly = f.getLeague() == null;
+        resp.put("matchType", isFriendly ? "FRIENDLY" : "LEAGUE");
+        resp.put("format", isFriendly ? f.getFormat() : f.getLeague().getFormat());
+        if (!isFriendly) {
+            resp.put("leagueLabel", f.getLeague().getDivision() + "." + f.getLeague().getLeagueNumber());
+            resp.put("leagueId", f.getLeague().getId());
+            resp.put("matchStartTimeUtc", f.getLeague().getMatchStartTime());
+        }
+
+        // Home team info
+        Team home = f.getHomeTeam();
+        Map<String, Object> homeInfo = new LinkedHashMap<>();
+        homeInfo.put("id", home.getId());
+        homeInfo.put("teamName", home.getTeamName());
+        homeInfo.put("teamProfilePicUrl", home.getTeamProfilePicUrl());
+        homeInfo.put("country", home.getCountry());
+        homeInfo.put("isBot", home.getIsBot());
+        homeInfo.put("groundName", home.getGroundName());
+        resp.put("homeTeam", homeInfo);
+
+        // Away team info
+        Team away = f.getAwayTeam();
+        Map<String, Object> awayInfo = new LinkedHashMap<>();
+        awayInfo.put("id", away.getId());
+        awayInfo.put("teamName", away.getTeamName());
+        awayInfo.put("teamProfilePicUrl", away.getTeamProfilePicUrl());
+        awayInfo.put("country", away.getCountry());
+        awayInfo.put("isBot", away.getIsBot());
+        resp.put("awayTeam", awayInfo);
+
+        // Weather
+        if (f.getMatchDate() != null) {
+            resp.put("weather", weatherService.getMatchWeather(home.getCountry(), f.getMatchDate(), LocalDate.now()));
+        }
+
+        // Rivalry (head-to-head)
+        List<MatchResult> rivalryResults = matchResultRepository.findBetweenTeams(home.getId(), away.getId());
+        int homeWins = 0, awayWins = 0, ties = 0;
+        List<Map<String, Object>> recentMatches = new ArrayList<>();
+        for (MatchResult mr : rivalryResults) {
+            if (mr.getWinner() != null) {
+                if (mr.getWinner().getId().equals(home.getId())) homeWins++;
+                else awayWins++;
+            } else if ("TIE".equals(mr.getResultType())) {
+                ties++;
+            }
+            if (recentMatches.size() < 5) {
+                Map<String, Object> rm = new LinkedHashMap<>();
+                rm.put("date", mr.getFixture().getMatchDate() != null ? mr.getFixture().getMatchDate().toString() : null);
+                rm.put("format", mr.getFixture().getLeague() != null ? mr.getFixture().getLeague().getFormat() : mr.getFixture().getFormat());
+                rm.put("summary", buildSummaryLine(mr));
+                rm.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
+                recentMatches.add(rm);
+            }
+        }
+        Map<String, Object> rivalry = new LinkedHashMap<>();
+        rivalry.put("totalMatches", rivalryResults.size());
+        rivalry.put("homeWins", homeWins);
+        rivalry.put("awayWins", awayWins);
+        rivalry.put("ties", ties);
+        rivalry.put("recentMatches", recentMatches);
+        resp.put("rivalry", rivalry);
+
+        // User lineup context
+        boolean isUserHome = userTeam.isPresent() && userTeam.get().getId().equals(home.getId());
+        boolean isUserAway = userTeam.isPresent() && userTeam.get().getId().equals(away.getId());
+        resp.put("isUserInvolved", isUserHome || isUserAway);
+        resp.put("isUserHome", isUserHome);
+
+        if (userTeam.isPresent() && (isUserHome || isUserAway)) {
+            boolean lineupSet = matchLineupRepository.findFixtureIdsByTeamId(userTeam.get().getId())
+                    .contains(fixtureId);
+            resp.put("lineupSet", lineupSet);
+        }
+
         return ResponseEntity.ok(resp);
     }
 
