@@ -107,6 +107,121 @@
 .sc-motm { color: #f59e0b; font-weight: 600; }
 .sc-winner { color: #10b981; font-weight: 600; }
 
+/* ── Man of the Match Card ── */
+.sc-motm-card {
+  background: linear-gradient(135deg, #1e293b 0%, #1a1f2e 50%, #1e293b 100%);
+  border: 1px solid #f59e0b40;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.sc-motm-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+}
+.sc-motm-card:hover {
+  border-color: #f59e0b80;
+  background: linear-gradient(135deg, #1e293b 0%, #1f2436 50%, #1e293b 100%);
+}
+
+.sc-motm-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sc-motm-trophy {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.sc-motm-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.sc-motm-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sc-motm-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin-top: 0.1rem;
+}
+
+.sc-motm-team {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+.sc-motm-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sc-motm-stat-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.sc-motm-stat-title {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.sc-motm-stat-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sc-motm-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.25rem;
+  background: #0f172a60;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.sc-motm-stat-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.sc-motm-stat-lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 0.15rem;
+}
+
 /* ── Innings Tabs ── */
 .sc-innings-tabs {
   display: flex;

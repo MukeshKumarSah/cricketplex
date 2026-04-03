@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,6 +37,7 @@ public class AcademyController {
     private final AcademyPullRepository academyPullRepository;
     private final TrainingAssignmentRepository trainingAssignmentRepository;
     private final TrainingLogRepository trainingLogRepository;
+    private final ActivityLogService activityLogService;
 
     // ════════════════════════════════════════════
     //  GET /api/academy — overview
@@ -182,6 +184,9 @@ public class AcademyController {
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("player", buildPlayerMap(player));
         resp.put("pulledFrom", pulledCountry);
+
+        activityLogService.log(team, "academy", "Recruited " + player.getFirstName() + " " + player.getLastName() + " (" + role + ") from " + pulledCountry + " academy.");
+
         return ResponseEntity.ok(resp);
     }
 
@@ -254,6 +259,9 @@ public class AcademyController {
                 .trainingType(type)
                 .build();
         trainingAssignmentRepository.save(ta);
+
+        activityLogService.log(team, "training", "Assigned " + type + " training to " + player.getFirstName() + " " + player.getLastName() + ".");
+
         return ResponseEntity.ok(Map.of("message", "Training assigned"));
     }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -20,105 +20,12 @@ import './Dashboard.css';
 const mockData = {
   lastActive: 'Currently Active',
   isActive: true,
-  country: 'India',
-  countryFlag: '🇮🇳',
-  ground: {
-    name: 'CricketPlex Arena',
-    seats: 25000,
-  },
   teamMorale: 78,
   teamFans: 142500,
   trophies: [
     { name: 'T20 Cup 2025', icon: '🏆', year: 2025 },
     { name: 'OD Shield Runner-up', icon: '🥈', year: 2025 },
     { name: 'FC League Winner', icon: '🏆', year: 2024 },
-  ],
-  recentActivities: [
-    {
-      type: 'match-won',
-      text: 'Won T20 match against Thunder Hawks by 24 runs',
-      time: '2 hours ago',
-    },
-    {
-      type: 'revenue',
-      text: 'Match revenue $45,000 received for T20 match against Thunder Hawks',
-      time: '2 hours ago',
-    },
-    {
-      type: 'bought',
-      text: 'Bought James Patterson from Royal Strikers at $120K',
-      time: '5 hours ago',
-    },
-    {
-      type: 'lineup',
-      text: 'Set lineup for OD match against Dragon XI',
-      time: '8 hours ago',
-    },
-    {
-      type: 'training',
-      text: 'Training Completed — Batting session finished',
-      time: '10 hours ago',
-    },
-    {
-      type: 'academy',
-      text: 'Recruited Rahul Mehta from Academy',
-      time: '1 day ago',
-    },
-    {
-      type: 'listed',
-      text: 'Listed David Warner on Transfer Market',
-      time: '1 day ago',
-    },
-    {
-      type: 'match-lost',
-      text: 'Lost OD match against Royal Strikers by 3 wickets',
-      time: '2 days ago',
-    },
-    {
-      type: 'sold',
-      text: 'Sold Marcus Hill to Falcon CC for $85K',
-      time: '2 days ago',
-    },
-    {
-      type: 'ground',
-      text: 'Ground Update — New floodlights installed',
-      time: '3 days ago',
-    },
-    {
-      type: 'failed-sale',
-      text: 'Player Tom Brady failed to sell — relisted',
-      time: '3 days ago',
-    },
-    {
-      type: 'retired',
-      text: 'Retired player Andrew Symonds — legend farewell',
-      time: '4 days ago',
-    },
-    {
-      type: 'released',
-      text: 'Released player Jake Morrison from squad',
-      time: '4 days ago',
-    },
-    {
-      type: 'match-won',
-      text: 'Won FC match against Shield Warriors by an innings and 34 runs',
-      time: '5 days ago',
-    },
-    {
-      type: 'revenue',
-      text: 'Match revenue $62,000 received for FC match against Shield Warriors',
-      time: '5 days ago',
-    },
-    {
-      type: 'bought',
-      text: 'Bought Liam Scott from Coastal XI at $200K',
-      time: '6 days ago',
-    },
-    {
-      type: 'training',
-      text: 'Training Completed — Bowling camp finished',
-      time: '7 days ago',
-    },
   ],
 };
 
@@ -137,6 +44,9 @@ const activityIcon = (type) => {
     case 'training': return '🏋️';
     case 'retired': return '👋';
     case 'released': return '🚪';
+    case 'signup': return '🎉';
+    case 'team-setup': return '🏗️';
+    case 'league': return '🏆';
     default: return '📌';
   }
 };
@@ -156,6 +66,9 @@ const activityTagColor = (type) => {
     case 'training': return '#818cf8';
     case 'retired': return '#94a3b8';
     case 'released': return '#94a3b8';
+    case 'signup': return '#22d3ee';
+    case 'team-setup': return '#22d3ee';
+    case 'league': return '#a78bfa';
     default: return '#64748b';
   }
 };
@@ -175,8 +88,22 @@ const activityTagLabel = (type) => {
     case 'training': return 'Training';
     case 'retired': return 'Retired';
     case 'released': return 'Released';
+    case 'signup': return 'Welcome';
+    case 'team-setup': return 'Setup';
+    case 'league': return 'League';
     default: return 'Event';
   }
+};
+
+const timeAgo = (dateStr) => {
+  const now = new Date();
+  const past = new Date(dateStr);
+  const diff = Math.floor((now - past) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return past.toLocaleDateString();
 };
 
 const formatFans = (n) => {
@@ -210,6 +137,7 @@ export default function Dashboard() {
   const [myLeagues, setMyLeagues] = useState([]);
   const [weatherForecast, setWeatherForecast] = useState(null);
   const [weatherCountry, setWeatherCountry] = useState('');
+  const [activities, setActivities] = useState([]);
 
   useEffect(() => {
     getSettings()
@@ -228,6 +156,9 @@ export default function Dashboard() {
         setWeatherForecast(res.data.forecast || []);
         setWeatherCountry(res.data.country || '');
       })
+      .catch(() => {});
+    getRecentActivities()
+      .then((res) => setActivities(res.data || []))
       .catch(() => {});
   }, []);
 
@@ -496,18 +427,24 @@ export default function Dashboard() {
         <div className="dash-card-header">
           <HiOutlineCalendarDays className="dash-card-icon" />
           <h2>Recent Activities</h2>
-          <span className="dash-activities-count">{d.recentActivities.length} events</span>
+          <span className="dash-activities-count">{activities.length} events</span>
         </div>
         {(() => {
           const MAX_ITEMS = 15;
-          const total = d.recentActivities.length;
-          const showItems = d.recentActivities.slice(0, MAX_ITEMS);
+          const total = activities.length;
+          const showItems = activities.slice(0, MAX_ITEMS);
 
           return (
             <>
               <div className="dash-activities-list">
+                {showItems.length === 0 && (
+                  <div className="dash-empty-state">
+                    <span className="dash-empty-icon">📋</span>
+                    <p>No activities yet. Start playing to see your history!</p>
+                  </div>
+                )}
                 {showItems.map((a, i) => (
-                  <div className="dash-activity-item" key={i}>
+                  <div className="dash-activity-item" key={a.id || i}>
                     <div className="dash-activity-icon">{activityIcon(a.type)}</div>
                     <div className="dash-activity-content">
                       <div className="dash-activity-top">
@@ -517,7 +454,7 @@ export default function Dashboard() {
                         >
                           {activityTagLabel(a.type)}
                         </span>
-                        <span className="dash-activity-time">{a.time}</span>
+                        <span className="dash-activity-time">{timeAgo(a.createdAt)}</span>
                       </div>
                       <p className="dash-activity-text">{a.text}</p>
                     </div>

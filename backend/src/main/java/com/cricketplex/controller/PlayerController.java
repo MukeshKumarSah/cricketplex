@@ -44,8 +44,8 @@ public class PlayerController {
         resp.put("bowlAggression", player.getBowlAggression());
         resp.put("wage", player.getWage());
         resp.put("rating", player.getRating());
-        resp.put("teamName", player.getTeam().getTeamName());
-        resp.put("teamId", player.getTeam().getId());
+        resp.put("teamName", player.getTeam() != null ? player.getTeam().getTeamName() : "Free Agent");
+        resp.put("teamId", player.getTeam() != null ? player.getTeam().getId() : null);
 
         // ─── Skills ───
         Map<String, Integer> skills = new LinkedHashMap<>();
@@ -314,6 +314,7 @@ public class PlayerController {
     }
 
     private String getOpponent(Fixture f, Player p) {
+        if (p.getTeam() == null) return "Unknown";
         if (f.getHomeTeam().getId().equals(p.getTeam().getId())) {
             return f.getAwayTeam().getTeamName();
         }

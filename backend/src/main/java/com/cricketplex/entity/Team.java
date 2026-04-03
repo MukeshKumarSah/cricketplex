@@ -55,6 +55,10 @@ public class Team {
     @Builder.Default
     private Integer academyLevel = 1;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Long funds = 50000L;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", unique = true)
     private User owner;

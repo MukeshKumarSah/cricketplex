@@ -1,0 +1,213 @@
+/* ══════ Finances Page ══════ */
+.fin-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.fin-loading, .fin-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+.fin-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.fin-header-icon {
+  font-size: 1.4rem;
+  color: #22d3ee;
+}
+.fin-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+/* ── Summary Cards ── */
+.fin-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 0.6rem;
+}
+.fin-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  transition: border-color 0.2s;
+}
+.fin-card:hover { border-color: #334155; }
+.fin-card-balance { border-color: #22d3ee33; }
+.fin-card-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.fin-card-icon-wrap.balance { background: rgba(34, 211, 238, 0.1); color: #22d3ee; }
+.fin-card-icon-wrap.income  { background: rgba(34, 197, 94, 0.1);  color: #22c55e; }
+.fin-card-icon-wrap.expense { background: rgba(239, 68, 68, 0.1);  color: #ef4444; }
+.fin-card-icon-wrap.squad   { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+
+.fin-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.fin-card-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fin-card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.fin-card-value.balance { color: #22d3ee; }
+.fin-card-value.income  { color: #22c55e; }
+.fin-card-value.expense { color: #ef4444; }
+.fin-card-sub {
+  font-size: 0.62rem;
+  color: #475569;
+}
+.fin-wage-period {
+  font-size: 0.65rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+/* ── Section ── */
+.fin-section {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.fin-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.fin-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin: 0;
+}
+.fin-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.fin-filter-icon {
+  font-size: 0.8rem;
+  color: #475569;
+}
+.fin-filter-select {
+  background: #111827;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+.fin-filter-select:focus { border-color: #22d3ee; }
+
+/* ── Transaction List ── */
+.fin-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.fin-tx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+.fin-tx-row:hover { border-color: #334155; }
+
+.fin-tx-indicator {
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.fin-tx-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.fin-tx-desc {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fin-tx-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fin-tx-type {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.fin-tx-date {
+  font-size: 0.6rem;
+  color: #475569;
+}
+
+.fin-tx-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+.fin-tx-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.fin-tx-amount.income  { color: #22c55e; }
+.fin-tx-amount.expense { color: #ef4444; }
+.fin-tx-balance {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.58rem;
+  color: #475569;
+}

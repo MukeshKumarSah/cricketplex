@@ -1,6 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getPlayerProfile } from '../../api/auth';
+import {
+  getPlayerProfile, getPlayerTransferStatus,
+  listPlayerOnTM, firePlayer, retirePlayer, placeBid,
+  acceptBid, cancelListing,
+} from '../../api/auth';
 import toast from 'react-hot-toast';
 import './Player.css';
 
@@ -32,12 +36,23 @@ export default function Player() {
   const [activeFormat, setActiveFormat] = useState('T20');
   const [activeType, setActiveType] = useState('LEAGUE');
 
+  // Transfer Market state
+  const [tmStatus, setTmStatus] = useState(null);
+  const [bidAmount, setBidAmount] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'fire' | 'retire' | 'sell' | null
+
+  const loadTmStatus = () => {
+    getPlayerTransferStatus(id)
+      .then(res => setTmStatus(res.data))
+      .catch(() => {});
+  };
+
   useEffect(() => {
     (async () => {
       try {
         const res = await getPlayerProfile(id);
         setData(res.data);
-        // Pick first available format-type
         if (res.data.stats) {
           const keys = Object.keys(res.data.stats);
           if (keys.length > 0) {
@@ -53,6 +68,80 @@ export default function Player() {
       }
     })();
   }, [id]);
+
+  useEffect(() => { loadTmStatus(); }, [id]);
+
+  const handleSell = async () => {
+    setActionLoading(true);
+    try {
+      const res = await listPlayerOnTM(id);
+      toast.success(res.data.message);
+      setConfirmAction(null);
+      loadTmStatus();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to list');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleFire = async () => {
+    setActionLoading(true);
+    try {
+      const res = await firePlayer(id);
+      toast.success(res.data.message);
+      setConfirmAction(null);
+      navigate('/squad');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to fire');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleRetire = async () => {
+    setActionLoading(true);
+    try {
+      const res = await retirePlayer(id);
+      toast.success(res.data.message);
+      setConfirmAction(null);
+      navigate('/squad');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to retire');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleBid = async () => {
+    const amt = Number(bidAmount);
+    if (!amt || amt <= 0) { toast.error('Enter a valid bid'); return; }
+    setActionLoading(true);
+    try {
+      const res = await placeBid(tmStatus.listingId, amt);
+      toast.success(res.data.message);
+      setBidAmount('');
+      loadTmStatus();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Bid failed');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleAcceptBid = async () => {
+    setActionLoading(true);
+    try {
+      const res = await acceptBid(tmStatus.listingId);
+      toast.success(res.data.message);
+      loadTmStatus();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Accept failed');
+    } finally { setActionLoading(false); }
+  };
+
+  const handleCancelListing = async () => {
+    setActionLoading(true);
+    try {
+      const res = await cancelListing(tmStatus.listingId);
+      toast.success(res.data.message);
+      loadTmStatus();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Cancel failed');
+    } finally { setActionLoading(false); }
+  };
 
   if (loading) return <div className="pp-page"><div className="pp-loading">Loading...</div></div>;
   if (!data) return <div className="pp-page"><div className="pp-empty">Player not found</div></div>;
@@ -97,6 +186,107 @@ export default function Player() {
           <div className="pp-info-item"><span className="pp-info-label">Wage</span><span className="pp-info-val">${data.wage?.toLocaleString()}</span></div>
         </div>
       </div>
+
+      {/* ─── Transfer / Actions ─── */}
+      {tmStatus && (
+        <div className="pp-section pp-tm-section">
+          {/* Market value always visible */}
+          <div className="pp-tm-value-row">
+            <span className="pp-tm-label">Market Value</span>
+            <span className="pp-tm-value">${tmStatus.marketValue?.toLocaleString()}</span>
+          </div>
+
+          {/* OWN PLAYER — not listed yet */}
+          {tmStatus.isOwnPlayer && !tmStatus.isListed && (
+            <>
+              {!confirmAction && (
+                <div className="pp-tm-actions">
+                  <button className="pp-tm-btn sell" onClick={() => setConfirmAction('sell')} disabled={actionLoading}>
+                    Sell on TM
+                  </button>
+                  <button className="pp-tm-btn fire" onClick={() => setConfirmAction('fire')} disabled={actionLoading}>
+                    Fire
+                  </button>
+                  <button className="pp-tm-btn retire" onClick={() => setConfirmAction('retire')} disabled={actionLoading}>
+                    Retire
+                  </button>
+                </div>
+              )}
+              {confirmAction && (
+                <div className="pp-tm-confirm">
+                  <span className="pp-tm-confirm-text">
+                    {confirmAction === 'sell' && `List on TM? Listing fee: $${(Math.round(tmStatus.marketValue * 0.20)).toLocaleString()} (20%)`}
+                    {confirmAction === 'fire' && 'Release this player? This cannot be undone.'}
+                    {confirmAction === 'retire' && 'Retire this player? This cannot be undone.'}
+                  </span>
+                  <div className="pp-tm-confirm-btns">
+                    <button className="pp-tm-btn confirm-yes" disabled={actionLoading}
+                      onClick={confirmAction === 'sell' ? handleSell : confirmAction === 'fire' ? handleFire : handleRetire}>
+                      {actionLoading ? 'Processing…' : 'Confirm'}
+                    </button>
+                    <button className="pp-tm-btn confirm-no" onClick={() => setConfirmAction(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* OWN PLAYER — listed, show bids & controls */}
+          {tmStatus.isOwnPlayer && tmStatus.isListed && (
+            <>
+              <div className="pp-tm-listed-badge">Transfer Listed</div>
+              <div className="pp-tm-fee-row">
+                <span>Listing Fee: <strong>${tmStatus.listingFee?.toLocaleString()}</strong></span>
+                <span>TM Tax: <strong>${tmStatus.tmTax?.toLocaleString()}</strong></span>
+                <span>Bids: <strong>{tmStatus.bidCount}</strong></span>
+              </div>
+              {tmStatus.bids?.length > 0 && (
+                <div className="pp-tm-bids">
+                  {tmStatus.bids.map((b, i) => (
+                    <div key={b.bidId} className="pp-tm-bid-item">
+                      <span className="pp-tm-bid-team">{b.bidderTeam}</span>
+                      <span className="pp-tm-bid-amount">${b.bidAmount?.toLocaleString()}</span>
+                      {i === 0 && <span className="pp-tm-bid-tag">Highest</span>}
+                    </div>
+                  ))}
+                  <button className="pp-tm-btn sell" onClick={handleAcceptBid} disabled={actionLoading}>
+                    {actionLoading ? 'Accepting…' : `Accept ($${tmStatus.bids[0]?.bidAmount?.toLocaleString()})`}
+                  </button>
+                </div>
+              )}
+              <button className="pp-tm-btn fire" onClick={handleCancelListing} disabled={actionLoading}>
+                Cancel Listing
+              </button>
+            </>
+          )}
+
+          {/* OTHER PLAYER — listed, show bid input */}
+          {!tmStatus.isOwnPlayer && tmStatus.isListed && (
+            <>
+              <div className="pp-tm-listed-badge">Transfer Listed</div>
+              {tmStatus.highestBid && (
+                <div className="pp-tm-value-row">
+                  <span className="pp-tm-label">Highest Bid</span>
+                  <span className="pp-tm-value highlight">${tmStatus.highestBid?.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="pp-tm-bid-row">
+                <input
+                  className="pp-tm-bid-input"
+                  type="number"
+                  placeholder={`Min $${(tmStatus.highestBid ? tmStatus.highestBid + 1 : tmStatus.marketValue)?.toLocaleString()}`}
+                  value={bidAmount}
+                  onChange={e => setBidAmount(e.target.value)}
+                />
+                <button className="pp-tm-btn sell" onClick={handleBid} disabled={actionLoading}>
+                  {actionLoading ? 'Bidding…' : 'Place Bid'}
+                </button>
+              </div>
+              <div className="pp-tm-funds">Your Funds: ${tmStatus.myFunds?.toLocaleString()}</div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ─── Skills ─── */}
       <div className="pp-section">

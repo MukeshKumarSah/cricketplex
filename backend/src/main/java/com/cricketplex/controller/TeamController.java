@@ -14,6 +14,7 @@ import com.cricketplex.repository.MatchLineupRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.ActivityLogService;
 import com.cricketplex.service.TeamService;
 import com.cricketplex.service.FixtureService;
 import com.cricketplex.service.WeatherService;
@@ -33,6 +34,7 @@ public class TeamController {
 
     private final TeamService teamService;
     private final FixtureService fixtureService;
+    private final ActivityLogService activityLogService;
     private final UserRepository userRepository;
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
@@ -63,6 +65,10 @@ public class TeamController {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Team team = teamService.setupTeam(user, request);
+
+        activityLogService.log(team, "signup", "Welcome to CricketPlex! You signed up as manager.");
+        activityLogService.log(team, "team-setup", "Team \"" + team.getTeamName() + "\" created in " + team.getCountry() + ".");
+        activityLogService.log(team, "league", "Placed into T20, ODI, and FC leagues for " + team.getCountry() + ".");
 
         return ResponseEntity.ok(Map.of(
                 "success", true,

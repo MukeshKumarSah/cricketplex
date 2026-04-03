@@ -36,6 +36,7 @@ public class MatchEngine {
     private final PlayerRepository playerRepository;
     private final FixtureRepository fixtureRepository;
     private final WeatherService weatherService;
+    private final ActivityLogService activityLogService;
 
     // ─── Public entry point ──────────────────────────────────────
 
@@ -162,6 +163,7 @@ public class MatchEngine {
         // ─── Save ───
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
+        logMatchActivity(result, fixture);
         return matchResultRepository.save(result);
     }
 
@@ -1548,6 +1550,7 @@ public class MatchEngine {
         result.setManOfMatch(pickManOfMatch(result, rng));
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
+        logMatchActivity(result, fixture);
         return matchResultRepository.save(result);
     }
 
@@ -2064,6 +2067,25 @@ public class MatchEngine {
     }
 
     // ─── Result determination ───────────────────────────────────
+
+    private void logMatchActivity(MatchResult result, Fixture fixture) {
+        Team home = fixture.getHomeTeam();
+        Team away = fixture.getAwayTeam();
+        String fmt = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();
+        String prefix = fmt != null ? "(" + fmt + ") " : "";
+
+        if ("DRAW".equals(result.getResultType()) || "TIE".equals(result.getResultType())) {
+            String text = prefix + "Match vs %s ended in a " + result.getResultType().toLowerCase() + ".";
+            activityLogService.log(home, "match-lost", String.format(text, away.getTeamName()));
+            activityLogService.log(away, "match-lost", String.format(text, home.getTeamName()));
+        } else if (result.getWinner() != null) {
+            Team winner = result.getWinner();
+            Team loser = winner.getId().equals(home.getId()) ? away : home;
+            String margin = result.getResultMargin() + " " + result.getResultType().toLowerCase();
+            activityLogService.log(winner, "match-won", prefix + "Won vs " + loser.getTeamName() + " by " + margin + ".");
+            activityLogService.log(loser, "match-lost", prefix + "Lost vs " + winner.getTeamName() + " by " + margin + ".");
+        }
+    }
 
     private void determineResult(MatchResult result, Innings first, Innings second,
                                  Team battingFirst, Team battingSecond) {

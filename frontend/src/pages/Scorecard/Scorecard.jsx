@@ -35,6 +35,46 @@ export default function Scorecard() {
 
   const innings = data.innings?.find((i) => i.inningsNumber === activeInnings);
 
+  // ── Build Man of the Match performance summary ──
+  const motmStats = (() => {
+    if (!data.manOfMatchId || !data.innings) return null;
+    const id = data.manOfMatchId;
+    let batRuns = 0, batBalls = 0, batFours = 0, batSixes = 0, batSR = 0, batInnings = 0, batNotOut = false;
+    let bowlWickets = 0, bowlRuns = 0, bowlOvers = '', bowlEcon = 0, bowlInnings = 0, bowlMaidens = 0;
+    let teamName = '';
+
+    for (const inn of data.innings) {
+      const bc = inn.battingCard?.find((b) => b.playerId === id);
+      if (bc) {
+        batRuns += bc.runs;
+        batBalls += bc.balls;
+        batFours += bc.fours;
+        batSixes += bc.sixes;
+        batInnings++;
+        batNotOut = bc.notOut;
+        if (!teamName) teamName = inn.battingTeam;
+      }
+      const bw = inn.bowlingCard?.find((b) => b.playerId === id);
+      if (bw) {
+        bowlWickets += bw.wickets;
+        bowlRuns += bw.runs;
+        bowlOvers = bw.overs;
+        bowlEcon = bw.economy;
+        bowlMaidens += bw.maidens;
+        bowlInnings++;
+      }
+    }
+
+    if (batBalls > 0) batSR = ((batRuns / batBalls) * 100).toFixed(1);
+
+    return {
+      name: data.manOfMatch,
+      teamName,
+      batting: batInnings > 0 ? { runs: batRuns, balls: batBalls, fours: batFours, sixes: batSixes, sr: batSR, notOut: batNotOut } : null,
+      bowling: bowlInnings > 0 ? { wickets: bowlWickets, runs: bowlRuns, overs: bowlOvers, economy: bowlEcon, maidens: bowlMaidens } : null,
+    };
+  })();
+
   return (
     <div className="scorecard-page">
       {/* Header */}
@@ -76,6 +116,76 @@ export default function Scorecard() {
           </div>
         )}
       </div>
+
+      {/* ── Man of the Match Card ── */}
+      {motmStats && (
+        <div className="sc-motm-card" onClick={() => navigate(`/player/${data.manOfMatchId}`)}>
+          <div className="sc-motm-header">
+            <span className="sc-motm-trophy">🏅</span>
+            <div className="sc-motm-title">
+              <span className="sc-motm-label">Player of the Match</span>
+              <span className="sc-motm-name">{motmStats.name}</span>
+              <span className="sc-motm-team">{motmStats.teamName}</span>
+            </div>
+          </div>
+          <div className="sc-motm-stats">
+            {motmStats.batting && (
+              <div className="sc-motm-stat-group">
+                <span className="sc-motm-stat-title">🏏 Batting</span>
+                <div className="sc-motm-stat-row">
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.batting.runs}{motmStats.batting.notOut ? '*' : ''}</span>
+                    <span className="sc-motm-stat-lbl">Runs</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.batting.balls}</span>
+                    <span className="sc-motm-stat-lbl">Balls</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.batting.fours}</span>
+                    <span className="sc-motm-stat-lbl">4s</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.batting.sixes}</span>
+                    <span className="sc-motm-stat-lbl">6s</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.batting.sr}</span>
+                    <span className="sc-motm-stat-lbl">SR</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {motmStats.bowling && (
+              <div className="sc-motm-stat-group">
+                <span className="sc-motm-stat-title">🎯 Bowling</span>
+                <div className="sc-motm-stat-row">
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.bowling.wickets}</span>
+                    <span className="sc-motm-stat-lbl">Wkts</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.bowling.runs}</span>
+                    <span className="sc-motm-stat-lbl">Runs</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.bowling.overs}</span>
+                    <span className="sc-motm-stat-lbl">Overs</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.bowling.maidens}</span>
+                    <span className="sc-motm-stat-lbl">Mdns</span>
+                  </div>
+                  <div className="sc-motm-stat">
+                    <span className="sc-motm-stat-val">{motmStats.bowling.economy?.toFixed(1)}</span>
+                    <span className="sc-motm-stat-lbl">Econ</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Innings Tabs */}
       <div className="sc-innings-tabs">

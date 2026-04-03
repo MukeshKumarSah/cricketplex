@@ -1,0 +1,177 @@
+/* ══════ Game Formulas Page ══════ */
+.gf-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.gf-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.gf-header-icon {
+  font-size: 1.4rem;
+  color: #22d3ee;
+}
+.gf-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+.gf-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Sections ── */
+.gf-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.gf-section {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.gf-section.open { border-color: #334155; }
+.gf-section-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #e2e8f0;
+}
+.gf-section-toggle:hover { background: #111827; }
+.gf-section-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.gf-section-icon {
+  font-size: 1.1rem;
+  color: #22d3ee;
+}
+.gf-section-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.gf-chevron {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+/* ── Section Body ── */
+.gf-section-body {
+  padding: 0 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-top: 1px solid #1e293b;
+}
+.gf-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.gf-sub-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0.6rem 0 0;
+}
+
+/* ── Key-Value Rows ── */
+.gf-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.gf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+}
+.gf-row:hover { border-color: #334155; }
+.gf-row-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+.gf-row-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #22d3ee;
+  text-align: right;
+}
+
+/* ── Tables ── */
+.gf-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+}
+.gf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+.gf-table th {
+  background: #111827;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+  border-bottom: 1px solid #1e293b;
+}
+.gf-table th:first-child { text-align: left; }
+.gf-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #1e293b;
+  text-align: center;
+}
+.gf-table tr:last-child td { border-bottom: none; }
+.gf-table tr:hover td { background: rgba(30, 41, 59, 0.4); }
+.gf-cell-label {
+  font-weight: 600;
+  color: #cbd5e1;
+  text-align: left !important;
+}
+.gf-cell-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ── Notes ── */
+.gf-note {
+  font-size: 0.62rem;
+  color: #475569;
+  font-style: italic;
+  margin: 0.2rem 0 0;
+  padding: 0.4rem 0.6rem;
+  background: rgba(17, 24, 39, 0.5);
+  border-radius: 6px;
+  border-left: 3px solid #334155;
+}

@@ -1,8 +1,11 @@
 package com.cricketplex.controller;
 
+import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
+import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.ActivityLogService;
 import com.cricketplex.service.LineupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,8 @@ public class LineupController {
 
     private final LineupService lineupService;
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
+    private final ActivityLogService activityLogService;
 
     @GetMapping("/{fixtureId}/lineup")
     public ResponseEntity<?> getLineupData(
@@ -36,7 +41,11 @@ public class LineupController {
             @RequestBody Map<String, Object> request) {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return ResponseEntity.ok(lineupService.saveLineup(fixtureId, user, request));
+        Object result = lineupService.saveLineup(fixtureId, user, request);
+        teamRepository.findByOwner(user).ifPresent(team ->
+            activityLogService.log(team, "lineup", "Match lineup set for upcoming fixture.")
+        );
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/default-lineup")

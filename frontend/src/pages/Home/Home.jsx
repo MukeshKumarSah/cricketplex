@@ -23,6 +23,9 @@ import TeamProfile from '../TeamProfile/TeamProfile';
 import FixturePreview from '../FixturePreview/FixturePreview';
 import Stats from '../Stats/Stats';
 import Academy from '../Academy/Academy';
+import TransferMarket from '../TransferMarket/TransferMarket';
+import Finances from '../Finances/Finances';
+import GameFormulas from '../Admin/GameFormulas';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -207,6 +210,14 @@ export default function Home() {
               element={<Academy />}
             />
             <Route
+              path="transfer-market"
+              element={<TransferMarket />}
+            />
+            <Route
+              path="finances"
+              element={<Finances />}
+            />
+            <Route
               path="league/:id"
               element={<LeaguePage />}
             />
@@ -248,6 +259,12 @@ export default function Home() {
               <Route
                 path="admin/leagues"
                 element={<AdminLeagues />}
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <Route
+                path="admin/formulas"
+                element={<GameFormulas />}
               />
             )}
             <Route

@@ -124,5 +124,22 @@ export const assignTraining = (playerId, trainingType) => API.post('/academy/tra
 export const removeTraining = (playerId) => API.delete(`/academy/training/${playerId}`);
 export const getTrainingHistory = () => API.get('/academy/training-history');
 
+// Transfer Market
+export const listPlayerOnTM = (playerId) => API.post('/transfer/list', { playerId });
+export const getActiveListings = () => API.get('/transfer/listings');
+export const getMyListings = () => API.get('/transfer/my-listings');
+export const placeBid = (listingId, bidAmount) => API.post('/transfer/bid', { listingId, bidAmount });
+export const acceptBid = (listingId) => API.post(`/transfer/accept/${listingId}`);
+export const cancelListing = (listingId) => API.post(`/transfer/cancel/${listingId}`);
+export const firePlayer = (playerId) => API.post(`/transfer/fire/${playerId}`);
+export const retirePlayer = (playerId) => API.post(`/transfer/retire/${playerId}`);
+export const getPlayerTransferStatus = (playerId) => API.get(`/transfer/player-status/${playerId}`);
+
+// Finances
+export const getFinances = (type) => API.get('/finances', { params: type ? { type } : {} });
+
 // Weather
 export const getWeatherForecast = () => API.get('/weather/forecast');
+
+// Activity Feed
+export const getRecentActivities = () => API.get('/activity');
