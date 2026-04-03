@@ -14,8 +14,9 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
     boolean existsByFixtureId(UUID fixtureId);
 
     @Query("SELECT mr FROM MatchResult mr WHERE " +
+           "mr.fixture.status = 'COMPLETED' AND (" +
            "(mr.fixture.homeTeam.id = :t1 AND mr.fixture.awayTeam.id = :t2) OR " +
-           "(mr.fixture.homeTeam.id = :t2 AND mr.fixture.awayTeam.id = :t1) " +
+           "(mr.fixture.homeTeam.id = :t2 AND mr.fixture.awayTeam.id = :t1)) " +
            "ORDER BY mr.fixture.matchDate DESC")
     List<MatchResult> findBetweenTeams(@Param("t1") UUID team1Id, @Param("t2") UUID team2Id);
 }

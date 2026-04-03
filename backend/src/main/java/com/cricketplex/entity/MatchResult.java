@@ -45,6 +45,7 @@ public class MatchResult {
     private Player manOfMatch;
 
     @OneToMany(mappedBy = "matchResult", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("inningsNumber ASC")
     @Builder.Default
     private List<Innings> inningsList = new ArrayList<>();
 

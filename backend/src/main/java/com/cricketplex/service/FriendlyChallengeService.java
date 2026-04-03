@@ -38,8 +38,8 @@ public class FriendlyChallengeService {
         if (opponentTeam.getIsBot()) {
             throw new IllegalArgumentException("You cannot challenge a bot team to a friendly");
         }
-        if (!"T20".equalsIgnoreCase(format) && !"ODI".equalsIgnoreCase(format)) {
-            throw new IllegalArgumentException("Format must be T20 or ODI");
+        if (!"T20".equalsIgnoreCase(format) && !"ODI".equalsIgnoreCase(format) && !"FC".equalsIgnoreCase(format)) {
+            throw new IllegalArgumentException("Format must be T20, ODI, or FC");
         }
         if (matchDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Match date must be today or later");

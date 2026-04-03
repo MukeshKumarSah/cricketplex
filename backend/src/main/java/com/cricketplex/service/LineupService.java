@@ -32,6 +32,8 @@ public class LineupService {
     private static final int[][] ODI_PACE_HEAVY = generateOdiPaceHeavy();
     private static final int[][] ODI_SPIN_HEAVY = generateOdiSpinHeavy();
 
+    // FC: no predefined templates — users create custom 100-over plans
+
     private static int[][] generateOdiCyclic() {
         int[] order = new int[50];
         for (int i = 0; i < 50; i++) order[i] = (i % 5) + 1;
@@ -68,6 +70,8 @@ public class LineupService {
         return new int[][]{o};
     }
 
+
+
     public Map<String, int[]> getTemplatesForFormat(String format) {
         Map<String, int[]> templates = new LinkedHashMap<>();
         if ("T20".equalsIgnoreCase(format)) {
@@ -79,6 +83,7 @@ public class LineupService {
             templates.put("PACE_HEAVY", ODI_PACE_HEAVY[0]);
             templates.put("SPIN_HEAVY", ODI_SPIN_HEAVY[0]);
         }
+        // FC: no templates — fully custom 100-over plans
         return templates;
     }
 
@@ -192,7 +197,7 @@ public class LineupService {
         // Default lineup (returned when no saved lineup for this fixture)
         Map<String, Object> defaultLineup = null;
         if (savedLineup == null) {
-            Optional<DefaultLineup> defOpt = defaultLineupRepository.findByTeamId(myTeam.getId());
+            Optional<DefaultLineup> defOpt = defaultLineupRepository.findByTeamIdAndFormat(myTeam.getId(), format);
             if (defOpt.isPresent()) {
                 defaultLineup = defOpt.get().getLineupData();
             }
@@ -235,10 +240,11 @@ public class LineupService {
             lineup.setKeeper(playerRepository.findById(UUID.fromString(keeperId)).orElse(null));
         }
 
-        // Toss (away team only)
+        // Toss choice (away team picks heads/tails; home always null)
         if (isAway) {
             lineup.setTossChoice((String) request.get("tossChoice"));
         }
+        // Bat or bowl preference (both home and away)
         lineup.setBatOrBowl((String) request.get("batOrBowl"));
 
         // Bowling plan type
@@ -283,7 +289,7 @@ public class LineupService {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> bowlingOrders = (List<Map<String, Object>>) request.get("bowlingOrders");
             if (bowlingOrders != null) {
-                int maxOvers = "T20".equalsIgnoreCase(format) ? 20 : "ODI".equalsIgnoreCase(format) ? 50 : 90;
+                int maxOvers = "T20".equalsIgnoreCase(format) ? 20 : "ODI".equalsIgnoreCase(format) ? 50 : 100;
                 int maxPerBowler = "T20".equalsIgnoreCase(format) ? 4 : "ODI".equalsIgnoreCase(format) ? 10 : 30;
                 Map<String, Integer> bowlerOverCounts = new HashMap<>();
 
@@ -318,7 +324,8 @@ public class LineupService {
         // Save as default if requested
         Object saveAsDefault = request.get("saveAsDefault");
         if (Boolean.TRUE.equals(saveAsDefault)) {
-            saveDefaultLineup(myTeam, request);
+            String fmt = (fixture.getLeague() != null) ? fixture.getLeague().getFormat() : fixture.getFormat();
+            saveDefaultLineup(myTeam, fmt, request);
         }
 
         return Map.of("id", lineup.getId(), "status", "saved");
@@ -327,15 +334,14 @@ public class LineupService {
     /* ═══ Default lineup ═══ */
 
     @Transactional
-    public void saveDefaultLineup(Team team, Map<String, Object> lineupData) {
+    public void saveDefaultLineup(Team team, String format, Map<String, Object> lineupData) {
         // Strip fixture-specific fields, keep the order/plan
         Map<String, Object> data = new LinkedHashMap<>(lineupData);
         data.remove("saveAsDefault");
         data.remove("tossChoice");
-        data.remove("batOrBowl");
 
-        DefaultLineup def = defaultLineupRepository.findByTeamId(team.getId())
-                .orElse(DefaultLineup.builder().team(team).build());
+        DefaultLineup def = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format)
+                .orElse(DefaultLineup.builder().team(team).format(format).build());
         def.setLineupData(data);
         defaultLineupRepository.save(def);
     }
@@ -344,11 +350,14 @@ public class LineupService {
     public Map<String, Object> getDefaultLineup(User user) {
         Team team = teamRepository.findByOwner(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
-        Optional<DefaultLineup> opt = defaultLineupRepository.findByTeamId(team.getId());
-        if (opt.isEmpty()) return Map.of("found", false);
+        // Return all format defaults
         Map<String, Object> result = new LinkedHashMap<>();
+        for (String fmt : List.of("T20", "ODI", "FC")) {
+            Optional<DefaultLineup> opt = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), fmt);
+            opt.ifPresent(d -> result.put(fmt, d.getLineupData()));
+        }
+        if (result.isEmpty()) return Map.of("found", false);
         result.put("found", true);
-        result.put("lineupData", opt.get().getLineupData());
         return result;
     }
 }

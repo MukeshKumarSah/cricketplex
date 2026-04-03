@@ -22,7 +22,7 @@ import {
 } from 'react-icons/hi2';
 import './Challenges.css';
 
-const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa' };
+const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#f59e0b' };
 const STATUS_COLORS = {
   PENDING: '#f59e0b',
   ACCEPTED: '#22d3ee',
@@ -380,6 +380,7 @@ export default function Challenges() {
                 <select value={format} onChange={(e) => setFormat(e.target.value)}>
                   <option value="T20">T20</option>
                   <option value="ODI">One Day</option>
+                  <option value="FC">First Class</option>
                 </select>
               </div>
               <div className="cm-field">

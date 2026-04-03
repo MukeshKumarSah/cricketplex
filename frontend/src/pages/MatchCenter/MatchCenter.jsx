@@ -45,49 +45,67 @@ function getLegalCount(balls) {
 /* ─── phase ranges ─── */
 function getPhases(format) {
   if (format === 'T20') return { powerplay: [0, 5], middle: [6, 15], death: [16, 19] };
-  if (format === 'ODI') return { powerplay: [0, 9], middle: [10, 39], death: [40, 49] };
+  if (format === 'FC') return { early: [0, 9], consolidation: [10, 24], acceleration: [25, 39], late: [40, 49] };
   return { powerplay: [0, 9], middle: [10, 39], death: [40, 49] };
 }
 
-/* ─── Compute current match position from elapsed time ─── */
-function computePosition(createdAt, ballCounts, ballInterval, breakDuration) {
+/* ─── Compute current match position from elapsed time (supports N innings + FC session breaks) ─── */
+function computePosition(createdAt, ballCounts, ballInterval, breakDuration, sessionBreakSec, sessionBreakPositions) {
   if (!createdAt || !ballCounts || ballCounts.length === 0) {
-    return { currentInnings: 0, currentBallIdx: 0, matchEnded: true, inningsBreak: false, breakRemaining: 0 };
+    return { currentInnings: 0, currentBallIdx: 0, matchEnded: true, inningsBreak: false, sessionBreak: false, breakRemaining: 0 };
   }
   const startMs = typeof createdAt === 'number' ? createdAt : new Date(createdAt).getTime();
   if (isNaN(startMs)) {
-    return { currentInnings: 0, currentBallIdx: 0, matchEnded: true, inningsBreak: false, breakRemaining: 0 };
+    return { currentInnings: 0, currentBallIdx: 0, matchEnded: true, inningsBreak: false, sessionBreak: false, breakRemaining: 0 };
   }
-  const elapsed = Math.max(0, (Date.now() - startMs) / 1000); // seconds
+  const elapsed = Math.max(0, (Date.now() - startMs) / 1000);
 
-  const inn1Balls = ballCounts[0] || 0;
-  const inn2Balls = ballCounts.length > 1 ? ballCounts[1] : 0;
-  const inn1Duration = inn1Balls * ballInterval;
-  const breakEnd = inn1Duration + breakDuration;
-  const inn2Duration = inn2Balls * ballInterval;
-  const totalDuration = inn1Duration + breakDuration + inn2Duration;
+  let timeConsumed = 0;
 
-  // First innings
-  if (elapsed < inn1Duration) {
-    const idx = Math.min(Math.floor(elapsed / ballInterval) + 1, inn1Balls);
-    return { currentInnings: 0, currentBallIdx: idx, matchEnded: false, inningsBreak: false, breakRemaining: 0 };
-  }
+  for (let i = 0; i < ballCounts.length; i++) {
+    const innBalls = ballCounts[i] || 0;
+    const breaks = (sessionBreakPositions && sessionBreakPositions[i]) || []; // sorted ball-event indices
+    let ballsDone = 0;
+    let breakIdx = 0;
 
-  // Innings break
-  if (elapsed < breakEnd) {
-    const remaining = Math.ceil(breakEnd - elapsed);
-    return { currentInnings: 0, currentBallIdx: inn1Balls, matchEnded: false, inningsBreak: true, breakRemaining: remaining };
-  }
+    while (ballsDone < innBalls) {
+      // Next session break position in this innings (if any)
+      const nextBreakAt = breakIdx < breaks.length ? breaks[breakIdx] : innBalls;
+      const chunk = Math.min(nextBreakAt, innBalls) - ballsDone;
+      const chunkDuration = chunk * ballInterval;
 
-  // Second innings
-  if (inn2Balls > 0 && elapsed < totalDuration) {
-    const inn2Elapsed = elapsed - breakEnd;
-    const idx = Math.min(Math.floor(inn2Elapsed / ballInterval) + 1, inn2Balls);
-    return { currentInnings: 1, currentBallIdx: idx, matchEnded: false, inningsBreak: false, breakRemaining: 0 };
+      if (elapsed < timeConsumed + chunkDuration) {
+        const chunkElapsed = elapsed - timeConsumed;
+        const idx = ballsDone + Math.min(Math.floor(chunkElapsed / ballInterval) + 1, chunk);
+        return { currentInnings: i, currentBallIdx: idx, matchEnded: false, inningsBreak: false, sessionBreak: false, breakRemaining: 0 };
+      }
+      timeConsumed += chunkDuration;
+      ballsDone += chunk;
+
+      // If we're at a session break position and more balls remain
+      if (breakIdx < breaks.length && ballsDone === breaks[breakIdx] && ballsDone < innBalls) {
+        if (elapsed < timeConsumed + sessionBreakSec) {
+          const remaining = Math.ceil(timeConsumed + sessionBreakSec - elapsed);
+          return { currentInnings: i, currentBallIdx: ballsDone, matchEnded: false, inningsBreak: false, sessionBreak: true, breakRemaining: remaining };
+        }
+        timeConsumed += sessionBreakSec;
+        breakIdx++;
+      }
+    }
+
+    // During break after this innings (if not last)
+    if (i < ballCounts.length - 1) {
+      if (elapsed < timeConsumed + breakDuration) {
+        const remaining = Math.ceil(timeConsumed + breakDuration - elapsed);
+        return { currentInnings: i, currentBallIdx: innBalls, matchEnded: false, inningsBreak: true, sessionBreak: false, breakRemaining: remaining };
+      }
+      timeConsumed += breakDuration;
+    }
   }
 
   // Match ended
-  return { currentInnings: ballCounts.length - 1, currentBallIdx: ballCounts[ballCounts.length - 1] || 0, matchEnded: true, inningsBreak: false, breakRemaining: 0 };
+  const last = ballCounts.length - 1;
+  return { currentInnings: last, currentBallIdx: ballCounts[last] || 0, matchEnded: true, inningsBreak: false, sessionBreak: false, breakRemaining: 0 };
 }
 
 export default function MatchCenter() {
@@ -125,6 +143,8 @@ export default function MatchCenter() {
   const ballCounts = commentary?.ballCounts || result?.ballCounts || [];
   const ballInterval = commentary?.ballIntervalSeconds || result?.ballIntervalSeconds || 5;
   const breakDuration = commentary?.inningsBreakSeconds || result?.inningsBreakSeconds || 300;
+  const sessionBreakSec = commentary?.sessionBreakSeconds || result?.sessionBreakSeconds || 0;
+  const sessionBreakPositions = commentary?.sessionBreakPositions || result?.sessionBreakPositions || null;
 
   // ─── Compute time-based position ───
   const position = useMemo(() => {
@@ -135,14 +155,15 @@ export default function MatchCenter() {
         currentBallIdx: totalInnings > 0 ? (commentary.innings[totalInnings - 1]?.ballEvents?.length || 0) : 0,
         matchEnded: true,
         inningsBreak: false,
+        sessionBreak: false,
         breakRemaining: 0,
       };
     }
-    return computePosition(createdAt, ballCounts, ballInterval, breakDuration);
+    return computePosition(createdAt, ballCounts, ballInterval, breakDuration, sessionBreakSec, sessionBreakPositions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLive, createdAt, ballCounts, ballInterval, breakDuration, tick, commentary]);
+  }, [isLive, createdAt, ballCounts, ballInterval, breakDuration, sessionBreakSec, sessionBreakPositions, tick, commentary]);
 
-  const { currentInnings, currentBallIdx, matchEnded, inningsBreak, breakRemaining } = position;
+  const { currentInnings, currentBallIdx, matchEnded, inningsBreak, sessionBreak, breakRemaining } = position;
 
   // ─── Load match data ───
   useEffect(() => {
@@ -175,7 +196,7 @@ export default function MatchCenter() {
     getRivalry(result.homeTeamId, result.awayTeamId)
       .then((res) => setRivalry(res.data))
       .catch(() => {});
-  }, [result?.homeTeamId, result?.awayTeamId]);
+  }, [result?.homeTeamId, result?.awayTeamId, result?.fixtureStatus]);
 
   // ─── Ball data computation ───
   const allBalls = commentary?.innings?.[currentInnings]?.ballEvents || [];
@@ -392,10 +413,26 @@ export default function MatchCenter() {
   if (!commentary || !result) return <div className="mc-loading">Match data not available.</div>;
 
   const battingTeam = inn?.battingTeam || '—';
+  const isFC = result?.format === 'FC';
+  const totalInningsCount = liveScorecard.length;
+  // For limited-overs: target in 2nd innings. For FC: target in 4th innings (chase).
+  const isChaseInnings = isFC ? currentInnings === 3 : currentInnings === 1;
   const firstInnScore = liveScorecard[0]?.scoreDisplay;
   const firstInnRuns = liveScorecard[0] ? parseInt(liveScorecard[0].scoreDisplay) : 0;
-  const target = currentInnings === 1 ? firstInnRuns + 1 : null;
-  const need = target ? Math.max(0, target - liveScore.runs) : null;
+  let target = null;
+  let need = null;
+  if (!isFC && isChaseInnings) {
+    target = firstInnRuns + 1;
+    need = Math.max(0, target - liveScore.runs);
+  } else if (isFC && currentInnings === 3 && liveScorecard.length >= 3) {
+    // FC 4th innings chase: target = team1Total - team2PrevTotal + 1
+    const inn1 = parseInt(liveScorecard[0]?.scoreDisplay) || 0;
+    const inn2 = parseInt(liveScorecard[1]?.scoreDisplay) || 0;
+    const inn3 = parseInt(liveScorecard[2]?.scoreDisplay) || 0;
+    // Determine which team is chasing — 4th(idx 3) bats for chasing team
+    target = (inn1 + inn3) - inn2 + 1; // simplified — same team batted 1st & 3rd unless follow-on
+    need = Math.max(0, target - liveScore.runs);
+  }
   const scInn = liveScorecard.find((i) => i.inningsNumber === scActiveInnings);
 
   const lastOverBalls = (() => {
@@ -492,7 +529,7 @@ export default function MatchCenter() {
       </div>
 
       {/* ─── Live Score Bar ─── */}
-      {isLive && !matchEnded && !inningsBreak && (
+      {isLive && !matchEnded && !inningsBreak && !sessionBreak && (
         <div className="mc-live-bar">
           <div className="mc-live-info">
             <span className="mc-live-team">{battingTeam}</span>
@@ -530,14 +567,31 @@ export default function MatchCenter() {
         <div className="mc-break-bar">
           <div className="mc-break-info">
             <span className="mc-break-label">Innings Break</span>
-            <span className="mc-break-score">{liveScorecard[0]?.battingTeam}: {liveScorecard[0]?.scoreDisplay}</span>
+            <span className="mc-break-score">{liveScorecard[currentInnings]?.battingTeam}: {liveScorecard[currentInnings]?.scoreDisplay}</span>
           </div>
           <div className="mc-break-countdown">
             <span className="mc-break-timer">
               {String(breakMinutes).padStart(2, '0')}:{String(breakSeconds).padStart(2, '0')}
             </span>
-            <span className="mc-break-sub">
-              {commentary.innings[1]?.battingTeam} need {firstInnRuns + 1} to win
+            {commentary.innings[currentInnings + 1] && (
+              <span className="mc-break-sub">
+                {commentary.innings[currentInnings + 1]?.battingTeam} up next
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Session Break Banner ─── */}
+      {isLive && sessionBreak && (
+        <div className="mc-break-bar">
+          <div className="mc-break-info">
+            <span className="mc-break-label">Session Break</span>
+            <span className="mc-break-score">{liveScorecard[currentInnings]?.battingTeam}: {liveScorecard[currentInnings]?.scoreDisplay}</span>
+          </div>
+          <div className="mc-break-countdown">
+            <span className="mc-break-timer">
+              {String(breakMinutes).padStart(2, '0')}:{String(breakSeconds).padStart(2, '0')}
             </span>
           </div>
         </div>
@@ -734,7 +788,7 @@ export default function MatchCenter() {
 
                 {/* ═══ Over-by-Over Comparison ═══ */}
                 {graphData.length >= 2 && (() => {
-                  const totalOvers = result.format === 'T20' ? 20 : 50;
+                  const totalOvers = result.format === 'T20' ? 20 : result.format === 'FC' ? 150 : 50;
                   const target = graphData[0].cumulative.length > 0
                     ? graphData[0].cumulative[graphData[0].cumulative.length - 1] + 1
                     : null;
@@ -998,7 +1052,7 @@ export default function MatchCenter() {
 
 function ManhattanChart({ data, format }) {
   if (!data || data.length === 0) return <div className="mc-empty">No data yet.</div>;
-  const maxOvers = format === 'T20' ? 20 : 50;
+  const maxOvers = format === 'T20' ? 20 : format === 'FC' ? Math.max(...data.map(d => d.runsPerOver.length), 1) : 50;
   const allRuns = data.flatMap((d) => d.runsPerOver);
   const maxRun = Math.max(...allRuns, 6);
   const W = 600, H = 220, PAD = 30;
@@ -1035,7 +1089,7 @@ function ManhattanChart({ data, format }) {
           })
         )}
         {Array.from({ length: maxOvers }, (_, i) => (
-          (i % (format === 'T20' ? 2 : 5) === 0) && (
+          (i % (format === 'T20' ? 2 : format === 'FC' ? 10 : 5) === 0) && (
             <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
           )
         ))}
@@ -1212,7 +1266,8 @@ function buildInningsStats(innData, balls) {
   let totalRuns = 0, totalWkts = 0;
   balls.forEach((b) => { totalRuns += b.runs; if (b.isWicket) totalWkts++; });
   const legal = getLegalCount(balls);
-  const scoreDisplay = `${totalRuns}/${totalWkts} (${oversDisplay(legal)} ov)`;
+  const declSuffix = innData.declared ? 'd' : '';
+  const scoreDisplay = `${totalRuns}/${totalWkts}${declSuffix} (${oversDisplay(legal)} ov)`;
 
   return {
     inningsNumber: innData.inningsNumber ?? 1,

@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "default_lineups")
+@Table(name = "default_lineups",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"team_id", "format"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class DefaultLineup {
 
@@ -20,9 +21,12 @@ public class DefaultLineup {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "team_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id", nullable = false)
     private Team team;
+
+    @Column(name = "format", nullable = false, length = 10)
+    private String format;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "lineup_data", nullable = false, columnDefinition = "jsonb")

@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface DefaultLineupRepository extends JpaRepository<DefaultLineup, UUID> {
-    Optional<DefaultLineup> findByTeamId(UUID teamId);
+    Optional<DefaultLineup> findByTeamIdAndFormat(UUID teamId, String format);
 }

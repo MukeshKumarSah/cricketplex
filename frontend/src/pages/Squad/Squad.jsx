@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import {
   HiOutlineUserGroup,
   HiOutlineFunnel,
+  HiOutlineBarsArrowDown,
 } from 'react-icons/hi2';
 import { getSquad } from '../../api/auth';
 import './Squad.css';
@@ -14,11 +15,32 @@ const ROLE_SHORT = { BATSMAN: 'BAT', KEEPER: 'WK', ALL_ROUNDER: 'AR', BOWLER: 'B
 const AGG_LABELS = { D: 'Defensive', N: 'Neutral', A: 'Aggressive' };
 const BOWL_TYPE_LABELS = { FS: 'Finger Spin', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast-Medium', MF: 'Medium-Fast' };
 
+const SORT_OPTIONS = [
+  { value: '', label: '— None —' },
+  { value: 'batRating', label: 'Batting' },
+  { value: 'bowlRating', label: 'Bowling' },
+  { value: 'keeperRating', label: 'Keeping' },
+  { value: 'fldRating', label: 'Fielding' },
+  { value: 'experience', label: 'Experience' },
+  { value: 'stamina', label: 'Stamina' },
+  { value: 'confidence', label: 'Confidence' },
+  { value: 'fitness', label: 'Fitness' },
+  { value: 'age', label: 'Age' },
+  { value: 'wage', label: 'Wage' },
+  { value: 'country', label: 'Country' },
+  { value: 'batHand', label: 'Bat Hand' },
+  { value: 'bowlHand', label: 'Bowl Hand' },
+  { value: 'bowlType', label: 'Bowl Type' },
+];
+
 export default function Squad() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [sort1, setSort1] = useState({ key: '', dir: 'desc' });
+  const [sort2, setSort2] = useState({ key: '', dir: 'desc' });
+  const [sort3, setSort3] = useState({ key: '', dir: 'desc' });
 
   useEffect(() => {
     (async () => {
@@ -39,9 +61,27 @@ export default function Squad() {
     if (roleFilter !== 'ALL') {
       list = list.filter((p) => p.role === roleFilter);
     }
-    list.sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9));
+
+    const sorts = [sort1, sort2, sort3].filter((s) => s.key);
+    if (sorts.length === 0) {
+      list.sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9));
+    } else {
+      list.sort((a, b) => {
+        for (const s of sorts) {
+          const av = a[s.key], bv = b[s.key];
+          let cmp = 0;
+          if (typeof av === 'string' || typeof bv === 'string') {
+            cmp = (av || '').localeCompare(bv || '');
+          } else {
+            cmp = (av || 0) - (bv || 0);
+          }
+          if (cmp !== 0) return s.dir === 'asc' ? cmp : -cmp;
+        }
+        return 0;
+      });
+    }
     return list;
-  }, [data, roleFilter]);
+  }, [data, roleFilter, sort1, sort2, sort3]);
 
   const roleCounts = useMemo(() => {
     if (!data?.players) return {};
@@ -94,6 +134,50 @@ export default function Squad() {
             <span className="sq-filter-count">{roleCounts[r] || 0}</span>
           </button>
         ))}
+      </div>
+
+      {/* Sort Controls */}
+      <div className="sq-sort-bar">
+        <HiOutlineBarsArrowDown className="sq-sort-icon" />
+        {[
+          { label: '1st', state: sort1, setter: setSort1 },
+          { label: '2nd', state: sort2, setter: setSort2 },
+          { label: '3rd', state: sort3, setter: setSort3 },
+        ].map(({ label, state, setter }) => (
+          <div key={label} className="sq-sort-group">
+            <span className="sq-sort-label">{label}</span>
+            <select
+              className="sq-sort-select"
+              value={state.key}
+              onChange={(e) => setter({ ...state, key: e.target.value })}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            {state.key && (
+              <button
+                className="sq-sort-dir"
+                onClick={() => setter({ ...state, dir: state.dir === 'desc' ? 'asc' : 'desc' })}
+                title={state.dir === 'desc' ? 'Descending' : 'Ascending'}
+              >
+                {state.dir === 'desc' ? '↓' : '↑'}
+              </button>
+            )}
+          </div>
+        ))}
+        {(sort1.key || sort2.key || sort3.key) && (
+          <button
+            className="sq-sort-clear"
+            onClick={() => {
+              setSort1({ key: '', dir: 'desc' });
+              setSort2({ key: '', dir: 'desc' });
+              setSort3({ key: '', dir: 'desc' });
+            }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Player Cards */}

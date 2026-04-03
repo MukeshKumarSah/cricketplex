@@ -36,6 +36,8 @@ const ODI_TEMPLATES = {
   PACE_HEAVY: [1,2,1,3,2,1,4,2,3,5, 4,3,5,4,3,5,4,3,5,3, 4,5,3,4,5,3,4,5,3,5, 4,3,5,1,2,1,3,2,5,4, 1,2,1,2,1,2,1,2,3,4],
   SPIN_HEAVY: [1,3,2,4,1,5,2,3,4,5, 3,4,5,3,4,5,3,4,5,3, 4,5,3,4,5,3,4,5,1,2, 3,4,5,1,3,2,4,5,1,2, 1,2,1,2,5,1,2,3,4,5],
 };
+// FC: no templates — custom 100-over plans
+const BOWLER_COLORS = ['#22d3ee', '#4ade80', '#fbbf24', '#c084fc', '#f472b6', '#fb923c', '#a78bfa', '#34d399', '#f87171', '#60a5fa', '#e879f9'];
 
 const TEMPLATE_LABELS = {
   BALANCED: 'Balanced',
@@ -65,9 +67,13 @@ export default function LineupSetup() {
 
   // Bowling
   const [bowlingPlan, setBowlingPlan] = useState('BALANCED');
-  const [selectedBowlers, setSelectedBowlers] = useState(Array(5).fill(null)); // 5 bowler IDs for templates
+  const [selectedBowlers, setSelectedBowlers] = useState(Array(5).fill(null)); // bowler IDs (5 for T20/ODI, dynamic for FC)
   const [customBowling, setCustomBowling] = useState([]); // [{bowlerId, aggression}] indexed by over
   const customBowlingBackup = useRef(null); // backs up custom state when switching to a template
+
+  // FC-specific: per-bowler aggression (default brush) and active brush
+  const [bowlerAggression, setBowlerAggression] = useState(Array(5).fill('N'));
+  const [activeBrush, setActiveBrush] = useState(0); // 0-N = bowler slot, -1 = eraser
 
   // Sorting for player pool
   const [sortKey, setSortKey] = useState('rating');
@@ -82,8 +88,9 @@ export default function LineupSetup() {
         setSquad(res.data.squad);
 
         const format = res.data.matchInfo.format;
-        const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 90;
+        const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 100;
         setCustomBowling(Array.from({ length: totalOvers }, () => ({ bowlerId: null, aggression: 'N' })));
+        if (format === 'FC') setBowlingPlan('CUSTOM');
 
         // Restore saved lineup
         const sl = res.data.savedLineup || res.data.defaultLineup;
@@ -119,7 +126,7 @@ export default function LineupSetup() {
             });
             setCustomBowling(cb);
 
-            // Also derive the 5 bowler slots from saved orders
+            // Also derive bowler slots from saved orders
             const bowlerMap = {};
             sl.bowlingOrders.forEach((bo) => {
               if (!bowlerMap[bo.bowlerId]) bowlerMap[bo.bowlerId] = bo.overNumber;
@@ -127,9 +134,15 @@ export default function LineupSetup() {
             const sorted = Object.entries(bowlerMap)
               .sort((a, b) => a[1] - b[1])
               .map(([id]) => id);
-            const newBowlers = Array(5).fill(null);
-            sorted.forEach((id, i) => { if (i < 5) newBowlers[i] = id; });
-            setSelectedBowlers(newBowlers);
+            if (format === 'FC') {
+              // FC: keep all unique bowlers (no 5-slot limit)
+              setSelectedBowlers(sorted.map(id => id));
+              setBowlerAggression(sorted.map(() => 'N'));
+            } else {
+              const newBowlers = Array(5).fill(null);
+              sorted.forEach((id, i) => { if (i < 5) newBowlers[i] = id; });
+              setSelectedBowlers(newBowlers);
+            }
 
             // If saved plan is a template, back up the custom state as blank
             if (sl.bowlingPlan && sl.bowlingPlan !== 'CUSTOM') {
@@ -165,12 +178,12 @@ export default function LineupSetup() {
   }, [playing11, squad]);
 
   const format = matchInfo?.format;
-  const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 90;
+  const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 100;
   const maxPerBowler = format === 'T20' ? 4 : format === 'ODI' ? 10 : 30;
 
   // Auto-apply template when selected bowlers change (and a template plan is active)
   useEffect(() => {
-    if (!format || bowlingPlan === 'CUSTOM') return;
+    if (!format || format === 'FC' || bowlingPlan === 'CUSTOM') return;
     if (selectedBowlers.filter(Boolean).length < 5) return;
     const templates = format === 'T20' ? T20_TEMPLATES : ODI_TEMPLATES;
     const tpl = templates[bowlingPlan];
@@ -240,7 +253,7 @@ export default function LineupSetup() {
 
     // Build bowling orders — use template when applicable, otherwise from customBowling
     const bowlingOrders = [];
-    if (bowlingPlan !== 'CUSTOM' && selectedBowlers.filter(Boolean).length === 5) {
+    if (bowlingPlan !== 'CUSTOM' && format !== 'FC' && selectedBowlers.filter(Boolean).length === 5) {
       // Generate from template + selected bowlers
       const templates = format === 'T20' ? T20_TEMPLATES : ODI_TEMPLATES;
       const tpl = templates[bowlingPlan];
@@ -472,13 +485,13 @@ export default function LineupSetup() {
         </div>
       </div>
 
-      {/* ═══ Section 3: Toss (Away Team) ═══ */}
-      {!matchInfo.isHome && (
-        <div className="lu-section">
-          <h2 className="lu-section-title">
-            <HiOutlineTrophy /> Toss
-          </h2>
-          <div className="lu-toss-row">
+      {/* ═══ Section 3: Toss ═══ */}
+      <div className="lu-section">
+        <h2 className="lu-section-title">
+          <HiOutlineTrophy /> Toss
+        </h2>
+        <div className="lu-toss-row">
+          {!matchInfo.isHome && (
             <div className="lu-toss-group">
               <label>Call</label>
               <div className="lu-toss-buttons">
@@ -486,21 +499,180 @@ export default function LineupSetup() {
                 <button className={`lu-toss-btn ${tossChoice === 'TAILS' ? 'active' : ''}`} onClick={() => setTossChoice('TAILS')}>Tails</button>
               </div>
             </div>
-            <div className="lu-toss-group">
-              <label>If you win the toss</label>
-              <div className="lu-toss-buttons">
-                <button className={`lu-toss-btn ${batOrBowl === 'BAT' ? 'active' : ''}`} onClick={() => setBatOrBowl('BAT')}>Bat First</button>
-                <button className={`lu-toss-btn ${batOrBowl === 'BOWL' ? 'active' : ''}`} onClick={() => setBatOrBowl('BOWL')}>Bowl First</button>
-              </div>
+          )}
+          <div className="lu-toss-group">
+            <label>If you win the toss</label>
+            <div className="lu-toss-buttons">
+              <button className={`lu-toss-btn ${batOrBowl === 'BAT' ? 'active' : ''}`} onClick={() => setBatOrBowl('BAT')}>Bat First</button>
+              <button className={`lu-toss-btn ${batOrBowl === 'BOWL' ? 'active' : ''}`} onClick={() => setBatOrBowl('BOWL')}>Bowl First</button>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ═══ Section 4: Bowling Plan ═══ */}
       <div className="lu-section">
         <h2 className="lu-section-title">Bowling Plan</h2>
 
+        {format === 'FC' ? (
+          /* ── FC: Custom 100-over grid ── */
+          <div className="lu-fc-bowling">
+            <p className="lu-template-note">
+              Select bowlers, click one to activate, then click grid cells to assign overs.
+              Click assigned cells to cycle aggression (N→A→D). This 100-over plan repeats for the full match.
+              Max {maxPerBowler} per bowler. No consecutive overs.
+            </p>
+
+            {/* Bowler rows — dynamic count */}
+            <div className="lu-fc-panel">
+              {selectedBowlers.map((bid, i) => {
+                const count = bid ? customBowling.filter(bo => bo.bowlerId === bid).length : 0;
+                const color = BOWLER_COLORS[i % BOWLER_COLORS.length];
+                return (
+                  <div
+                    key={i}
+                    className={`lu-fc-row ${activeBrush === i ? 'lu-fc-active' : ''}`}
+                    style={{ borderColor: activeBrush === i ? color : undefined }}
+                    onClick={() => setActiveBrush(i)}
+                  >
+                    <span className="lu-fc-dot" style={{ background: color }} />
+                    <span className="lu-fc-label">B{i + 1}</span>
+                    <select
+                      className="lu-fc-select"
+                      value={bid || ''}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const newBowlers = [...selectedBowlers];
+                        const oldBid = newBowlers[i];
+                        if (oldBid && oldBid !== e.target.value) {
+                          setCustomBowling(prev => prev.map(bo =>
+                            bo.bowlerId === oldBid ? { bowlerId: null, aggression: 'N' } : bo
+                          ));
+                        }
+                        newBowlers[i] = e.target.value || null;
+                        setSelectedBowlers(newBowlers);
+                      }}
+                    >
+                      <option value="">— Select Bowler —</option>
+                      {bowlerCandidates
+                        .filter((p) => p.id === bid || !selectedBowlers.includes(p.id))
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.firstName} {p.lastName} ({BOWL_TYPE_LABELS[p.bowlType] || 'Part-time'})
+                          </option>
+                        ))}
+                    </select>
+                    <span className="lu-fc-cnt" style={{ color }}>{count}/{maxPerBowler}</span>
+                    {/* Remove bowler row button (only if not the last remaining) */}
+                    {selectedBowlers.length > 1 && (
+                      <button
+                        className="lu-fc-remove-btn"
+                        title="Remove bowler"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const oldBid = selectedBowlers[i];
+                          if (oldBid) {
+                            setCustomBowling(prev => prev.map(bo =>
+                              bo.bowlerId === oldBid ? { bowlerId: null, aggression: 'N' } : bo
+                            ));
+                          }
+                          const newBowlers = selectedBowlers.filter((_, idx) => idx !== i);
+                          setSelectedBowlers(newBowlers);
+                          const newAgg = bowlerAggression.filter((_, idx) => idx !== i);
+                          setBowlerAggression(newAgg);
+                          if (activeBrush >= newBowlers.length) setActiveBrush(newBowlers.length - 1);
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Add bowler button */}
+              {selectedBowlers.length < bowlerCandidates.length && (
+                <button
+                  className="lu-fc-add-btn"
+                  onClick={() => {
+                    setSelectedBowlers(prev => [...prev, null]);
+                    setBowlerAggression(prev => [...prev, 'N']);
+                  }}
+                >
+                  + Add Bowler
+                </button>
+              )}
+              <div
+                className={`lu-fc-row lu-fc-eraser ${activeBrush === -1 ? 'lu-fc-active' : ''}`}
+                onClick={() => setActiveBrush(-1)}
+              >
+                <span className="lu-fc-dot" style={{ background: '#475569' }} />
+                <span className="lu-fc-label">Eraser</span>
+              </div>
+            </div>
+
+            {/* 10×10 over grid */}
+            <div className="lu-fc-grid">
+              {customBowling.map((bo, i) => {
+                const slotIdx = bo.bowlerId ? selectedBowlers.indexOf(bo.bowlerId) : -1;
+                const color = slotIdx >= 0 ? BOWLER_COLORS[slotIdx % BOWLER_COLORS.length] : null;
+                const prevId = i > 0 ? customBowling[i - 1].bowlerId : null;
+                const isConsecutive = bo.bowlerId && prevId && bo.bowlerId === prevId;
+                return (
+                  <div
+                    key={i}
+                    className={`lu-fc-cell ${isConsecutive ? 'lu-fc-err' : ''} ${color ? 'lu-fc-filled' : ''}`}
+                    style={{
+                      background: color ? color + '20' : undefined,
+                      borderColor: isConsecutive ? '#ef4444' : color || undefined,
+                    }}
+                    onClick={() => {
+                      const newCb = [...customBowling];
+                      if (activeBrush === -1) {
+                        // Eraser
+                        newCb[i] = { bowlerId: null, aggression: 'N' };
+                      } else if (newCb[i].bowlerId && newCb[i].bowlerId === selectedBowlers[activeBrush]) {
+                        // Same bowler already here → cycle aggression: N→A→D→N
+                        const cycle = { N: 'A', A: 'D', D: 'N' };
+                        newCb[i] = { ...newCb[i], aggression: cycle[newCb[i].aggression] || 'N' };
+                      } else {
+                        // Assign active bowler
+                        const bid = selectedBowlers[activeBrush];
+                        if (!bid) { toast.error('Select a bowler for B' + (activeBrush + 1) + ' first'); return; }
+                        if (newCb[i].bowlerId === bid) {
+                          newCb[i] = { bowlerId: null, aggression: 'N' };
+                        } else {
+                          const cnt = newCb.filter(b => b.bowlerId === bid).length;
+                          if (cnt >= maxPerBowler) { toast.error(`B${activeBrush + 1} has max ${maxPerBowler} overs`); return; }
+                          newCb[i] = { bowlerId: bid, aggression: 'N' };
+                        }
+                      }
+                      setCustomBowling(newCb);
+                    }}
+                  >
+                    <span className="lu-fc-num">{i + 1}</span>
+                    {slotIdx >= 0 && <span className="lu-fc-bwl" style={{ color }}>B{slotIdx + 1}</span>}
+                    {bo.bowlerId && bo.aggression !== 'N' && (
+                      <span className={`lu-fc-agg ${bo.aggression === 'A' ? 'lu-fc-agg-a' : 'lu-fc-agg-d'}`}>
+                        {bo.aggression}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary */}
+            <div className="lu-fc-summary">
+              <span className="lu-fc-assigned">
+                Assigned: {customBowling.filter(bo => bo.bowlerId).length} / 100
+              </span>
+              <span className="lu-fc-hint">
+                Tip: Click an assigned cell again to cycle aggression (N→A→D)
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Template tabs */}
         <div className="lu-bowling-tabs">
           {['BALANCED', 'PACE_HEAVY', 'SPIN_HEAVY', 'CUSTOM'].map((plan) => (
@@ -637,6 +809,8 @@ export default function LineupSetup() {
             })}
           </div>
         </div>
+          </>
+        )}
       </div>
 
       {/* ═══ Section 5: Squad Player Pool ═══ */}

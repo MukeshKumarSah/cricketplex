@@ -1,13 +1,395 @@
-.player-page {
-  padding: 2rem 0;
+/* ════════ Player Profile Page ════════ */
+.pp-page {
+  padding: 1.5rem 0;
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-.player-page h1 {
-  font-size: 1.5rem;
+.pp-loading, .pp-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 3rem 0;
+  font-size: 0.9rem;
+}
+
+/* ── Header Card ── */
+.pp-header {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.pp-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.pp-name {
+  font-size: 1.4rem;
   font-weight: 700;
   color: #f1f5f9;
-  margin: 0 0 0.5rem;
+  margin: 0;
+  line-height: 1.2;
 }
-.player-id {
+.pp-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+.pp-role-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+.pp-team-link {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.pp-team-link:hover {
+  color: #22d3ee;
+}
+.pp-rating-badge {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+/* Info Grid */
+.pp-info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+}
+.pp-info-item {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+.pp-info-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.pp-info-val {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+/* ── Section ── */
+.pp-section {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+.pp-section-title {
   font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0 0 1rem;
+}
+
+/* ── Skills Grid (same as squad) ── */
+.pp-skills-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 1rem;
+}
+.pp-skills-divider {
+  background: #334155;
+  width: 1px;
+  align-self: stretch;
+}
+.pp-skills-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.pp-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 20px;
+}
+.pp-rating-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
   color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  width: 36px;
+  min-width: 36px;
+  text-align: left;
+  flex-shrink: 0;
+}
+.pp-rating-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pp-rating-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.pp-rating-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 24px;
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Format Tabs ── */
+.pp-format-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.pp-fmt-tab {
+  padding: 0.35rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pp-fmt-tab:hover {
+  border-color: #475569;
+  color: #94a3b8;
+}
+.pp-fmt-tab.active {
+  background: rgba(34, 211, 238, 0.06);
+}
+
+/* ── Type Toggle ── */
+.pp-type-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+  width: fit-content;
+}
+.pp-type-btn {
+  padding: 0.3rem 0.9rem;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pp-type-btn + .pp-type-btn {
+  border-left: 1px solid #334155;
+}
+.pp-type-btn.active {
+  background: rgba(34, 211, 238, 0.1);
+  color: #22d3ee;
+}
+.pp-type-single {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Stat Block ── */
+.pp-stat-block {
+  margin-bottom: 1.25rem;
+}
+.pp-stat-block:last-child {
+  margin-bottom: 0;
+}
+.pp-stat-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #1e293b;
+}
+.pp-stat-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  overflow-x: auto;
+}
+.pp-stat-cell {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  min-width: 0;
+  flex: 1 1 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.pp-stat-cell.highlight {
+  border-color: rgba(34, 211, 238, 0.2);
+  background: rgba(34, 211, 238, 0.04);
+}
+.pp-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.pp-stat-cell.highlight .pp-stat-val {
+  color: #22d3ee;
+}
+.pp-stat-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Last 5 ── */
+.pp-last5-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.pp-last5-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.pp-last5-row:hover {
+  border-color: #334155;
+}
+.pp-last5-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.pp-last5-vs {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pp-last5-date {
+  font-size: 0.65rem;
+  color: #475569;
+}
+.pp-last5-perf {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pp-last5-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.pp-last5-chip small {
+  font-weight: 500;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+.pp-last5-chip.bat {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+.pp-last5-chip.bowl {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.pp-no-stats {
+  text-align: center;
+  color: #475569;
+  padding: 2rem 0;
+  font-size: 0.85rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .pp-page {
+    padding: 1rem 0;
+  }
+  .pp-header, .pp-section {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  .pp-name {
+    font-size: 1.15rem;
+  }
+  .pp-info-grid {
+    gap: 0.3rem 0.8rem;
+  }
+  .pp-stat-grid {
+    gap: 0.3rem;
+  }
+  .pp-stat-cell {
+    padding: 0.4rem 0.35rem;
+  }
+  .pp-last5-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+  .pp-last5-perf {
+    justify-content: flex-start;
+  }
 }

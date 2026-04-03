@@ -104,8 +104,25 @@ export const simulateChallenge = (id) => API.post(`/challenges/${id}/simulate`);
 export const getMatchResult = (fixtureId) => API.get(`/match/result/${fixtureId}`);
 export const getCommentary = (fixtureId) => API.get(`/match/commentary/${fixtureId}`);
 export const simulateMatch = (fixtureId) => API.post(`/match/simulate/${fixtureId}`);
-export const getRivalry = (team1Id, team2Id) => API.get(`/match/rivalry/${team1Id}/${team2Id}`);
+export const getRivalry = (team1Id, team2Id) =>
+  API.get(`/match/rivalry/${team1Id}/${team2Id}`);
 export const getFixturePreview = (fixtureId) => API.get(`/match/preview/${fixtureId}`);
+
+// Player
+export const getPlayerProfile = (playerId) => API.get(`/player/${playerId}`);
+
+// Stats
+export const getTeamStats = (format, matchType) => API.get('/stats', { params: { format, matchType } });
+
+// Academy
+export const getAcademyOverview = () => API.get('/academy');
+export const upgradeAcademy = () => API.post('/academy/upgrade');
+export const downgradeAcademy = () => API.post('/academy/downgrade');
+export const pullPlayer = (role) => API.post('/academy/pull', { role });
+export const getPullHistory = () => API.get('/academy/pull-history');
+export const assignTraining = (playerId, trainingType) => API.post('/academy/training', { playerId, trainingType });
+export const removeTraining = (playerId) => API.delete(`/academy/training/${playerId}`);
+export const getTrainingHistory = () => API.get('/academy/training-history');
 
 // Weather
 export const getWeatherForecast = () => API.get('/weather/forecast');

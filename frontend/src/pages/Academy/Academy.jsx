@@ -1,0 +1,393 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  getAcademyOverview, pullPlayer, getPullHistory,
+  assignTraining, removeTraining, getTrainingHistory,
+  upgradeAcademy, downgradeAcademy,
+} from '../../api/auth';
+import toast from 'react-hot-toast';
+import './Academy.css';
+
+const ROLE_OPTIONS = [
+  { value: 'BATSMAN', label: 'Batsman' },
+  { value: 'BOWLER', label: 'Bowler' },
+  { value: 'ALL_ROUNDER', label: 'All-Rounder' },
+  { value: 'KEEPER', label: 'Keeper' },
+];
+const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 'WK' };
+const TRAINING_TYPES = [
+  { value: 'BAT', label: 'Batting', desc: 'Bat + Stamina + Confidence' },
+  { value: 'BOWL', label: 'Bowling', desc: 'Bowl + Confidence + Stamina' },
+  { value: 'AR', label: 'All-Round', desc: 'Bat + Bowl + Confidence + Stamina' },
+  { value: 'FLD', label: 'Fielding', desc: 'Fld + Stamina + Confidence' },
+  { value: 'WK', label: 'Wicket-Keeping', desc: 'WK + Stamina + Confidence' },
+  { value: 'STAMINA', label: 'Stamina', desc: 'Stamina + Confidence' },
+  { value: 'MENTAL', label: 'Mental', desc: 'Confidence' },
+];
+const SKILL_LABELS = {
+  batRating: 'Bat', bowlRating: 'Bowl', keeperRating: 'WK',
+  fldRating: 'Fld', stamina: 'Stam', confidence: 'Conf',
+};
+const UPGRADE_COST = { 2: '5,000', 3: '15,000', 4: '40,000' };
+const LEVEL_SPOTS = { 1: 3, 2: 5, 3: 7, 4: 10 };
+
+export default function Academy() {
+  const navigate = useNavigate();
+  const [tab, setTab] = useState('pulls');
+  const [overview, setOverview] = useState(null);
+  const [pullHistory, setPullHistory] = useState(null);
+  const [trainingHistory, setTrainingHistory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pullRole, setPullRole] = useState('BATSMAN');
+  const [pulling, setPulling] = useState(false);
+  const [lastPull, setLastPull] = useState(null);
+  const [assigningId, setAssigningId] = useState(null);
+  const [upgrading, setUpgrading] = useState(false);
+
+  const loadOverview = () => {
+    getAcademyOverview()
+      .then(res => setOverview(res.data))
+      .catch(() => toast.error('Failed to load academy'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadOverview(); }, []);
+
+  const handlePull = async () => {
+    setPulling(true);
+    try {
+      const res = await pullPlayer(pullRole);
+      setLastPull(res.data);
+      toast.success(`Pulled ${res.data.player.name} from ${res.data.pulledFrom}!`);
+      loadOverview();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Pull failed');
+    } finally {
+      setPulling(false);
+    }
+  };
+
+  const handleAssign = async (playerId, type) => {
+    try {
+      await assignTraining(playerId, type);
+      toast.success('Training assigned');
+      setAssigningId(null);
+      loadOverview();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to assign');
+    }
+  };
+
+  const handleRemove = async (playerId) => {
+    try {
+      await removeTraining(playerId);
+      toast.success('Training removed');
+      loadOverview();
+    } catch (e) {
+      toast.error('Failed to remove');
+    }
+  };
+
+  const loadPullHistory = () => {
+    getPullHistory()
+      .then(res => setPullHistory(res.data))
+      .catch(() => toast.error('Failed to load pull history'));
+  };
+
+  const loadTrainingHistory = () => {
+    getTrainingHistory()
+      .then(res => setTrainingHistory(res.data))
+      .catch(() => toast.error('Failed to load training history'));
+  };
+
+  useEffect(() => {
+    if (tab === 'pull-history' && !pullHistory) loadPullHistory();
+    if (tab === 'training-history' && !trainingHistory) loadTrainingHistory();
+  }, [tab]);
+
+  const handleUpgrade = async () => {
+    setUpgrading(true);
+    try {
+      const res = await upgradeAcademy();
+      toast.success(res.data.message);
+      loadOverview();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Upgrade failed');
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handleDowngrade = async () => {
+    setUpgrading(true);
+    try {
+      const res = await downgradeAcademy();
+      toast.success(res.data.message);
+      loadOverview();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Downgrade failed');
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  if (loading) return <div className="ac-loading">Loading academy…</div>;
+  if (!overview) return <div className="ac-loading">No data</div>;
+
+  const tabs = [
+    { key: 'pulls', label: 'Pulls' },
+    { key: 'training', label: 'Training' },
+    { key: 'pull-history', label: 'Pull History' },
+    { key: 'training-history', label: 'Training History' },
+  ];
+
+  return (
+    <div className="ac-page">
+      <div className="ac-header">
+        <h1 className="ac-title">Academy</h1>
+        <div className="ac-level-badge">Level {overview.academyLevel}</div>
+        <div className="ac-level-controls">
+          {overview.academyLevel > 1 && (
+            <button className="ac-level-btn downgrade" onClick={handleDowngrade} disabled={upgrading}
+              title="Downgrade academy">▼ Downgrade</button>
+          )}
+          {overview.academyLevel < 4 && (
+            <button className="ac-level-btn upgrade" onClick={handleUpgrade} disabled={upgrading}
+              title={`Upgrade to Level ${overview.academyLevel + 1} (${LEVEL_SPOTS[overview.academyLevel + 1]} spots)`}>
+              ▲ Upgrade to L{overview.academyLevel + 1}
+            </button>
+          )}
+        </div>
+        {overview.academyLevel < 4 && (
+          <span className="ac-level-hint">
+            Next: {LEVEL_SPOTS[overview.academyLevel + 1]} focused spots
+          </span>
+        )}
+      </div>
+
+      <div className="ac-tabs">
+        {tabs.map(t => (
+          <button key={t.key} className={`ac-tab ${tab === t.key ? 'active' : ''}`}
+            onClick={() => setTab(t.key)}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab === 'pulls' && (
+        <PullsSection
+          pullRole={pullRole} setPullRole={setPullRole}
+          pulling={pulling} handlePull={handlePull} lastPull={lastPull}
+          navigate={navigate}
+        />
+      )}
+
+      {tab === 'training' && (
+        <TrainingSection
+          overview={overview}
+          assigningId={assigningId} setAssigningId={setAssigningId}
+          handleAssign={handleAssign} handleRemove={handleRemove}
+          navigate={navigate}
+        />
+      )}
+
+      {tab === 'pull-history' && (
+        <PullHistorySection data={pullHistory} navigate={navigate} />
+      )}
+
+      {tab === 'training-history' && (
+        <TrainingHistorySection data={trainingHistory} navigate={navigate} />
+      )}
+    </div>
+  );
+}
+
+/* ════════════ Pulls Tab ════════════ */
+function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, navigate }) {
+  return (
+    <div className="ac-section">
+      <div className="ac-pull-card">
+        <h3 className="ac-section-title">Player Pull</h3>
+        <p className="ac-pull-desc">
+          Pull a 17-year-old youth player. 15% chance from your home nation, 5% from each other country.
+        </p>
+        <div className="ac-pull-controls">
+          <select className="ac-select" value={pullRole} onChange={e => setPullRole(e.target.value)}>
+            {ROLE_OPTIONS.map(r => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+          <button className="ac-pull-btn" onClick={handlePull} disabled={pulling}>
+            {pulling ? 'Pulling…' : 'Pull Player'}
+          </button>
+        </div>
+      </div>
+
+      {lastPull && (
+        <div className="ac-pull-result">
+          <h3 className="ac-section-title">Last Pull</h3>
+          <div className="ac-result-card" onClick={() => navigate(`/player/${lastPull.player.id}`)}>
+            <div className="ac-result-top">
+              <span className="ac-result-name">{lastPull.player.name}</span>
+              <span className="ac-result-role">{ROLE_SHORT[lastPull.player.role]}</span>
+              <span className="ac-result-country">{lastPull.pulledFrom}</span>
+            </div>
+            <div className="ac-result-stats">
+              <StatPill label="Bat" value={lastPull.player.batRating} />
+              <StatPill label="Bowl" value={lastPull.player.bowlRating} />
+              {lastPull.player.keeperRating > 0 && <StatPill label="WK" value={lastPull.player.keeperRating} />}
+              <StatPill label="Fld" value={lastPull.player.fldRating} />
+              <StatPill label="Stam" value={lastPull.player.stamina} />
+              <StatPill label="Conf" value={lastPull.player.confidence} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════════ Training Tab ════════════ */
+function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, handleRemove, navigate }) {
+  const focused = overview.players.filter(p => p.trainingType);
+  const general = overview.players.filter(p => !p.trainingType);
+
+  return (
+    <div className="ac-section">
+      <div className="ac-training-info">
+        <span>Focused Spots: <strong>{overview.usedFocusedSpots}</strong> / {overview.maxFocusedSpots}</span>
+        <span className="ac-training-hint">Level {overview.academyLevel} Academy</span>
+      </div>
+
+      {focused.length > 0 && (
+        <>
+          <h3 className="ac-section-title">Focused Training</h3>
+          <div className="ac-player-list">
+            {focused.map(p => (
+              <div key={p.id} className="ac-player-row">
+                <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
+                  <span className="ac-player-name">{p.name}</span>
+                  <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
+                  <span className="ac-player-age">Age {p.age}</span>
+                </div>
+                <div className="ac-player-training">
+                  <span className="ac-training-badge focused">{p.trainingType}</span>
+                  {assigningId === p.id ? (
+                    <div className="ac-type-picker">
+                      {TRAINING_TYPES.map(t => (
+                        <button key={t.value} className="ac-type-opt"
+                          onClick={() => handleAssign(p.id, t.value)} title={t.desc}>{t.label}</button>
+                      ))}
+                      <button className="ac-type-cancel" onClick={() => setAssigningId(null)}>✕</button>
+                    </div>
+                  ) : (
+                    <div className="ac-player-actions">
+                      <button className="ac-btn-sm" onClick={() => setAssigningId(p.id)}>Change</button>
+                      <button className="ac-btn-sm danger" onClick={() => handleRemove(p.id)}>Remove</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <h3 className="ac-section-title">General Training</h3>
+      <div className="ac-player-list">
+        {general.map(p => (
+          <div key={p.id} className="ac-player-row">
+            <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
+              <span className="ac-player-name">{p.name}</span>
+              <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
+              <span className="ac-player-age">Age {p.age}</span>
+            </div>
+            <div className="ac-player-training">
+              <span className="ac-training-badge general">General</span>
+              {assigningId === p.id ? (
+                <div className="ac-type-picker">
+                  {TRAINING_TYPES.map(t => (
+                    <button key={t.value} className="ac-type-opt"
+                      onClick={() => handleAssign(p.id, t.value)} title={t.desc}>{t.label}</button>
+                  ))}
+                  <button className="ac-type-cancel" onClick={() => setAssigningId(null)}>✕</button>
+                </div>
+              ) : (
+                overview.usedFocusedSpots < overview.maxFocusedSpots && (
+                  <button className="ac-btn-sm accent" onClick={() => setAssigningId(p.id)}>Focus</button>
+                )
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════ Pull History ════════════ */
+function PullHistorySection({ data, navigate }) {
+  if (!data) return <div className="ac-loading">Loading…</div>;
+  if (!data.length) return <div className="ac-empty">No pulls yet</div>;
+  return (
+    <div className="ac-section">
+      <div className="ac-history-list">
+        {data.map(p => (
+          <div key={p.id} className="ac-history-row" onClick={() => navigate(`/player/${p.player.id}`)}>
+            <div className="ac-history-left">
+              <span className="ac-history-name">{p.player.name}</span>
+              <span className="ac-player-role-badge">{ROLE_SHORT[p.requestedRole]}</span>
+              <span className="ac-history-country">{p.pulledFrom}</span>
+            </div>
+            <div className="ac-history-right">
+              <div className="ac-history-ratings">
+                <span>B:{p.player.batRating}</span>
+                <span>Bw:{p.player.bowlRating}</span>
+                {p.player.keeperRating > 0 && <span>WK:{p.player.keeperRating}</span>}
+                <span>F:{p.player.fldRating}</span>
+              </div>
+              {p.pulledAt && <span className="ac-history-date">{new Date(p.pulledAt).toLocaleDateString()}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════ Training History ════════════ */
+function TrainingHistorySection({ data, navigate }) {
+  if (!data) return <div className="ac-loading">Loading…</div>;
+  if (!data.length) return <div className="ac-empty">No training logs yet</div>;
+  return (
+    <div className="ac-section">
+      <div className="ac-history-list">
+        {data.map(log => (
+          <div key={log.id} className="ac-history-row" onClick={() => navigate(`/player/${log.playerId}`)}>
+            <div className="ac-history-left">
+              <span className="ac-history-name">{log.playerName}</span>
+              <span className={`ac-training-badge ${log.trainingType === 'GENERAL' ? 'general' : 'focused'}`}>
+                {log.trainingType}
+              </span>
+            </div>
+            <div className="ac-history-right">
+              <span className="ac-log-skill">{SKILL_LABELS[log.skill] || log.skill}</span>
+              <span className="ac-log-values">{log.oldValue} → {log.newValue}</span>
+              <span className={`ac-log-change ${log.change > 0 ? 'pop' : 'flop'}`}>
+                {log.change > 0 ? `+${log.change}` : log.change}
+              </span>
+              {log.trainedAt && <span className="ac-history-date">{new Date(log.trainedAt).toLocaleDateString()}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatPill({ label, value }) {
+  return (
+    <span className="ac-stat-pill">
+      <span className="ac-stat-pill-label">{label}</span>
+      <span className="ac-stat-pill-value">{value}</span>
+    </span>
+  );
+}

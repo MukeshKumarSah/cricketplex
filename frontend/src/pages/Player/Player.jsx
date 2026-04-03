@@ -1,13 +1,266 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { getPlayerProfile } from '../../api/auth';
+import toast from 'react-hot-toast';
 import './Player.css';
+
+const ROLE_LABELS = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-Rounder', KEEPER: 'Keeper' };
+const HAND_LABELS = { RH: 'Right Hand', LH: 'Left Hand' };
+const BOWL_LABELS = { FS: 'Fast Swing', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast Medium', MF: 'Medium Fast' };
+const AGG_LABELS = { D: 'Defensive', N: 'Neutral', A: 'Aggressive' };
+const FORMAT_ORDER = ['T20', 'ODI', 'FC'];
+const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#3b82f6', FC: '#f59e0b' };
+
+function RatingBar({ label, value, max = 100, color }) {
+  const pct = Math.min((value / max) * 100, 100);
+  return (
+    <div className="pp-rating-row">
+      <span className="pp-rating-label">{label}</span>
+      <div className="pp-rating-track">
+        <div className="pp-rating-fill" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="pp-rating-value">{value}</span>
+    </div>
+  );
+}
 
 export default function Player() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeFormat, setActiveFormat] = useState('T20');
+  const [activeType, setActiveType] = useState('LEAGUE');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getPlayerProfile(id);
+        setData(res.data);
+        // Pick first available format-type
+        if (res.data.stats) {
+          const keys = Object.keys(res.data.stats);
+          if (keys.length > 0) {
+            const [fmt, type] = keys[0].split('_');
+            setActiveFormat(fmt);
+            setActiveType(type);
+          }
+        }
+      } catch {
+        toast.error('Failed to load player');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  if (loading) return <div className="pp-page"><div className="pp-loading">Loading...</div></div>;
+  if (!data) return <div className="pp-page"><div className="pp-empty">Player not found</div></div>;
+
+  const sk = data.skills || {};
+  const stats = data.stats || {};
+
+  // Available format-type combos
+  const availableKeys = Object.keys(stats);
+  const availableFormats = [...new Set(availableKeys.map(k => k.split('_')[0]))];
+  availableFormats.sort((a, b) => FORMAT_ORDER.indexOf(a) - FORMAT_ORDER.indexOf(b));
+
+  const typesForFormat = availableKeys
+    .filter(k => k.startsWith(activeFormat + '_'))
+    .map(k => k.split('_')[1]);
+
+  const currentKey = activeFormat + '_' + activeType;
+  const current = stats[currentKey];
 
   return (
-    <div className="player-page">
-      <h1>Player Details</h1>
-      <p className="player-id">Player ID: {id}</p>
+    <div className="pp-page">
+      {/* ─── Header Card ─── */}
+      <div className="pp-header">
+        <div className="pp-header-top">
+          <div className="pp-name-block">
+            <h1 className="pp-name">{data.firstName} {data.lastName}</h1>
+            <div className="pp-meta-row">
+              <span className="pp-role-badge">{ROLE_LABELS[data.role] || data.role}</span>
+              <span className="pp-team-link" onClick={() => navigate(`/team/${data.teamId}`)}>{data.teamName}</span>
+            </div>
+          </div>
+          <div className="pp-rating-badge">{data.rating}</div>
+        </div>
+
+        <div className="pp-info-grid">
+          <div className="pp-info-item"><span className="pp-info-label">Age</span><span className="pp-info-val">{data.age}</span></div>
+          <div className="pp-info-item"><span className="pp-info-label">Country</span><span className="pp-info-val">{data.country}</span></div>
+          <div className="pp-info-item"><span className="pp-info-label">Bat</span><span className="pp-info-val">{HAND_LABELS[data.batHand] || data.batHand}</span></div>
+          {data.bowlHand && <div className="pp-info-item"><span className="pp-info-label">Bowl</span><span className="pp-info-val">{HAND_LABELS[data.bowlHand]} {BOWL_LABELS[data.bowlType] || data.bowlType}</span></div>}
+          <div className="pp-info-item"><span className="pp-info-label">Bat Style</span><span className="pp-info-val">{AGG_LABELS[data.batAggression]}</span></div>
+          {data.bowlAggression && <div className="pp-info-item"><span className="pp-info-label">Bowl Style</span><span className="pp-info-val">{AGG_LABELS[data.bowlAggression]}</span></div>}
+          <div className="pp-info-item"><span className="pp-info-label">Wage</span><span className="pp-info-val">${data.wage?.toLocaleString()}</span></div>
+        </div>
+      </div>
+
+      {/* ─── Skills ─── */}
+      <div className="pp-section">
+        <h2 className="pp-section-title">Skills & Attributes</h2>
+        <div className="pp-skills-grid">
+          <div className="pp-skills-col">
+            <RatingBar label="BAT" value={sk.batRating} color="#22c55e" />
+            <RatingBar label="BOWL" value={sk.bowlRating} color="#3b82f6" />
+            <RatingBar label="WK" value={sk.keeperRating} color="#f59e0b" />
+            <RatingBar label="FLD" value={sk.fldRating} color="#8b5cf6" />
+          </div>
+          <div className="pp-skills-divider" />
+          <div className="pp-skills-col">
+            <RatingBar label="STA" value={sk.stamina} color="#fb923c" />
+            <RatingBar label="EXP" value={sk.experience} color="#22d3ee" />
+            <RatingBar label="CONF" value={sk.confidence} color="#f472b6" />
+            <RatingBar label="FIT" value={sk.fitness} color="#a3e635" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Stats ─── */}
+      {availableFormats.length > 0 && (
+        <div className="pp-section">
+          <h2 className="pp-section-title">Career Statistics</h2>
+
+          {/* Format tabs */}
+          <div className="pp-format-tabs">
+            {availableFormats.map(fmt => (
+              <button
+                key={fmt}
+                className={`pp-fmt-tab ${activeFormat === fmt ? 'active' : ''}`}
+                style={activeFormat === fmt ? { borderColor: FORMAT_COLORS[fmt], color: FORMAT_COLORS[fmt] } : {}}
+                onClick={() => {
+                  setActiveFormat(fmt);
+                  const types = availableKeys.filter(k => k.startsWith(fmt + '_')).map(k => k.split('_')[1]);
+                  setActiveType(types.includes('LEAGUE') ? 'LEAGUE' : types[0]);
+                }}
+              >{fmt}</button>
+            ))}
+          </div>
+
+          {/* Type toggle */}
+          {typesForFormat.length > 1 && (
+            <div className="pp-type-toggle">
+              {typesForFormat.map(t => (
+                <button
+                  key={t}
+                  className={`pp-type-btn ${activeType === t ? 'active' : ''}`}
+                  onClick={() => setActiveType(t)}
+                >{t === 'LEAGUE' ? 'Official' : 'Friendly'}</button>
+              ))}
+            </div>
+          )}
+          {typesForFormat.length === 1 && (
+            <div className="pp-type-single">{typesForFormat[0] === 'LEAGUE' ? 'Official' : 'Friendly'}</div>
+          )}
+
+          {current ? (
+            <>
+              {/* Batting Stats */}
+              {current.batting?.matches > 0 && (
+                <div className="pp-stat-block">
+                  <h3 className="pp-stat-heading">Batting</h3>
+                  <div className="pp-stat-grid">
+                    <StatCell label="Mat" value={current.batting.matches} />
+                    <StatCell label="Inn" value={current.batting.innings} />
+                    <StatCell label="NO" value={current.batting.notOuts} />
+                    <StatCell label="Runs" value={current.batting.runs} highlight />
+                    <StatCell label="HS" value={current.batting.highest} />
+                    <StatCell label="Avg" value={current.batting.average} />
+                    <StatCell label="SR" value={current.batting.strikeRate} />
+                    <StatCell label="100s" value={current.batting.hundreds} />
+                    <StatCell label="50s" value={current.batting.fifties} />
+                    <StatCell label="4s" value={current.batting.fours} />
+                    <StatCell label="6s" value={current.batting.sixes} />
+                  </div>
+                </div>
+              )}
+
+              {/* Bowling Stats */}
+              {current.bowling?.matches > 0 && (
+                <div className="pp-stat-block">
+                  <h3 className="pp-stat-heading">Bowling</h3>
+                  <div className="pp-stat-grid">
+                    <StatCell label="Mat" value={current.bowling.matches} />
+                    <StatCell label="Inn" value={current.bowling.innings} />
+                    <StatCell label="Overs" value={current.bowling.overs} />
+                    <StatCell label="Runs" value={current.bowling.runs} />
+                    <StatCell label="Wkts" value={current.bowling.wickets} highlight />
+                    <StatCell label="Best" value={current.bowling.best} />
+                    <StatCell label="Avg" value={current.bowling.average} />
+                    <StatCell label="Econ" value={current.bowling.economy} />
+                    <StatCell label="SR" value={current.bowling.strikeRate} />
+                    <StatCell label="Mdns" value={current.bowling.maidens} />
+                    <StatCell label="5W" value={current.bowling.fiveWickets} />
+                    <StatCell label="3W" value={current.bowling.threeWickets} />
+                  </div>
+                </div>
+              )}
+
+              {/* Fielding Stats */}
+              {current.fielding?.matches > 0 && (
+                <div className="pp-stat-block">
+                  <h3 className="pp-stat-heading">Fielding</h3>
+                  <div className="pp-stat-grid">
+                    <StatCell label="Mat" value={current.fielding.matches} />
+                    <StatCell label="Ct" value={current.fielding.catches} />
+                    <StatCell label="St" value={current.fielding.stumpings} />
+                    <StatCell label="RO" value={current.fielding.runOuts} />
+                    <StatCell label="Total" value={current.fielding.total} highlight />
+                  </div>
+                </div>
+              )}
+
+              {/* Last 5 */}
+              {current.last5?.length > 0 && (
+                <div className="pp-stat-block">
+                  <h3 className="pp-stat-heading">Last 5 Matches</h3>
+                  <div className="pp-last5-list">
+                    {current.last5.map((m, i) => (
+                      <div key={i} className="pp-last5-row" onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}>
+                        <div className="pp-last5-meta">
+                          <span className="pp-last5-vs">vs {m.vs}</span>
+                          {m.date && <span className="pp-last5-date">{m.date}</span>}
+                        </div>
+                        <div className="pp-last5-perf">
+                          {m.batInnings?.map((b, j) => (
+                            <span key={`bat-${j}`} className="pp-last5-chip bat">
+                              {b.runs}{b.notOut ? '*' : ''}<small>({b.balls})</small>
+                            </span>
+                          ))}
+                          {m.bowlInnings?.map((b, j) => (
+                            <span key={`bowl-${j}`} className="pp-last5-chip bowl">
+                              {b.wickets}/{b.runs}<small>({b.overs}ov)</small>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="pp-no-stats">No stats available for this format</div>
+          )}
+        </div>
+      )}
+
+      {availableFormats.length === 0 && (
+        <div className="pp-section">
+          <div className="pp-no-stats">No match data yet</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCell({ label, value, highlight }) {
+  return (
+    <div className={`pp-stat-cell ${highlight ? 'highlight' : ''}`}>
+      <span className="pp-stat-val">{value ?? '-'}</span>
+      <span className="pp-stat-label">{label}</span>
     </div>
   );
 }

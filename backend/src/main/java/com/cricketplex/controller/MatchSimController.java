@@ -23,6 +23,8 @@ public class MatchSimController {
 
     private static final int BALL_INTERVAL_SECONDS = 5;
     private static final int INNINGS_BREAK_SECONDS = 300;
+    private static final int SESSION_BREAK_SECONDS = 180;  // break between sessions in FC
+    private static final int SESSION_OVERS = 50;           // overs per session in FC
 
     private final MatchEngine matchEngine;
     private final MatchResultRepository matchResultRepository;
@@ -33,6 +35,45 @@ public class MatchSimController {
     private final TeamRepository teamRepository;
     private final MatchLineupRepository matchLineupRepository;
     private final WeatherService weatherService;
+
+    /**
+     * Compute session break positions for FC matches.
+     * Returns a list (per innings) of ball-event indices where a session break occurs.
+     * Tracks cumulative completed overs across all innings. Breaks only at over boundaries.
+     */
+    private List<List<Integer>> computeSessionBreakPositions(MatchResult result) {
+        List<List<Integer>> allPositions = new ArrayList<>();
+        int cumulativeOvers = 0;
+
+        for (Innings inn : result.getInningsList()) {
+            List<Integer> breaks = new ArrayList<>();
+            List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+
+            int lastSeenOver = 0;
+            for (int j = 0; j < events.size(); j++) {
+                int curOver = events.get(j).getOverNumber(); // 1-based
+                if (curOver != lastSeenOver) {
+                    // A new over started — the previous over just completed
+                    if (lastSeenOver > 0) {
+                        cumulativeOvers++;
+                        if (cumulativeOvers % SESSION_OVERS == 0) {
+                            breaks.add(j); // break before this ball (first ball of new over)
+                        }
+                    }
+                    lastSeenOver = curOver;
+                }
+            }
+            // Count the final over if it was a complete over (totalOvers is whole number)
+            if (inn.getTotalOvers() != null && inn.getTotalOvers() > 0
+                    && Math.abs(inn.getTotalOvers() - Math.floor(inn.getTotalOvers())) < 0.01) {
+                cumulativeOvers++;
+                // No break needed here — the innings is ending (innings break will follow)
+            }
+
+            allPositions.add(breaks);
+        }
+        return allPositions;
+    }
 
     /**
      * Simulate a match for a given fixture.
@@ -108,6 +149,10 @@ public class MatchSimController {
         resp.put("ballCounts", ballCounts);
         resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
         resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
+        if ("FC".equalsIgnoreCase(format)) {
+            resp.put("sessionBreakSeconds", SESSION_BREAK_SECONDS);
+            resp.put("sessionBreakPositions", computeSessionBreakPositions(result));
+        }
 
         // Toss
         resp.put("tossWinner", result.getTossWinner().getTeamName());
@@ -152,6 +197,7 @@ public class MatchSimController {
         innMap.put("totalOvers", inn.getTotalOvers());
         innMap.put("extras", inn.getExtras());
         innMap.put("allOut", inn.getAllOut());
+        innMap.put("declared", inn.getDeclared());
         innMap.put("scoreDisplay", inn.getTotalRuns() + "/" + inn.getTotalWickets()
                 + " (" + formatOvers(inn.getTotalOvers()) + " ov)");
 
@@ -208,6 +254,9 @@ public class MatchSimController {
         if ("TIE".equals(result.getResultType())) {
             return "Match tied!";
         }
+        if ("DRAW".equals(result.getResultType())) {
+            return "Match drawn";
+        }
         if (result.getWinner() == null) {
             return "Match drawn";
         }
@@ -217,6 +266,9 @@ public class MatchSimController {
         }
         if ("WICKETS".equals(result.getResultType())) {
             return winner + " won by " + result.getResultMargin() + " wickets";
+        }
+        if ("INNINGS".equals(result.getResultType())) {
+            return winner + " won by an innings and " + result.getResultMargin() + " runs";
         }
         return winner + " won";
     }
@@ -245,8 +297,21 @@ public class MatchSimController {
             totalBalls += ballEventRepository.countByInningsId(inn.getId());
         }
         int inningsCount = result.getInningsList().size();
-        int breakTime = inningsCount > 1 ? INNINGS_BREAK_SECONDS : 0;
-        long totalSeconds = totalBalls * BALL_INTERVAL_SECONDS + breakTime;
+        int breakCount = inningsCount > 1 ? inningsCount - 1 : 0;
+
+        // For FC: count session breaks based on cumulative completed overs at over boundaries
+        String fmt = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();
+        int sessionBreaks = 0;
+        if ("FC".equalsIgnoreCase(fmt)) {
+            List<List<Integer>> positions = computeSessionBreakPositions(result);
+            for (List<Integer> innBreaks : positions) {
+                sessionBreaks += innBreaks.size();
+            }
+        }
+
+        long totalSeconds = totalBalls * BALL_INTERVAL_SECONDS
+                + (long) breakCount * INNINGS_BREAK_SECONDS
+                + (long) sessionBreaks * SESSION_BREAK_SECONDS;
         long elapsed = ChronoUnit.SECONDS.between(result.getCreatedAt(), LocalDateTime.now());
 
         if (elapsed >= totalSeconds) {
@@ -287,6 +352,15 @@ public class MatchSimController {
         resp.put("ballCounts", ballCounts);
         resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
         resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
+
+        String commFormat = result.getFixture().getLeague() != null
+                ? result.getFixture().getLeague().getFormat()
+                : result.getFixture().getFormat();
+        if ("FC".equalsIgnoreCase(commFormat)) {
+            resp.put("sessionBreakSeconds", SESSION_BREAK_SECONDS);
+            resp.put("sessionBreakPositions", computeSessionBreakPositions(result));
+        }
+
         resp.put("tossWinner", result.getTossWinner().getTeamName());
         resp.put("tossDecision", result.getTossDecision());
 
@@ -298,6 +372,8 @@ public class MatchSimController {
             innMap.put("bowlingTeam", inn.getBowlingTeam().getTeamName());
             innMap.put("scoreDisplay", inn.getTotalRuns() + "/" + inn.getTotalWickets()
                     + " (" + formatOvers(inn.getTotalOvers()) + " ov)");
+            innMap.put("declared", inn.getDeclared());
+            innMap.put("allOut", inn.getAllOut());
 
             List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
             List<Map<String, Object>> balls = new ArrayList<>();

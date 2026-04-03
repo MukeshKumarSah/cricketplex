@@ -634,6 +634,213 @@
   }
 }
 
+/* ═══ FC Bowling: 100-over grid ═══ */
+.lu-fc-bowling {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lu-fc-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lu-fc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  background: #0f172a;
+  border: 2px solid #1e293b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.lu-fc-row:hover {
+  background: #1e293b;
+}
+.lu-fc-row.lu-fc-active {
+  background: #1e293b;
+}
+.lu-fc-row.lu-fc-eraser {
+  opacity: 0.7;
+}
+.lu-fc-row.lu-fc-eraser.lu-fc-active {
+  opacity: 1;
+  border-color: #ef4444;
+}
+
+.lu-fc-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lu-fc-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  min-width: 28px;
+}
+
+.lu-fc-select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+}
+.lu-fc-select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+}
+
+.lu-fc-agg-btns {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.lu-fc-cnt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+
+.lu-fc-remove-btn {
+  background: none;
+  border: 1px solid #475569;
+  color: #ef4444;
+  font-size: 1rem;
+  font-weight: 700;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.lu-fc-remove-btn:hover {
+  background: #ef444420;
+  border-color: #ef4444;
+}
+
+.lu-fc-add-btn {
+  background: #1e293b;
+  border: 2px dashed #334155;
+  color: #94a3b8;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lu-fc-add-btn:hover {
+  border-color: #22d3ee;
+  color: #22d3ee;
+  background: #22d3ee10;
+}
+
+/* 10×10 grid */
+.lu-fc-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+}
+
+.lu-fc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.15rem;
+  background: #0f172a;
+  border: 2px solid #1e293b;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.1s;
+  min-height: 38px;
+  user-select: none;
+}
+.lu-fc-cell:hover {
+  border-color: #475569;
+  transform: scale(1.05);
+}
+.lu-fc-cell.lu-fc-filled {
+  border-width: 2px;
+}
+.lu-fc-cell.lu-fc-err {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 6px #ef444480;
+}
+
+.lu-fc-num {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1;
+}
+
+.lu-fc-bwl {
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.lu-fc-agg {
+  font-size: 0.5rem;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.lu-fc-agg-a {
+  color: #ef4444;
+}
+.lu-fc-agg-d {
+  color: #3b82f6;
+}
+
+.lu-fc-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem 0.6rem;
+  background: #0f172a;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.lu-fc-assigned {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.lu-fc-hint {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .lu-fc-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
 /* ═══ Squad Player Pool ═══ */
 .lu-pool-table {
   overflow-x: auto;

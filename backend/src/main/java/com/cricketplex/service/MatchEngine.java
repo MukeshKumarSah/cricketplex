@@ -62,9 +62,14 @@ public class MatchEngine {
             throw new IllegalArgumentException("Match format could not be determined");
         }
 
-        // This engine only handles limited-overs formats
+        // Route to FC match engine if First-Class format
+        if ("FC".equalsIgnoreCase(format)) {
+            return simulateFCMatch(fixture, format, fixture.getHomeTeam(), fixture.getAwayTeam());
+        }
+
+        // Limited-overs formats only below
         if (!"T20".equalsIgnoreCase(format) && !"ODI".equalsIgnoreCase(format)) {
-            throw new IllegalArgumentException("This match engine only supports T20 and ODI formats");
+            throw new IllegalArgumentException("Unsupported format: " + format);
         }
         int maxOvers = getMaxOvers(format);
         int maxPerBowler = getMaxPerBowler(format);
@@ -496,6 +501,14 @@ public class MatchEngine {
                     else if (requiredRate > 5) chasePressure = 1;
                     else if (requiredRate < 3) chasePressure = -3;
                     else if (requiredRate < 2) chasePressure = -5;
+                } else if ("FC".equalsIgnoreCase(ctx.format)) {
+                    // FC chases are more relaxed: plenty of overs
+                    if (requiredRate > 6) chasePressure = 10;
+                    else if (requiredRate > 5) chasePressure = 6;
+                    else if (requiredRate > 4) chasePressure = 3;
+                    else if (requiredRate > 3) chasePressure = 1;
+                    else if (requiredRate < 1.5) chasePressure = -3;
+                    else if (requiredRate < 1) chasePressure = -5;
                 }
             }
         }
@@ -505,8 +518,9 @@ public class MatchEngine {
         batStrength = Math.max(5, Math.min(batStrength, 120));
 
         // ─── WIDE / NO-BALL CHECK ───
-        // T20 has stricter wide rules → more wides called; ODI more lenient
-        double baseExtra = "T20".equalsIgnoreCase(ctx.format) ? 0.04 : 0.025;
+        // T20 has stricter wide rules → more wides called; ODI more lenient; FC most lenient
+        double baseExtra = "T20".equalsIgnoreCase(ctx.format) ? 0.04
+                : "FC".equalsIgnoreCase(ctx.format) ? 0.015 : 0.025;
         double extraChance = baseExtra + (bowlAggrMod * 0.01) - (bowler.getBowlRating() * 0.0002)
                 + (1.0 - bowlFitness) * 0.01;
         extraChance = Math.max(0.01, Math.min(extraChance, 0.10));
@@ -538,6 +552,15 @@ public class MatchEngine {
             p4      = 0.15;  // more boundaries
             p6      = 0.08;  // more sixes
             pWicket = 0.055; // slightly higher risk per ball
+        } else if ("FC".equalsIgnoreCase(ctx.format)) {
+            // FC: Most defensive, patience-oriented
+            pDot    = 0.48;  // lots of dots (patient batting)
+            p1      = 0.25;
+            p2      = 0.10;
+            p3      = 0.04;
+            p4      = 0.06;  // rare boundaries
+            p6      = 0.01;  // very rare sixes
+            pWicket = 0.03;  // lower wicket risk (defensive play)
         } else { // ODI
             pDot    = 0.40;  // ODIs have more dots
             p1      = 0.28;
@@ -549,7 +572,7 @@ public class MatchEngine {
         }
 
         // Format-scaled shift factor (T20 skill gaps have bigger impact on boundaries)
-        double shiftScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : 1.0;
+        double shiftScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.7 : 1.0;
         double shift = (skill_diff / 200.0) * shiftScale;
         pDot -= shift * 0.4;
         p1 += shift * 0.12;
@@ -558,8 +581,8 @@ public class MatchEngine {
         p6 += shift * 0.08;
         pWicket -= shift * 0.35;
 
-        // Batting aggression extremes — bigger swings in T20, smaller in ODI
-        double aggrScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : 0.9;
+        // Batting aggression extremes — bigger swings in T20, smaller in ODI, smallest in FC
+        double aggrScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.6 : 0.9;
         if ("A".equals(batter.lineupPlayer.getBatAggression())) {
             p4 += 0.03 * aggrScale;
             p6 += 0.035 * aggrScale;
@@ -603,7 +626,8 @@ public class MatchEngine {
             double wktsPerOver = totalWickets / completedOvers;
 
             // collapseFactor: 0 (no pressure) to ~1.0 (extreme collapse)
-            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.65 : 0.50;
+            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.65
+                    : "FC".equalsIgnoreCase(ctx.format) ? 0.40 : 0.50;
             double collapseFactor = 0;
             if (wktsPerOver > collapseThreshold) {
                 collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.8);
@@ -641,8 +665,9 @@ public class MatchEngine {
             double requiredRate = (runsNeeded * 6.0) / ballsRemaining;
             double currentRate = legalBallsBowled > 0 ? (totalRuns * 6.0) / legalBallsBowled : 0;
 
-            // Par rate: what a normal T20/ODI innings scores at
-            double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0 : 5.0;
+            // Par rate: what a normal T20/ODI/FC innings scores at
+            double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0
+                    : "FC".equalsIgnoreCase(ctx.format) ? 3.0 : 5.0;
 
             // How far behind/ahead of the required rate
             double rateDiff = requiredRate - parRate; // positive = need to accelerate
@@ -720,6 +745,18 @@ public class MatchEngine {
                 pDot -= 0.03 * accelBonus;
                 p4   += 0.02 * accelBonus;
                 p6   += 0.02 * accelBonus;
+            }
+            // FC first innings: patience is king — only very late in an innings with few wickets do they push
+            if ("FC".equalsIgnoreCase(ctx.format)) {
+                // In FC, early wickets in an innings mean even more consolidation
+                if (completedOvers < 10 && totalWickets >= 3) {
+                    double earlyPressure = Math.min(1.0, totalWickets / 4.0);
+                    pDot    += 0.06 * earlyPressure;
+                    p1      += 0.02 * earlyPressure;
+                    p4      -= 0.04 * earlyPressure;
+                    p6      -= 0.02 * earlyPressure;
+                    pWicket -= 0.01 * earlyPressure;
+                }
             }
         }
 
@@ -1196,6 +1233,17 @@ public class MatchEngine {
             if (overNumber <= 30) return -2;
             if (overNumber <= 40) return 1;
             return 3.5;
+        } else if ("FC".equalsIgnoreCase(format)) {
+            // FC: Each session is 50 overs. Phase modifiers within a session:
+            // Session overs 1-10 = new ball/opening: bowlers have advantage, wickets likely
+            // Session overs 11-25 = settling: batsmen consolidate, low risk
+            // Session overs 26-40 = middle: steady scoring, slight batsman advantage
+            // Session overs 41-50 = end of session: tired bowlers, slight batting boost
+            int sessionOver = ((overNumber - 1) % 50) + 1;
+            if (sessionOver <= 10) return 1.0;   // new ball period
+            if (sessionOver <= 25) return -2.5;   // deep consolidation
+            if (sessionOver <= 40) return -0.5;   // steady
+            return 1.5;                           // end of session push
         }
         // Fallback (shouldn't reach here for this engine)
         return 0;
@@ -1304,6 +1352,523 @@ public class MatchEngine {
         return batScore >= 0 ? "BAT" : "BOWL";
     }
 
+    // ─── FC (First-Class) Match Simulation ────────────────────
+
+    /**
+     * FC match: 2 days × 3 sessions × 50 overs = 300 overs max.
+     * Each team bats twice (4 innings).
+     * Results: Win by runs/wickets/innings, Draw.
+     * Includes follow-on enforcement and declarations.
+     */
+    private MatchResult simulateFCMatch(Fixture fixture, String format, Team homeTeam, Team awayTeam) {
+        MatchLineup homeLineup = getOrGenerateLineup(fixture, homeTeam, format);
+        MatchLineup awayLineup = getOrGenerateLineup(fixture, awayTeam, format);
+
+        Map<String, Object> weather = weatherService.getWeather(homeTeam.getCountry(), fixture.getMatchDate());
+        String condition = (String) weather.get("condition");
+        int temperature = (int) weather.get("temperature");
+        String pitchType = fixture.getPitchType();
+
+        Random rng = new Random((fixture.getId().toString() + fixture.getMatchDate()).hashCode());
+        boolean homeToss = rng.nextBoolean();
+        Team tossWinner = homeToss ? homeTeam : awayTeam;
+        MatchLineup tossLineup = homeToss ? homeLineup : awayLineup;
+        String tossDecision = decideToss(tossLineup, pitchType, condition, rng);
+
+        // Determine batting order for first innings
+        Team battingFirst, battingSecond;
+        MatchLineup bat1Lineup, bat2Lineup;
+        if ("BAT".equals(tossDecision)) {
+            battingFirst = tossWinner;
+            battingSecond = tossWinner.getId().equals(homeTeam.getId()) ? awayTeam : homeTeam;
+            bat1Lineup = tossWinner.getId().equals(homeTeam.getId()) ? homeLineup : awayLineup;
+            bat2Lineup = tossWinner.getId().equals(homeTeam.getId()) ? awayLineup : homeLineup;
+        } else {
+            battingSecond = tossWinner;
+            battingFirst = tossWinner.getId().equals(homeTeam.getId()) ? awayTeam : homeTeam;
+            bat2Lineup = tossWinner.getId().equals(homeTeam.getId()) ? homeLineup : awayLineup;
+            bat1Lineup = tossWinner.getId().equals(homeTeam.getId()) ? awayLineup : homeLineup;
+        }
+
+        MatchResult result = MatchResult.builder()
+                .fixture(fixture)
+                .tossWinner(tossWinner)
+                .tossDecision(tossDecision)
+                .build();
+
+        int maxOversPerInnings = 50; // each session 50 overs, max 3 sessions for an innings
+        int maxPerBowler = 50;       // no formal per-bowler limit per innings (fatigue handles it)
+
+        // Track total overs used across match (max 300)
+        int totalMatchOversUsed = 0;
+        int matchOversLimit = 300;
+
+        // ─── 1st Innings: Team A bats ───
+        int inn1MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed); // up to 150
+        Innings inn1 = Innings.builder()
+                .matchResult(result).inningsNumber(1)
+                .battingTeam(battingFirst).bowlingTeam(battingSecond).build();
+
+        SimContext ctx1 = new SimContext(rng, pitchType, condition, temperature,
+                inn1MaxOvers, maxPerBowler, format, false, 0, bat1Lineup, bat2Lineup);
+        simulateFCInnings(inn1, ctx1, rng, false, 0, matchOversLimit);
+        result.getInningsList().add(inn1);
+        totalMatchOversUsed += getOversUsed(inn1);
+
+        // ─── 2nd Innings: Team B bats ───
+        int inn1Runs = inn1.getTotalRuns();
+        int inn2MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
+        Innings inn2 = Innings.builder()
+                .matchResult(result).inningsNumber(2)
+                .battingTeam(battingSecond).bowlingTeam(battingFirst).build();
+
+        SimContext ctx2 = new SimContext(rng, pitchType, condition, temperature,
+                inn2MaxOvers, maxPerBowler, format, false, 0, bat2Lineup, bat1Lineup);
+        simulateFCInnings(inn2, ctx2, rng, false, 0, matchOversLimit - totalMatchOversUsed);
+        result.getInningsList().add(inn2);
+        totalMatchOversUsed += getOversUsed(inn2);
+
+        int inn2Runs = inn2.getTotalRuns();
+        int lead = inn1Runs - inn2Runs; // positive = team A leads
+
+        // ─── Follow-on check ───
+        // If team A leads by 200+, team B must bat again (follow-on)
+        boolean followOn = lead >= 200;
+
+        Team inn3Batter, inn4Batter;
+        MatchLineup inn3BatLineup, inn3BowlLineup, inn4BatLineup, inn4BowlLineup;
+
+        if (followOn) {
+            // Follow-on: Team B bats again (3rd), then Team A might bat (4th)
+            inn3Batter = battingSecond;
+            inn4Batter = battingFirst;
+            inn3BatLineup = bat2Lineup;
+            inn3BowlLineup = bat1Lineup;
+            inn4BatLineup = bat1Lineup;
+            inn4BowlLineup = bat2Lineup;
+        } else {
+            // Normal: Team A bats (3rd), Team B bats (4th chase)
+            inn3Batter = battingFirst;
+            inn4Batter = battingSecond;
+            inn3BatLineup = bat1Lineup;
+            inn3BowlLineup = bat2Lineup;
+            inn4BatLineup = bat2Lineup;
+            inn4BowlLineup = bat1Lineup;
+        }
+
+        // ─── 3rd Innings ───
+        if (totalMatchOversUsed < matchOversLimit) {
+            int inn3MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
+            Innings inn3 = Innings.builder()
+                    .matchResult(result).inningsNumber(3)
+                    .battingTeam(inn3Batter).bowlingTeam(followOn ? battingFirst : battingSecond).build();
+
+            // In 3rd innings, team might declare to set a target
+            int inn3Target = 0; // not chasing
+            SimContext ctx3 = new SimContext(rng, pitchType, condition, temperature,
+                    inn3MaxOvers, maxPerBowler, format, false, inn3Target, inn3BatLineup, inn3BowlLineup);
+
+            // Declaration logic for 3rd innings
+            int declareLead;
+            if (followOn) {
+                // Team B (follow-on): they'd want to wipe out the deficit + set a target
+                // They declare when they're ahead overall by 250+
+                declareLead = -lead + 250; // e.g., if lead was 200, they need 200+250 = 450 runs total
+            } else {
+                // Team A: declare when overall lead is 250+
+                declareLead = 250;
+            }
+
+            simulateFCInnings(inn3, ctx3, rng, true, estimateDeclarationTarget(followOn, lead, declareLead),
+                    matchOversLimit - totalMatchOversUsed);
+            result.getInningsList().add(inn3);
+            totalMatchOversUsed += getOversUsed(inn3);
+
+            // Recalculate overall lead
+            int inn3Runs = inn3.getTotalRuns();
+            int overallLead;
+            if (followOn) {
+                // Team B scored inn2Runs + inn3Runs, Team A scored inn1Runs
+                overallLead = inn1Runs - (inn2Runs + inn3Runs); // positive = Team A still leads
+            } else {
+                // Team A scored inn1Runs + inn3Runs, Team B scored inn2Runs
+                overallLead = (inn1Runs + inn3Runs) - inn2Runs; // positive = Team A leads
+            }
+
+            // Check for innings defeat
+            if (followOn && overallLead > 0) {
+                // Team B still behind after follow-on innings → innings defeat
+                determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
+                        battingFirst, battingSecond, followOn, true);
+            } else if (!followOn && overallLead < 0) {
+                // Team A collapsed and still behind → innings defeat for team A
+                determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
+                        battingFirst, battingSecond, followOn, true);
+            } else {
+                // ─── 4th Innings (chase) ───
+                if (totalMatchOversUsed < matchOversLimit) {
+                    int chaseTarget;
+                    if (followOn) {
+                        chaseTarget = (inn2Runs + inn3Runs) - inn1Runs + 1;
+                    } else {
+                        chaseTarget = (inn1Runs + inn3Runs) - inn2Runs + 1;
+                    }
+
+                    if (chaseTarget <= 0) {
+                        // Chase target is 0 or negative — chasing team already ahead
+                        determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
+                                battingFirst, battingSecond, followOn, false);
+                    } else {
+                        int inn4MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
+                        Innings inn4 = Innings.builder()
+                                .matchResult(result).inningsNumber(4)
+                                .battingTeam(inn4Batter).bowlingTeam(followOn ? battingSecond : battingFirst).build();
+
+                        SimContext ctx4 = new SimContext(rng, pitchType, condition, temperature,
+                                inn4MaxOvers, maxPerBowler, format, true, chaseTarget,
+                                inn4BatLineup, inn4BowlLineup);
+                        simulateFCInnings(inn4, ctx4, rng, false, 0, matchOversLimit - totalMatchOversUsed);
+                        result.getInningsList().add(inn4);
+                        totalMatchOversUsed += getOversUsed(inn4);
+
+                        int inn4Runs = inn4.getTotalRuns();
+                        determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, inn4Runs,
+                                battingFirst, battingSecond, followOn, false);
+                    }
+                } else {
+                    // No overs left for 4th innings → DRAW
+                    result.setResultType("DRAW");
+                }
+            }
+        } else {
+            // No overs left after 2nd innings → DRAW
+            result.setResultType("DRAW");
+        }
+
+        result.setManOfMatch(pickManOfMatch(result, rng));
+        fixture.setStatus("COMPLETED");
+        fixtureRepository.save(fixture);
+        return matchResultRepository.save(result);
+    }
+
+    /**
+     * Simulate one FC innings with session structure (50 overs per session).
+     * Handles declarations based on score targets.
+     */
+    private void simulateFCInnings(Innings innings, SimContext ctx, Random rng,
+                                   boolean canDeclare, int declareAtRuns, int oversRemaining) {
+        int maxOvers = Math.min(ctx.maxOvers, oversRemaining);
+        if (maxOvers <= 0) return;
+
+        // Use the standard innings simulation but with FC format settings
+        // Override maxOvers in context for the actual simulation
+        SimContext fcCtx = new SimContext(rng, ctx.pitchType, ctx.condition, ctx.temperature,
+                maxOvers, ctx.maxPerBowler, ctx.format, ctx.isChasing, ctx.target,
+                ctx.battingLineup, ctx.bowlingLineup);
+
+        // Run the standard simulateInnings with FC-specific post-processing for declarations
+        simulateInningsWithDeclaration(innings, fcCtx, canDeclare, declareAtRuns);
+    }
+
+    /**
+     * A variant of simulateInnings that supports mid-innings declarations.
+     * When canDeclare = true and score >= declareAtRuns, the innings ends early.
+     */
+    private void simulateInningsWithDeclaration(Innings innings, SimContext ctx,
+                                                 boolean canDeclare, int declareAtRuns) {
+        List<LineupPlayer> battingOrder = new ArrayList<>(ctx.battingLineup.getPlayers());
+        battingOrder.sort(Comparator.comparingInt(LineupPlayer::getBattingPosition));
+
+        List<BowlingOrder> bowlingOrders = new ArrayList<>(ctx.bowlingLineup.getBowlingOrders());
+        bowlingOrders.sort(Comparator.comparingInt(BowlingOrder::getOverNumber));
+
+        Map<Integer, BowlingOrder> bowlerPlan = new LinkedHashMap<>();
+        for (BowlingOrder bo : bowlingOrders) {
+            bowlerPlan.put(bo.getOverNumber(), bo);
+        }
+
+        double teamFieldingAvg = calculateTeamFielding(ctx.bowlingLineup);
+        double keeperSkill = getKeeperRating(ctx.bowlingLineup);
+
+        if (battingOrder.size() < 2) return;
+
+        int nextBatIdx = 2;
+        BatsmanState striker = new BatsmanState(battingOrder.get(0));
+        BatsmanState nonStriker = new BatsmanState(battingOrder.get(1));
+
+        Map<UUID, BattingScorecard> batCards = new LinkedHashMap<>();
+        batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, 1));
+        batCards.put(nonStriker.player.getId(), createBatCard(innings, nonStriker.lineupPlayer, 2));
+
+        Map<UUID, BowlingScorecard> bowlCards = new LinkedHashMap<>();
+
+        int totalRuns = 0, totalWickets = 0, totalExtras = 0, ballsBowled = 0, overNumber = 0;
+        Player currentBowler = null;
+        String currentBowlerAggression = "N";
+        Map<UUID, Integer> bowlerBallCounts = new HashMap<>();
+        Player previousBowler = null;
+
+        outerLoop:
+        for (int over = 0; over < ctx.maxOvers; over++) {
+            overNumber = over + 1;
+
+            // For FC: use bowling plan rotation. If the plan only covers N overs,
+            // cycle through. If wrap-around causes consecutive (over 100→1 same bowler),
+            // shift forward in the plan to find a non-consecutive bowler.
+            int planSize = Math.max(1, bowlerPlan.size());
+            int basePlanOver = bowlerPlan.isEmpty() ? overNumber :
+                    ((overNumber - 1) % planSize) + 1;
+            BowlingOrder planned = bowlerPlan.get(basePlanOver);
+            boolean foundPlanned = false;
+            if (planned != null) {
+                Player plannedBowler = planned.getBowler();
+                int bowled = bowlerBallCounts.getOrDefault(plannedBowler.getId(), 0);
+                boolean sameAsPrevious = previousBowler != null && plannedBowler.getId().equals(previousBowler.getId());
+                if (bowled < ctx.maxPerBowler * 6 && !sameAsPrevious) {
+                    currentBowler = plannedBowler;
+                    currentBowlerAggression = planned.getAggression();
+                    foundPlanned = true;
+                } else if (sameAsPrevious && !bowlerPlan.isEmpty()) {
+                    // Wrap-around consecutive: shift forward in plan to find next available
+                    for (int shift = 1; shift < planSize; shift++) {
+                        int shiftedOver = ((basePlanOver - 1 + shift) % planSize) + 1;
+                        BowlingOrder alt = bowlerPlan.get(shiftedOver);
+                        if (alt != null) {
+                            Player altBowler = alt.getBowler();
+                            int altBowled = bowlerBallCounts.getOrDefault(altBowler.getId(), 0);
+                            if (altBowled < ctx.maxPerBowler * 6 &&
+                                (previousBowler == null || !altBowler.getId().equals(previousBowler.getId()))) {
+                                currentBowler = altBowler;
+                                currentBowlerAggression = alt.getAggression();
+                                foundPlanned = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!foundPlanned) {
+                currentBowler = pickFallbackBowler(ctx, bowlerBallCounts, previousBowler);
+                currentBowlerAggression = "N";
+            }
+
+            if (!bowlCards.containsKey(currentBowler.getId())) {
+                bowlCards.put(currentBowler.getId(), createBowlCard(innings, currentBowler));
+            }
+            BowlingScorecard bowlCard = bowlCards.get(currentBowler.getId());
+
+            int legalBallsThisOver = 0, runsThisOver = 0;
+            boolean maidenPossible = true;
+            int ballInOver = 0;
+
+            while (legalBallsThisOver < 6) {
+                ballInOver++;
+
+                DeliveryResult delivery = simulateDelivery(
+                        ctx, striker, currentBowler, currentBowlerAggression,
+                        teamFieldingAvg, keeperSkill,
+                        overNumber, totalRuns, totalWickets, ballsBowled,
+                        batCards.get(striker.player.getId()));
+
+                BallEvent event = BallEvent.builder()
+                        .innings(innings).overNumber(overNumber).ballNumber(ballInOver)
+                        .batsman(striker.player).bowler(currentBowler)
+                        .runs(delivery.runs).isWicket(delivery.isWicket)
+                        .isBoundary(delivery.isBoundary).isSix(delivery.isSix)
+                        .isWide(delivery.isWide).isNoBall(delivery.isNoBall)
+                        .isBye(delivery.isBye).isLegBye(delivery.isLegBye)
+                        .dismissalType(delivery.dismissalType)
+                        .fielder(delivery.fielder).commentary(delivery.commentary)
+                        .build();
+                innings.getBallEvents().add(event);
+
+                totalRuns += delivery.runs;
+
+                if (delivery.isWide || delivery.isNoBall) {
+                    totalExtras += delivery.runs;
+                    bowlCard.setRunsConceded(bowlCard.getRunsConceded() + delivery.runs);
+                    if (delivery.isWide) bowlCard.setWides(bowlCard.getWides() + 1);
+                    if (delivery.isNoBall) bowlCard.setNoBalls(bowlCard.getNoBalls() + 1);
+                    maidenPossible = false;
+                    runsThisOver += delivery.runs;
+                } else {
+                    legalBallsThisOver++;
+                    ballsBowled++;
+                    bowlerBallCounts.merge(currentBowler.getId(), 1, Integer::sum);
+
+                    BattingScorecard batCard = batCards.get(striker.player.getId());
+                    batCard.setBallsFaced(batCard.getBallsFaced() + 1);
+
+                    if (delivery.isBye || delivery.isLegBye) {
+                        totalExtras += delivery.runs;
+                        if (delivery.runs == 0) bowlCard.setDotBalls(bowlCard.getDotBalls() + 1);
+                    } else {
+                        batCard.setRunsScored(batCard.getRunsScored() + delivery.runs);
+                        if (delivery.isBoundary) batCard.setFours(batCard.getFours() + 1);
+                        if (delivery.isSix) batCard.setSixes(batCard.getSixes() + 1);
+                        bowlCard.setRunsConceded(bowlCard.getRunsConceded() + delivery.runs);
+                        if (delivery.runs == 0 && !delivery.isWicket) {
+                            bowlCard.setDotBalls(bowlCard.getDotBalls() + 1);
+                        }
+                    }
+
+                    if (delivery.runs > 0) maidenPossible = false;
+                    runsThisOver += delivery.runs;
+
+                    if (delivery.isWicket) {
+                        maidenPossible = false;
+                        totalWickets++;
+                        bowlCard.setWickets(bowlCard.getWickets() + 1);
+                        batCard.setDismissalType(delivery.dismissalType);
+                        if (!"RUN_OUT".equals(delivery.dismissalType)) batCard.setBowler(currentBowler);
+                        batCard.setFielder(delivery.fielder);
+                        if (batCard.getBallsFaced() > 0) {
+                            batCard.setStrikeRate(Math.round(batCard.getRunsScored() * 100.0 / batCard.getBallsFaced() * 100.0) / 100.0);
+                        }
+                        if (totalWickets >= 10 || nextBatIdx >= battingOrder.size()) {
+                            innings.setAllOut(true);
+                            break outerLoop;
+                        }
+                        striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                        nextBatIdx++;
+                        batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, nextBatIdx));
+                    } else {
+                        if (delivery.runs % 2 == 1) {
+                            BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+                        }
+                    }
+                }
+
+                // Chase target check
+                if (ctx.isChasing && totalRuns >= ctx.target) break outerLoop;
+            }
+
+            // End of over
+            BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+            if (maidenPossible && runsThisOver == 0) bowlCard.setMaidens(bowlCard.getMaidens() + 1);
+            previousBowler = currentBowler;
+
+            // Declaration check at end of each over
+            if (canDeclare && declareAtRuns > 0 && totalRuns >= declareAtRuns) {
+                innings.setDeclared(true);
+                break;
+            }
+        }
+
+        // Finalize innings
+        innings.setTotalRuns(totalRuns);
+        innings.setTotalWickets(totalWickets);
+        innings.setExtras(totalExtras);
+        int completedOvers = ballsBowled / 6;
+        int remainingBalls = ballsBowled % 6;
+        innings.setTotalOvers(completedOvers + remainingBalls / 10.0);
+
+        for (BattingScorecard card : batCards.values()) {
+            if (card.getBallsFaced() > 0) {
+                card.setStrikeRate(Math.round(card.getRunsScored() * 100.0 / card.getBallsFaced() * 100.0) / 100.0);
+            }
+            innings.getBattingCards().add(card);
+        }
+        for (BowlingScorecard card : bowlCards.values()) {
+            int bowledBalls = bowlerBallCounts.getOrDefault(card.getPlayer().getId(), 0);
+            int fullOvers = bowledBalls / 6;
+            int partBalls = bowledBalls % 6;
+            card.setOvers(fullOvers + partBalls / 10.0);
+            if (bowledBalls > 0) {
+                card.setEconomy(Math.round(card.getRunsConceded() / (bowledBalls / 6.0) * 100.0) / 100.0);
+            }
+            innings.getBowlingCards().add(card);
+        }
+    }
+
+    private int estimateDeclarationTarget(boolean followOn, int lead, int declareLead) {
+        if (followOn) {
+            // Team following on needs to surpass lead + buffer
+            return Math.max(0, lead + declareLead);
+        } else {
+            // Team batting 3rd (originally batted first) — declare at total lead of declareLead
+            return declareLead;
+        }
+    }
+
+    /**
+     * Determine FC result based on all innings scores.
+     */
+    private void determineFCResult(MatchResult result, int inn1, int inn2, int inn3, int inn4,
+                                   Team battingFirst, Team battingSecond,
+                                   boolean followOn, boolean inningsDefeat) {
+        if (inningsDefeat) {
+            if (followOn) {
+                // Team B batted twice (inn2 + inn3), still behind Team A (inn1)
+                int margin = inn1 - (inn2 + inn3);
+                if (margin > 0) {
+                    result.setWinner(battingFirst);
+                    result.setResultType("INNINGS");
+                    result.setResultMargin(margin);
+                } else {
+                    result.setResultType("DRAW"); // shouldn't happen but safety
+                }
+            } else {
+                // Team A batted twice (inn1 + inn3), still behind Team B (inn2)
+                int margin = inn2 - (inn1 + inn3);
+                if (margin > 0) {
+                    result.setWinner(battingSecond);
+                    result.setResultType("INNINGS");
+                    result.setResultMargin(margin);
+                } else {
+                    result.setResultType("DRAW");
+                }
+            }
+            return;
+        }
+
+        // 4th innings was played
+        int team1Total, team2Total;
+        if (followOn) {
+            team1Total = inn1;
+            team2Total = inn2 + inn3;
+        } else {
+            team1Total = inn1 + inn3;
+            team2Total = inn2;
+        }
+
+        int target = team1Total - team2Total + 1;
+        Team chasingTeam = followOn ? battingFirst : battingSecond;
+        Team settingTeam = followOn ? battingSecond : battingFirst;
+
+        if (inn4 >= target) {
+            // Chasing team won
+            Innings lastInnings = result.getInningsList().stream()
+                    .filter(i -> i.getInningsNumber() == 4).findFirst().orElse(null);
+            int wicketsLost = lastInnings != null ? lastInnings.getTotalWickets() : 0;
+            result.setWinner(chasingTeam);
+            result.setResultType("WICKETS");
+            result.setResultMargin(10 - wicketsLost);
+        } else {
+            // Did the chasing innings get all out or run out of overs?
+            Innings lastInnings = result.getInningsList().stream()
+                    .filter(i -> i.getInningsNumber() == 4).findFirst().orElse(null);
+
+            if (lastInnings != null && (Boolean.TRUE.equals(lastInnings.getAllOut()) || lastInnings.getTotalWickets() >= 10)) {
+                // Bowling team wins by runs
+                int margin = target - inn4 - 1;
+                result.setWinner(settingTeam);
+                result.setResultType("RUNS");
+                result.setResultMargin(margin);
+            } else {
+                // Ran out of overs → DRAW
+                result.setResultType("DRAW");
+            }
+        }
+    }
+
+    private int getOversUsed(Innings innings) {
+        long ballCount = innings.getBallEvents().stream()
+                .filter(b -> !Boolean.TRUE.equals(b.getIsWide()) && !Boolean.TRUE.equals(b.getIsNoBall()))
+                .count();
+        return (int) Math.ceil(ballCount / 6.0);
+    }
+
     // ─── Bot lineup auto-generation ─────────────────────────────
 
     private MatchLineup getOrGenerateLineup(Fixture fixture, Team team, String format) {
@@ -1356,14 +1921,29 @@ public class MatchEngine {
             lineup.getPlayers().add(lp);
         }
 
-        // Bowling: top 5 by bowlRating from the selected 11
-        List<Player> topBowlers = selected.stream()
-                .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
-                .limit(5)
-                .toList();
+        // Bowling: for FC use all bowlers with bowlRating >= 15 (min 5), for T20/ODI top 5
+        List<Player> topBowlers;
+        if ("FC".equalsIgnoreCase(format)) {
+            topBowlers = selected.stream()
+                    .filter(p -> p.getBowlRating() >= 15)
+                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                    .toList();
+            if (topBowlers.size() < 5) {
+                topBowlers = selected.stream()
+                        .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                        .limit(5)
+                        .toList();
+            }
+        } else {
+            topBowlers = selected.stream()
+                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                    .limit(5)
+                    .toList();
+        }
 
-        int maxOvers = getMaxOvers(format);
-        for (int over = 1; over <= maxOvers; over++) {
+        // FC uses 100-over plan that cycles; T20/ODI use full match overs
+        int bowlingPlanOvers = "FC".equalsIgnoreCase(format) ? 100 : getMaxOvers(format);
+        for (int over = 1; over <= bowlingPlanOvers; over++) {
             Player bowler = topBowlers.get((over - 1) % topBowlers.size());
             BowlingOrder bo = BowlingOrder.builder()
                     .lineup(lineup)
@@ -1595,11 +2175,15 @@ public class MatchEngine {
     // ─── Utility ────────────────────────────────────────────────
 
     private int getMaxOvers(String format) {
-        return "T20".equalsIgnoreCase(format) ? 20 : 50;
+        if ("T20".equalsIgnoreCase(format)) return 20;
+        if ("FC".equalsIgnoreCase(format)) return 50; // per session in FC
+        return 50; // ODI
     }
 
     private int getMaxPerBowler(String format) {
-        return "T20".equalsIgnoreCase(format) ? 4 : 10;
+        if ("T20".equalsIgnoreCase(format)) return 4;
+        if ("FC".equalsIgnoreCase(format)) return 50; // per innings (no formal cap, fatigue handles it)
+        return 10; // ODI
     }
 
     // ─── Inner classes ──────────────────────────────────────────

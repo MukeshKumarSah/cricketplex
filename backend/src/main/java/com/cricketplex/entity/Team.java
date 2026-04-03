@@ -51,6 +51,10 @@ public class Team {
     @Builder.Default
     private Boolean isBot = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer academyLevel = 1;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", unique = true)
     private User owner;

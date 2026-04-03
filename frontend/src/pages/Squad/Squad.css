@@ -132,6 +132,79 @@
   background: rgba(34, 197, 94, 0.15);
 }
 
+/* ── Sort Bar ── */
+.sq-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+}
+.sq-sort-icon {
+  color: #64748b;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.sq-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.sq-sort-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sq-sort-select {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  outline: none;
+}
+.sq-sort-select:focus {
+  border-color: #22d3ee;
+}
+.sq-sort-dir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sq-sort-dir:hover {
+  background: rgba(34, 211, 238, 0.15);
+}
+.sq-sort-clear {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: 0.3rem;
+}
+.sq-sort-clear:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 /* ── Card Grid ── */
 .sq-grid {
   display: grid;

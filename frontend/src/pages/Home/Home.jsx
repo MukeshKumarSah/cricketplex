@@ -21,6 +21,8 @@ import Challenges from '../Challenges/Challenges';
 import MatchCenter from '../MatchCenter/MatchCenter';
 import TeamProfile from '../TeamProfile/TeamProfile';
 import FixturePreview from '../FixturePreview/FixturePreview';
+import Stats from '../Stats/Stats';
+import Academy from '../Academy/Academy';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -195,6 +197,14 @@ export default function Home() {
             <Route
               path="search"
               element={<Search />}
+            />
+            <Route
+              path="stats"
+              element={<Stats />}
+            />
+            <Route
+              path="academy"
+              element={<Academy />}
             />
             <Route
               path="league/:id"
