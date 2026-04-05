@@ -3,10 +3,14 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.service.FixtureService;
+import com.cricketplex.service.MatchEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @RestController
@@ -20,6 +24,7 @@ public class LeagueController {
     private final MatchResultRepository matchResultRepository;
     private final BallEventRepository ballEventRepository;
     private final FixtureService fixtureService;
+    private final MatchEngine matchEngine;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getLeagueDetail(@PathVariable UUID id) {
@@ -47,11 +52,15 @@ public class LeagueController {
             if (mrOpt.isEmpty()) continue;
             MatchResult mr = mrOpt.get();
 
-            UUID homeId = f.getHomeTeam().getId();
-            UUID awayId = f.getAwayTeam().getId();
+            // Derive team IDs from innings (handles bot→human swaps where
+            // fixture still references old bot but innings reference new team)
+            List<Innings> innList = mr.getInningsList();
+            if (innList.isEmpty()) continue;
+            UUID teamA = innList.get(0).getBattingTeam().getId();
+            UUID teamB = innList.get(0).getBowlingTeam().getId();
 
-            int[] homeStats = stats.get(homeId);
-            int[] awayStats = stats.get(awayId);
+            int[] homeStats = stats.get(teamA);
+            int[] awayStats = stats.get(teamB);
             if (homeStats == null || awayStats == null) continue;
 
             homeStats[0]++;
@@ -61,8 +70,15 @@ public class LeagueController {
             for (Innings inn : mr.getInningsList()) {
                 UUID batTeamId = inn.getBattingTeam().getId();
                 UUID bowlTeamId = inn.getBowlingTeam().getId();
-                double overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
                 int runs = inn.getTotalRuns() != null ? inn.getTotalRuns() : 0;
+
+                // ICC NRR rule: if a team is all out, use full allocation of overs
+                double overs;
+                if (Boolean.TRUE.equals(inn.getAllOut())) {
+                    overs = getMaxOvers(league.getFormat());
+                } else {
+                    overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
+                }
 
                 double[] batNrr = nrrData.get(batTeamId);
                 double[] bowlNrr = nrrData.get(bowlTeamId);
@@ -83,11 +99,11 @@ public class LeagueController {
                 awayStats[4] += 1;
             } else if (mr.getWinner() != null) {
                 UUID winnerId = mr.getWinner().getId();
-                if (winnerId.equals(homeId)) {
+                if (winnerId.equals(teamA)) {
                     homeStats[1]++;
                     awayStats[2]++;
                     homeStats[4] += 2;
-                } else if (winnerId.equals(awayId)) {
+                } else if (winnerId.equals(teamB)) {
                     awayStats[1]++;
                     homeStats[2]++;
                     awayStats[4] += 2;
@@ -154,6 +170,24 @@ public class LeagueController {
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         League league = opt.get();
+
+        // Eagerly simulate any overdue SCHEDULED fixtures so they appear as live
+        LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
+        String startTimeStr = league.getMatchStartTime() != null ? league.getMatchStartTime() : "14:00";
+        LocalTime matchTime = LocalTime.parse(startTimeStr);
+        List<Fixture> leagueFixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
+        for (Fixture f : leagueFixtures) {
+            if (!"SCHEDULED".equals(f.getStatus())) continue;
+            LocalDateTime matchStart = LocalDateTime.of(f.getMatchDate(), matchTime);
+            if (nowUtc.isBefore(matchStart)) continue;
+            if (matchResultRepository.existsByFixtureId(f.getId())) continue;
+            try {
+                matchEngine.simulateMatch(f.getId());
+                f.setStatus("IN_PROGRESS");
+                fixtureRepository.save(f);
+            } catch (Exception ignored) { }
+        }
+
         List<Map<String, Object>> fixtures = fixtureService.getFixturesGroupedByRound(league);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -400,6 +434,15 @@ public class LeagueController {
         int fullOvers = (int) overs;
         int extraBalls = (int) Math.round((overs - fullOvers) * 10);
         return fullOvers + extraBalls / 6.0;
+    }
+
+    private double getMaxOvers(String format) {
+        if (format == null) return 20;
+        return switch (format) {
+            case "ODI" -> 50;
+            case "FC" -> 90; // per innings
+            default -> 20;  // T20
+        };
     }
 
     private int oversToTotalBalls(double overs) {

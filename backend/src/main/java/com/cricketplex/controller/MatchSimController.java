@@ -136,6 +136,23 @@ public class MatchSimController {
         resp.put("pitchType", fixture.getPitchType());
         resp.put("matchType", fixture.getMatchType());
         resp.put("fixtureStatus", fixture.getStatus());
+        resp.put("attendance", result.getAttendance());
+        // Parse attendance breakdown: "standAtt,standCap,ecoAtt,ecoCap,stdAtt,stdCap,premAtt,premCap"
+        if (result.getAttendanceBreakdown() != null) {
+            String[] parts = result.getAttendanceBreakdown().split(",");
+            if (parts.length == 8) {
+                Map<String, Object> bd = new LinkedHashMap<>();
+                bd.put("standingAtt", Integer.parseInt(parts[0]));
+                bd.put("standingCap", Integer.parseInt(parts[1]));
+                bd.put("economyAtt", Integer.parseInt(parts[2]));
+                bd.put("economyCap", Integer.parseInt(parts[3]));
+                bd.put("standardAtt", Integer.parseInt(parts[4]));
+                bd.put("standardCap", Integer.parseInt(parts[5]));
+                bd.put("premiumAtt", Integer.parseInt(parts[6]));
+                bd.put("premiumCap", Integer.parseInt(parts[7]));
+                resp.put("attendanceBreakdown", bd);
+            }
+        }
         resp.put("createdAt", result.getCreatedAt() != null
                 ? result.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
                 : null);
@@ -431,7 +448,9 @@ public class MatchSimController {
                 b.put("ball", be.getBallNumber());
                 b.put("overBall", (be.getOverNumber() - 1) + "." + be.getBallNumber());
                 b.put("batsman", be.getBatsman().getFirstName() + " " + be.getBatsman().getLastName());
+                b.put("batsmanId", be.getBatsman().getId());
                 b.put("bowler", be.getBowler().getFirstName() + " " + be.getBowler().getLastName());
+                b.put("bowlerId", be.getBowler().getId());
                 b.put("runs", be.getRuns());
                 b.put("isWicket", be.getIsWicket());
                 b.put("isBoundary", be.getIsBoundary());
@@ -572,6 +591,7 @@ public class MatchSimController {
         List<Map<String, Object>> matches = new ArrayList<>();
         for (MatchResult mr : results) {
             Map<String, Object> m = new LinkedHashMap<>();
+            m.put("fixtureId", mr.getFixture().getId());
             m.put("date", mr.getFixture().getMatchDate() != null ? mr.getFixture().getMatchDate().toString() : null);
             m.put("format", mr.getFixture().getLeague() != null ? mr.getFixture().getLeague().getFormat() : mr.getFixture().getFormat());
             m.put("homeTeam", mr.getFixture().getHomeTeam().getTeamName());

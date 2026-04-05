@@ -28,4 +28,7 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     @Query("SELECT f FROM Fixture f LEFT JOIN FETCH f.league WHERE f.status = :status AND f.matchDate <= :date")
     List<Fixture> findScheduledWithLeague(String status, LocalDate date);
+
+    @Query("SELECT f FROM Fixture f LEFT JOIN FETCH f.league WHERE f.status = :status")
+    List<Fixture> findByStatus(String status);
 }

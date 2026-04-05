@@ -13,6 +13,7 @@ import {
   HiOutlineHeart,
   HiOutlineScale,
   HiOutlineUser,
+  HiOutlineTicket,
 } from 'react-icons/hi2';
 import './GameFormulas.css';
 
@@ -63,6 +64,77 @@ const sections = [
           ['Level 2 → 3', '$15,000'],
           ['Level 3 → 4', '$40,000'],
           ['Max Level', '4'],
+        ],
+      },
+    ],
+  },
+  {
+    id: 'gate-money',
+    icon: HiOutlineTicket,
+    title: 'Match Gate Money (League Only)',
+    subsections: [
+      {
+        title: 'Ticket Prices',
+        header: ['Category', 'Price', 'Fill Rate Multiplier'],
+        grid: [
+          ['Standing', '$2', '×1.00 (fills first)'],
+          ['Economy', '$4', '×0.75'],
+          ['Standard', '$7', '×0.50'],
+          ['Premium', '$10', '×0.25 (fills last)'],
+        ],
+        note: 'Fill rates ensure attendance order: Standing > Economy > Standard > Premium. Premium is hard to profit from.',
+      },
+      {
+        title: 'Stadium Constraints',
+        rows: [
+          ['Total Capacity Cap', '50,000 seats (hard limit)'],
+          ['Ordering Rule', 'Premium ≤ Standard ≤ Economy ≤ Standing'],
+          ['Default Layout', 'Standing 3K, Economy 12K, Standard 8K, Premium 2K (25K total)'],
+        ],
+        note: 'You cannot set premium higher than standard, standard higher than economy, etc. This prevents gaming through premium-heavy stadiums.',
+      },
+      {
+        title: 'Attendance Calculation',
+        rows: [
+          ['Fan Power', 'homeFans + awayFans × 0.3'],
+          ['Morale Multiplier', '0.6 + (avgMorale / 100) × 0.8 → range 0.6 – 1.4'],
+          ['Base Demand', 'fanPower × moraleMult'],
+          ['Base Fill %', 'min(baseDemand / totalCapacity, 95%)'],
+          ['Category Fill', 'baseFill × category multiplier, capped per category'],
+          ['Category Caps', 'Standing 95%, Economy 90%, Standard 85%, Premium 80%'],
+        ],
+        note: 'Away fans contribute only 30% (travel factor). High morale across both teams boosts attendance by up to 40%.',
+      },
+      {
+        title: 'Revenue Split (Home vs Away)',
+        rows: [
+          ['Home Share', '60% + (homeFanRatio × 5%) → 60–65%'],
+          ['Away Share', '35–40% (remainder)'],
+          ['Fan Ratio', 'homeFans / (homeFans + awayFans)'],
+        ],
+        note: 'Teams with larger fanbases earn a slightly larger home share. Equal fanbases → 62.5% home, 37.5% away.',
+      },
+      {
+        title: 'Gate Money Examples (default 25K stadium, morale 50/50)',
+        header: ['Home Fans', 'Away Fans', 'Fill %', 'Attendance', 'Revenue', 'Home $', 'Away $'],
+        grid: [
+          ['1,000', '1,000', '~5%', '~950', '~$3,800', '~$2,375', '~$1,425'],
+          ['5,000', '5,000', '~26%', '~5,050', '~$20,000', '~$12,500', '~$7,500'],
+          ['10,000', '10,000', '~52%', '~9,570', '~$38,300', '~$23,940', '~$14,360'],
+          ['30,000', '10,000', '~95%', '~16,000', '~$64,800', '~$41,800', '~$23,000'],
+          ['50,000', '50,000', '~95%', '~16,000', '~$64,800', '~$40,500', '~$24,300'],
+        ],
+        note: 'Revenue scales with fanbase and morale. Small teams earn little, established teams fill stadiums.',
+      },
+      {
+        title: 'Morale Impact on Gate Money',
+        header: ['Avg Morale', 'Multiplier', 'Effect on Attendance'],
+        grid: [
+          ['0 (dismal)', '×0.60', '−40% fewer fans show up'],
+          ['25', '×0.80', '−20% below normal'],
+          ['50 (average)', '×1.00', 'Baseline attendance'],
+          ['75', '×1.20', '+20% above normal'],
+          ['100 (ecstatic)', '×1.40', '+40% more fans show up'],
         ],
       },
     ],

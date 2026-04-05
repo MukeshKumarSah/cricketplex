@@ -66,6 +66,21 @@ public class GroundService {
         if (request.containsKey("economy")) seats.setEconomy(Math.max(0, request.get("economy")));
         if (request.containsKey("standing")) seats.setStanding(Math.max(0, request.get("standing")));
 
+        // Enforce ordering: premium ≤ standard ≤ economy ≤ standing
+        if (seats.getPremium() > seats.getStandard()
+                || seats.getStandard() > seats.getEconomy()
+                || seats.getEconomy() > seats.getStanding()) {
+            throw new IllegalArgumentException(
+                    "Seat capacity must follow: Premium ≤ Standard ≤ Economy ≤ Standing");
+        }
+
+        // Soft cap: total capacity ≤ 50,000
+        int total = seats.getPremium() + seats.getStandard() + seats.getEconomy() + seats.getStanding();
+        if (total > 50000) {
+            throw new IllegalArgumentException(
+                    "Total stadium capacity cannot exceed 50,000 seats (currently " + total + ")");
+        }
+
         stadiumSeatsRepository.save(seats);
         return getSeats(user);
     }

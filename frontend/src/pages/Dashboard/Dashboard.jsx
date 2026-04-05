@@ -311,11 +311,19 @@ export default function Dashboard() {
                     <div className="dash-league-division">
                       Division {lg.division} · League {lg.leagueNumber} · Season {lg.season}
                     </div>
-                    {lg.played > 0 && (
-                      <div className="dash-league-stats">
-                        P {lg.played} · W {lg.won} · L {lg.lost}{lg.tied > 0 ? ` · T ${lg.tied}` : ''} · Pts {lg.points}
-                      </div>
-                    )}
+                  </div>
+                  <div className="dash-league-form">
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const r = lg.recentForm?.[i];
+                      return (
+                        <span
+                          key={i}
+                          className={`dash-form-dot ${r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'T' ? 'tie' : 'empty'}`}
+                        >
+                          {r || '.'}
+                        </span>
+                      );
+                    })}
                   </div>
                   <div className="dash-league-position">
                     <span className="dash-league-pos-num">#{lg.position}</span>

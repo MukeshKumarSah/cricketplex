@@ -27,6 +27,7 @@ import TransferMarket from '../TransferMarket/TransferMarket';
 import Finances from '../Finances/Finances';
 import GameFormulas from '../Admin/GameFormulas';
 import AdminBots from '../Admin/AdminBots';
+import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -281,6 +282,7 @@ export default function Home() {
           </Routes>
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }

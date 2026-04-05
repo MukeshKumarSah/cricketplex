@@ -184,6 +184,14 @@
   background: rgba(14, 165, 233, 0.04);
 }
 
+.matches-row-clickable {
+  cursor: pointer;
+}
+
+.matches-row-clickable:hover {
+  background: rgba(14, 165, 233, 0.08);
+}
+
 /* ── Date Column ── */
 .mt-col-date {
   display: flex;

@@ -1,11 +1,9 @@
 package com.cricketplex.service;
 
-import com.cricketplex.entity.Fixture;
-import com.cricketplex.entity.League;
-import com.cricketplex.entity.LeagueTeam;
-import com.cricketplex.entity.Team;
+import com.cricketplex.entity.*;
 import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
+import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +21,16 @@ public class FixtureService {
 
     private final FixtureRepository fixtureRepository;
     private final LeagueTeamRepository leagueTeamRepository;
+    private final MatchResultRepository matchResultRepository;
     private final TeamRepository teamRepository;
+
+    /**
+     * Pending swaps for IN_PROGRESS fixtures.
+     * Key = fixtureId, Value = map of oldTeamId → newTeamId.
+     * When a match finishes, MatchEngine calls applyPendingSwap() to swap
+     * the MatchResult + Innings refs that couldn't be swapped mid-match.
+     */
+    private static final ConcurrentHashMap<UUID, Map<UUID, UUID>> pendingSwaps = new ConcurrentHashMap<>();
 
     /** Season 1 starts on this Sunday. Each season roughly 14 weeks apart. */
     private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
@@ -172,6 +180,10 @@ public class FixtureService {
     /**
      * Replace all references to oldTeamId with newTeam in a league's fixtures.
      * Called when a bot team is replaced by a human team (or vice versa).
+     *
+     * SCHEDULED fixtures: swap homeTeam/awayTeam (upcoming matches show new team).
+     * COMPLETED fixtures: keep original homeTeam/awayTeam (scorecard shows who actually played),
+     *                     but swap MatchResult winner/tossWinner and Innings team refs (for standings).
      */
     @Transactional
     public void swapTeamInFixtures(UUID leagueId, UUID oldTeamId, UUID newTeamId) {
@@ -181,16 +193,100 @@ public class FixtureService {
         List<Fixture> fixtures = fixtureRepository.findByLeagueId(leagueId);
         boolean changed = false;
         for (Fixture f : fixtures) {
-            if (f.getHomeTeam().getId().equals(oldTeamId)) {
-                f.setHomeTeam(newTeam);
-                changed = true;
+            // IN_PROGRESS / LIVE: MatchEngine is actively writing — can't swap now.
+            // Record a pending swap so we can apply it after the match finishes.
+            if ("IN_PROGRESS".equals(f.getStatus()) || "LIVE".equals(f.getStatus())) {
+                boolean involves = f.getHomeTeam().getId().equals(oldTeamId)
+                        || f.getAwayTeam().getId().equals(oldTeamId);
+                if (involves) {
+                    pendingSwaps.computeIfAbsent(f.getId(), k -> new ConcurrentHashMap<>())
+                            .put(oldTeamId, newTeamId);
+                    log.info("Recorded pending swap for IN_PROGRESS fixture {}: {} → {}",
+                            f.getId(), oldTeamId, newTeamId);
+                }
+                continue;
             }
-            if (f.getAwayTeam().getId().equals(oldTeamId)) {
-                f.setAwayTeam(newTeam);
-                changed = true;
+
+            if ("COMPLETED".equals(f.getStatus())) {
+                // Don't touch fixture team refs — scorecard shows the team that actually played.
+                // Swap MatchResult + Innings refs so standings credit the new team.
+                matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+                    if (mr.getTossWinner() != null && mr.getTossWinner().getId().equals(oldTeamId)) {
+                        mr.setTossWinner(newTeam);
+                    }
+                    if (mr.getWinner() != null && mr.getWinner().getId().equals(oldTeamId)) {
+                        mr.setWinner(newTeam);
+                    }
+                    for (Innings inn : mr.getInningsList()) {
+                        if (inn.getBattingTeam() != null && inn.getBattingTeam().getId().equals(oldTeamId)) {
+                            inn.setBattingTeam(newTeam);
+                        }
+                        if (inn.getBowlingTeam() != null && inn.getBowlingTeam().getId().equals(oldTeamId)) {
+                            inn.setBowlingTeam(newTeam);
+                        }
+                    }
+                    matchResultRepository.save(mr);
+                });
+            } else {
+                // SCHEDULED fixtures: swap team references
+                if (f.getHomeTeam().getId().equals(oldTeamId)) {
+                    f.setHomeTeam(newTeam);
+                    changed = true;
+                }
+                if (f.getAwayTeam().getId().equals(oldTeamId)) {
+                    f.setAwayTeam(newTeam);
+                    changed = true;
+                }
             }
         }
         if (changed) fixtureRepository.saveAll(fixtures);
+    }
+
+    /**
+     * Called by MatchEngine after a match completes.
+     * If there was a pending bot→human swap for this fixture, apply it now
+     * (swap MatchResult winner/tossWinner and Innings team refs).
+     */
+    @Transactional
+    public void applyPendingSwap(UUID fixtureId, MatchResult result) {
+        Map<UUID, UUID> swaps = pendingSwaps.remove(fixtureId);
+        if (swaps == null || swaps.isEmpty()) return;
+
+        for (Map.Entry<UUID, UUID> entry : swaps.entrySet()) {
+            UUID oldTeamId = entry.getKey();
+            UUID newTeamId = entry.getValue();
+            Team newTeam = teamRepository.findById(newTeamId).orElse(null);
+            if (newTeam == null) continue;
+
+            log.info("Applying deferred swap for fixture {}: {} → {}",
+                    fixtureId, oldTeamId, newTeamId);
+
+            if (result.getTossWinner() != null && result.getTossWinner().getId().equals(oldTeamId)) {
+                result.setTossWinner(newTeam);
+            }
+            if (result.getWinner() != null && result.getWinner().getId().equals(oldTeamId)) {
+                result.setWinner(newTeam);
+            }
+            for (Innings inn : result.getInningsList()) {
+                if (inn.getBattingTeam() != null && inn.getBattingTeam().getId().equals(oldTeamId)) {
+                    inn.setBattingTeam(newTeam);
+                }
+                if (inn.getBowlingTeam() != null && inn.getBowlingTeam().getId().equals(oldTeamId)) {
+                    inn.setBowlingTeam(newTeam);
+                }
+            }
+        }
+        matchResultRepository.save(result);
+    }
+
+    /**
+     * Check if a specific team has any IN_PROGRESS or LIVE fixtures in a league.
+     */
+    public boolean hasActiveMatch(UUID leagueId, UUID teamId) {
+        List<Fixture> fixtures = fixtureRepository.findByLeagueId(leagueId);
+        return fixtures.stream().anyMatch(f ->
+                ("IN_PROGRESS".equals(f.getStatus()) || "LIVE".equals(f.getStatus()))
+                && (f.getHomeTeam().getId().equals(teamId) || f.getAwayTeam().getId().equals(teamId)));
     }
 
     /**

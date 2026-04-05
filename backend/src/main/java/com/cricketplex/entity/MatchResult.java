@@ -49,6 +49,12 @@ public class MatchResult {
     @Builder.Default
     private List<Innings> inningsList = new ArrayList<>();
 
+    @Column(name = "attendance")
+    private Integer attendance;
+
+    @Column(name = "attendance_breakdown")
+    private String attendanceBreakdown;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

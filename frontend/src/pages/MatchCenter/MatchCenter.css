@@ -1117,6 +1117,102 @@
   .mc-strength-row { grid-template-columns: 110px 1fr 30px; }
 }
 
+/* ═══ CLICKABLE TEAMS ═══ */
+.mc-team-clickable {
+  cursor: pointer;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  transition: background 0.15s;
+}
+.mc-team-clickable:hover {
+  background: rgba(34, 211, 238, 0.08);
+}
+.mc-team-clickable:hover .mc-team-name {
+  color: #22d3ee;
+}
+
+/* ═══ CLICKABLE SCORECARD NAMES ═══ */
+.mc-sc-name-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.mc-sc-name-link:hover {
+  color: #22d3ee;
+}
+
+/* ═══ ATTENDANCE BREAKDOWN ═══ */
+.mc-attendance-section {
+  margin-top: 1.5rem;
+}
+.mc-att-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.mc-att-overall {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #1e293b;
+  border-radius: 0.5rem;
+}
+.mc-att-fill {
+  font-weight: 600;
+  color: #22d3ee;
+  font-size: 0.95rem;
+}
+.mc-att-cap {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+.mc-att-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mc-att-cat {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+.mc-att-cat-header {
+  display: flex;
+  justify-content: space-between;
+  grid-column: 1 / -1;
+}
+.mc-att-cat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.mc-att-cat-nums {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+.mc-att-bar-wrap {
+  height: 6px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mc-att-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.mc-att-pct {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: right;
+}
+.mc-att-total-only {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  padding: 0.5rem 0;
+}
+
 /* ═══ RIVALRY TAB ═══ */
 .mc-rivalry { display: flex; flex-direction: column; gap: 0.75rem; }
 .mc-rivalry-header {
@@ -1177,6 +1273,8 @@
   flex-shrink: 0;
 }
 .mc-rivalry-summary { color: #cbd5e1; flex: 1; }
+.mc-rivalry-match-link { cursor: pointer; transition: background 0.15s; }
+.mc-rivalry-match-link:hover { background: #1e293b; }
 
 /* ─── Overlays ─── */
 .mc-overlay {

@@ -1,7 +1,9 @@
 package com.cricketplex.controller;
 
+import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
+import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
@@ -23,6 +25,7 @@ public class LineupController {
     private final LineupService lineupService;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final FixtureRepository fixtureRepository;
     private final ActivityLogService activityLogService;
 
     @GetMapping("/{fixtureId}/lineup")
@@ -42,9 +45,16 @@ public class LineupController {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         Object result = lineupService.saveLineup(fixtureId, user, request);
-        teamRepository.findByOwner(user).ifPresent(team ->
-            activityLogService.log(team, "lineup", "Match lineup set for upcoming fixture.")
-        );
+        teamRepository.findByOwner(user).ifPresent(team -> {
+            String opponent = "";
+            Fixture fixture = fixtureRepository.findById(fixtureId).orElse(null);
+            if (fixture != null) {
+                Team opp = fixture.getHomeTeam().getId().equals(team.getId())
+                        ? fixture.getAwayTeam() : fixture.getHomeTeam();
+                opponent = " against " + opp.getTeamName();
+            }
+            activityLogService.log(team, "lineup", "Lineup set for upcoming match" + opponent + ".");
+        });
         return ResponseEntity.ok(result);
     }
 

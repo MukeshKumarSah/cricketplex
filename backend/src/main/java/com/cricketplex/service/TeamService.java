@@ -167,13 +167,18 @@ public class TeamService {
             // Ensure fixtures exist (lazy generation for pre-V13 leagues)
             fixtureService.ensureFixturesExist(targetLeague);
 
-            // Find a bot team in this league to replace
+            // Find a bot team in this league to replace — prefer one not in an active match
             List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(targetLeague.getId());
             LeagueTeam botEntry = null;
             for (LeagueTeam lt : entries) {
                 if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) {
-                    botEntry = lt;
-                    break;
+                    if (!fixtureService.hasActiveMatch(targetLeague.getId(), lt.getTeam().getId())) {
+                        botEntry = lt;
+                        break;  // ideal: bot with no active match
+                    }
+                    if (botEntry == null) {
+                        botEntry = lt;  // fallback: bot with active match (deferred swap will handle it)
+                    }
                 }
             }
 

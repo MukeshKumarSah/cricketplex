@@ -36,8 +36,11 @@ public class MatchEngine {
     private final PlayerRepository playerRepository;
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
+    private final StadiumSeatsRepository stadiumSeatsRepository;
+    private final TransactionLogRepository transactionLogRepository;
     private final WeatherService weatherService;
     private final ActivityLogService activityLogService;
+    private final FixtureService fixtureService;
 
     // ─── Public entry point ──────────────────────────────────────
 
@@ -170,8 +173,12 @@ public class MatchEngine {
             String resolvedFormat = fixture.getLeague().getFormat();
             updateMoraleAndFans(result, fixture, resolvedFormat);
             updatePlayerStats(result, resolvedFormat);
+            distributeGateMoney(result, fixture);
         }
-        return matchResultRepository.save(result);
+        MatchResult saved = matchResultRepository.save(result);
+        // Apply any deferred bot→human swaps that were queued while this match was in progress
+        fixtureService.applyPendingSwap(fixture.getId(), saved);
+        return saved;
     }
 
     // ─── Innings simulation ─────────────────────────────────────
@@ -317,10 +324,10 @@ public class MatchEngine {
                     if (delivery.isWicket) {
                         maidenPossible = false;
                         totalWickets++;
-                        bowlCard.setWickets(bowlCard.getWickets() + 1);
 
                         batCard.setDismissalType(delivery.dismissalType);
                         if (!"RUN_OUT".equals(delivery.dismissalType)) {
+                            bowlCard.setWickets(bowlCard.getWickets() + 1);
                             batCard.setBowler(currentBowler);
                         }
                         batCard.setFielder(delivery.fielder);
@@ -902,10 +909,16 @@ public class MatchEngine {
         double dRoll = rng.nextDouble() * dTotal;
         double dCum = 0;
 
-        // Select random fielder from bowling lineup
+        // Select random fielder from bowling lineup (excluding keeper)
         List<LineupPlayer> fieldingPlayers = ctx.bowlingLineup.getPlayers();
-        Player randomFielder = fieldingPlayers.get(rng.nextInt(fieldingPlayers.size())).getPlayer();
         Player keeper = ctx.bowlingLineup.getKeeper();
+        List<Player> nonKeeperFielders = fieldingPlayers.stream()
+                .map(LineupPlayer::getPlayer)
+                .filter(p -> keeper == null || !p.getId().equals(keeper.getId()))
+                .toList();
+        Player randomFielder = nonKeeperFielders.isEmpty()
+                ? fieldingPlayers.get(rng.nextInt(fieldingPlayers.size())).getPlayer()
+                : nonKeeperFielders.get(rng.nextInt(nonKeeperFielders.size()));
 
         if (dRoll < (dCum += pBowled)) {
             return new DismissalInfo("BOWLED", null,
@@ -1577,7 +1590,10 @@ public class MatchEngine {
             updateMoraleAndFans(result, fixture, "FC");
             updatePlayerStats(result, "FC");
         }
-        return matchResultRepository.save(result);
+        MatchResult saved = matchResultRepository.save(result);
+        // Apply any deferred bot→human swaps that were queued while this match was in progress
+        fixtureService.applyPendingSwap(fixture.getId(), saved);
+        return saved;
     }
 
     /**
@@ -2111,6 +2127,157 @@ public class MatchEngine {
             activityLogService.log(winner, "match-won", prefix + "Won vs " + loser.getTeamName() + " by " + margin + ".");
             activityLogService.log(loser, "match-lost", prefix + "Lost vs " + winner.getTeamName() + " by " + margin + ".");
         }
+    }
+
+    // ─── Gate Money ─────────────────────────────────────────────
+
+    /**
+     * Distribute gate money (ticket revenue) from a league match.
+     *
+     * Attendance depends on:
+     *   - Home team stadium capacity (standing / economy / standard / premium)
+     *   - Combined fan power: homeFans + awayFans × 0.3
+     *   - Average morale of both teams (morale multiplier 0.6 – 1.4)
+     *
+     * Ticket prices: Standing $2, Economy $4, Standard $7, Premium $10
+     *
+     * Fill-rate multipliers (guarantees premium < standard < economy < standing):
+     *   Standing  ×1.00   Economy ×0.75   Standard ×0.50   Premium ×0.25
+     *
+     * Revenue split: home 60-65% (based on fan ratio), away 35-40%.
+     */
+    private void distributeGateMoney(MatchResult matchResult, Fixture fixture) {
+        Team home = fixture.getHomeTeam();
+        Team away = fixture.getAwayTeam();
+
+        // Fetch home team's stadium (match is played at home ground)
+        StadiumSeats seats = stadiumSeatsRepository.findByTeam(home)
+                .orElse(StadiumSeats.builder().team(home)
+                        .standing(3000).economy(12000).standard(8000).premium(2000).build());
+
+        int standingCap = seats.getStanding();
+        int economyCap  = seats.getEconomy();
+        int standardCap = seats.getStandard();
+        int premiumCap  = seats.getPremium();
+        int totalCap    = standingCap + economyCap + standardCap + premiumCap;
+        if (totalCap <= 0) return;
+
+        // ═══ DEMAND CALCULATION ═══
+        // Attendance is driven by how many people WANT to come,
+        // not by stadium size. Stadium only caps it.
+
+        // 1. Fan base (core demand — home fans fully, away fans 30% travel factor)
+        int homeFans = home.getFans() != null ? home.getFans() : 1000;
+        int awayFans = away.getFans() != null ? away.getFans() : 1000;
+        double baseDemand = homeFans + awayFans * 0.30;
+
+        // 2. Morale multiplier (0.70× to 1.30×)
+        int homeMorale = home.getMorale() != null ? home.getMorale() : 50;
+        int awayMorale = away.getMorale() != null ? away.getMorale() : 50;
+        double avgMorale = (homeMorale + awayMorale) / 2.0;
+        double moraleMult = 0.70 + (avgMorale / 100.0) * 0.60;
+
+        // 3. Division multiplier (higher division = bigger draw, more media, more hype)
+        double divMult = 1.0;
+        if (fixture.getLeague() != null && fixture.getLeague().getDivision() != null) {
+            int div = fixture.getLeague().getDivision();
+            divMult = switch (div) {
+                case 1 -> 1.50;
+                case 2 -> 1.25;
+                case 3 -> 1.00;
+                default -> 0.85;
+            };
+        }
+
+        // 4. Team quality multiplier (format-specific ELO as proxy for league position)
+        //    Rating 800 → 0.85×, 1000 → 1.0×, 1200 → 1.15×, 1400+ → 1.30×
+        String fmt = fixture.getFormat() != null ? fixture.getFormat() : "T20";
+        int homeRating = getRatingForFormat(home, fmt);
+        int awayRating = getRatingForFormat(away, fmt);
+        double avgRating = (homeRating + awayRating) / 2.0;
+        double ratingMult = 0.85 + (avgRating - 800.0) / 800.0 * 0.45;
+        ratingMult = Math.max(0.70, Math.min(ratingMult, 1.40));
+
+        // 5. Random factor (±15% to feel organic, not identical every match)
+        double randomFactor = 0.85 + Math.random() * 0.30;
+
+        // Total demand = people who want to attend
+        int totalDemand = (int) Math.round(baseDemand * moraleMult * divMult * ratingMult * randomFactor);
+
+        // ═══ SEAT DISTRIBUTION (cheapest fills first, most overflow leaves) ═══
+        // People prefer cheap seats. If their tier is full, only 25% are willing
+        // to pay more for the next tier — the rest leave. This prevents gaming
+        // the system by shrinking cheap sections to force upgrades.
+        double upgradeRate = 0.25;
+
+        int standWant = (int) (totalDemand * 0.40);  // 40% prefer Standing ($2)
+        int ecoWant   = (int) (totalDemand * 0.30);  // 30% prefer Economy ($4)
+        int stdWant   = (int) (totalDemand * 0.20);  // 20% prefer Standard ($7)
+        int premWant  = totalDemand - standWant - ecoWant - stdWant; // 10% Premium ($10)
+
+        // Standing → 25% of overflow willing to upgrade to Economy, rest leave
+        int standingAtt    = Math.min(standWant, standingCap);
+        int standOverflow  = standWant - standingAtt;
+        ecoWant += (int) (standOverflow * upgradeRate);
+
+        // Economy → 25% of overflow willing to upgrade to Standard, rest leave
+        int economyAtt     = Math.min(ecoWant, economyCap);
+        int ecoOverflow    = ecoWant - economyAtt;
+        stdWant += (int) (ecoOverflow * upgradeRate);
+
+        // Standard → 25% of overflow willing to upgrade to Premium, rest leave
+        int standardAtt    = Math.min(stdWant, standardCap);
+        int stdOverflow    = stdWant - standardAtt;
+        premWant += (int) (stdOverflow * upgradeRate);
+
+        // Premium → overflow turned away
+        int premiumAtt     = Math.min(premWant, premiumCap);
+
+        int totalAtt = standingAtt + economyAtt + standardAtt + premiumAtt;
+
+        // Store attendance on match result
+        matchResult.setAttendance(totalAtt);
+        matchResult.setAttendanceBreakdown(String.format(
+                "%d,%d,%d,%d,%d,%d,%d,%d",
+                standingAtt, standingCap, economyAtt, economyCap,
+                standardAtt, standardCap, premiumAtt, premiumCap));
+
+        // Revenue: Standing $2, Economy $4, Standard $7, Premium $10
+        long totalRevenue = (long) standingAtt * 2
+                          + (long) economyAtt * 4
+                          + (long) standardAtt * 7
+                          + (long) premiumAtt * 10;
+        if (totalRevenue <= 0) return;
+
+        // Split: home 60-65% based on fan ratio; away gets the rest (35-40%)
+        double homeFanRatio = homeFans / (double) (homeFans + awayFans);
+        double homeSharePct = 0.60 + homeFanRatio * 0.05; // 60%–65%
+        long homeShare = Math.round(totalRevenue * homeSharePct);
+        long awayShare = totalRevenue - homeShare;
+
+        // Credit funds
+        home.setFunds(home.getFunds() + homeShare);
+        away.setFunds(away.getFunds() + awayShare);
+        teamRepository.save(home);
+        teamRepository.save(away);
+
+        // Log transactions
+        String desc = String.format("Gate money: %,d attendance, $%,d total revenue (%s vs %s)",
+                totalAtt, totalRevenue, home.getTeamName(), away.getTeamName());
+        transactionLogRepository.save(TransactionLog.builder()
+                .team(home).type("GATE_MONEY").description(desc + " [Home 🏟️]")
+                .amount(homeShare).balanceAfter(home.getFunds()).build());
+        transactionLogRepository.save(TransactionLog.builder()
+                .team(away).type("GATE_MONEY").description(desc + " [Away]")
+                .amount(awayShare).balanceAfter(away.getFunds()).build());
+    }
+
+    private int getRatingForFormat(Team team, String format) {
+        return switch (format.toUpperCase()) {
+            case "ODI" -> team.getOdiRating() != null ? team.getOdiRating() : 1000;
+            case "FC", "TEST" -> team.getFcRating() != null ? team.getFcRating() : 1000;
+            default -> team.getT20Rating() != null ? team.getT20Rating() : 1000;
+        };
     }
 
     /**

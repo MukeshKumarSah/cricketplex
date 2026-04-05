@@ -43,10 +43,10 @@ export default function Matches() {
   const today = new Date().toISOString().split('T')[0];
 
   const upcoming = matches.filter(
-    (m) => m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE')
+    (m) => m.status === 'IN_PROGRESS' || (m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE'))
   );
   const past = matches.filter(
-    (m) => m.matchDate < today || (m.status !== 'SCHEDULED' && m.status !== 'LIVE')
+    (m) => m.status === 'COMPLETED'
   );
 
   const displayed = activeTab === 'upcoming' ? upcoming : past;
@@ -140,8 +140,17 @@ export default function Matches() {
 
             {displayed.map((m) => {
               const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
+              const rowClick = () => {
+                if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') {
+                  navigate(`/match/${m.id}/live`);
+                } else if (m.status === 'COMPLETED') {
+                  navigate(`/match/${m.id}/scorecard`);
+                } else {
+                  navigate(`/match/${m.id}/preview`);
+                }
+              };
               return (
-                <div key={m.id} className="matches-row">
+                <div key={m.id} className="matches-row matches-row-clickable" onClick={rowClick}>
                   {/* Date */}
                   <div className="mt-col-date">
                     <span className="matches-date">{formatDate(m.matchDate)}</span>
@@ -218,14 +227,15 @@ export default function Matches() {
                   {/* Action / Result */}
                   <div className="mt-col-action">
                     {activeTab === 'upcoming' ? (
-                      m.status === 'LIVE' ? (
-                        <button className="matches-action-btn matches-live-btn">
+                      (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
+                        <button className="matches-action-btn matches-live-btn"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/live`); }}>
                           View Live
                         </button>
                       ) : (
                         <button
                           className="matches-action-btn matches-lineup-btn"
-                          onClick={() => navigate(`/match/${m.id}/lineup`)}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/lineup`); }}
                         >
                           {m.lineupSet && <span className="matches-tick">✓</span>}
                           Lineup Setup

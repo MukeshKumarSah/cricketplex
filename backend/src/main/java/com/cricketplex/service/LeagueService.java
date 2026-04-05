@@ -296,16 +296,23 @@ public class LeagueService {
         // Reverse so we check higher divisions (bottom tier) first: 3 → 2 → 1
         Collections.reverse(candidates);
 
+        // Prefer bots NOT in an active match; fall back to any bot if all are mid-match
+        LeagueTeam fallback = null;
         for (League candidate : candidates) {
             if (excludeIds.contains(candidate.getId())) continue;
 
             List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(candidate.getId());
             for (LeagueTeam entry : entries) {
                 if (Boolean.TRUE.equals(entry.getTeam().getIsBot())) {
-                    return entry;
+                    if (!fixtureService.hasActiveMatch(candidate.getId(), entry.getTeam().getId())) {
+                        return entry;  // best case: idle bot
+                    }
+                    if (fallback == null) {
+                        fallback = entry;  // remember first active-match bot as fallback
+                    }
                 }
             }
         }
-        return null;
+        return fallback;  // null if no bots at all, or a mid-match bot (deferred swap handles it)
     }
 }

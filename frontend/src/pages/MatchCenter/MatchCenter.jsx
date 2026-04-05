@@ -8,6 +8,7 @@ import {
   HiOutlineMapPin,
   HiOutlineCalendarDays,
   HiOutlineClipboardDocumentList,
+  HiOutlineUserGroup,
 } from 'react-icons/hi2';
 import './MatchCenter.css';
 
@@ -522,7 +523,7 @@ export default function MatchCenter() {
         </button>
         <div className="mc-header-body">
           <div className="mc-teams-row">
-            <div className="mc-team">
+            <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.homeTeamId}`)}>
               {result.homeTeamPicUrl ? (
                 <img src={`${API_BASE}${result.homeTeamPicUrl}`} alt="" className="mc-team-logo" />
               ) : (
@@ -531,7 +532,7 @@ export default function MatchCenter() {
               <span className="mc-team-name">{result.homeTeamName}</span>
             </div>
             <span className="mc-vs">vs</span>
-            <div className="mc-team">
+            <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.awayTeamId}`)}>
               {result.awayTeamPicUrl ? (
                 <img src={`${API_BASE}${result.awayTeamPicUrl}`} alt="" className="mc-team-logo" />
               ) : (
@@ -557,6 +558,9 @@ export default function MatchCenter() {
               </span>
             )}
             {result.format && <span className="mc-format-badge">{result.format}</span>}
+            {result.attendance != null && result.attendance > 0 && (
+              <span className="mc-meta-item"><HiOutlineUserGroup /> {result.attendance.toLocaleString()} attendance</span>
+            )}
           </div>
           <div className="mc-toss-banner">
             <span className="mc-toss-icon">🏏</span>
@@ -685,7 +689,7 @@ export default function MatchCenter() {
                     </div>
                     {scInn.battingCard?.map((bc, i) => (
                       <div key={i} className={`mc-sc-row ${bc.notOut ? 'mc-sc-notout' : ''}`}>
-                        <span className="mc-sc-name">
+                        <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>
                           {bc.playerName}{bc.notOut ? '*' : ''}
                           <span className="mc-sc-dismissal">
                             {bc.notOut ? 'not out' : formatDismissal(bc)}
@@ -737,7 +741,7 @@ export default function MatchCenter() {
                     </div>
                     {scInn.bowlingCard?.map((bc, i) => (
                       <div key={i} className={`mc-sc-row ${bc.wickets >= 3 ? 'mc-sc-haul' : ''}`}>
-                        <span className="mc-sc-name">{bc.playerName}</span>
+                        <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>{bc.playerName}</span>
                         <span className="mc-sc-num">{bc.overs}</span>
                         <span className="mc-sc-num">{bc.maidens}</span>
                         <span className="mc-sc-num">{bc.runs}</span>
@@ -1115,6 +1119,51 @@ export default function MatchCenter() {
                 </div>
               </div>
             )}
+
+            {/* Attendance Breakdown */}
+            {matchEnded && result?.attendance > 0 && (
+              <div className="mc-attendance-section">
+                <h3 className="mc-section-title">🏟️ Attendance — {result.attendance.toLocaleString()}</h3>
+                {result.attendanceBreakdown ? (() => {
+                  const bd = result.attendanceBreakdown;
+                  const categories = [
+                    { label: 'Premium', att: bd.premiumAtt, cap: bd.premiumCap, color: '#f59e0b' },
+                    { label: 'Standard', att: bd.standardAtt, cap: bd.standardCap, color: '#22d3ee' },
+                    { label: 'Economy', att: bd.economyAtt, cap: bd.economyCap, color: '#34d399' },
+                    { label: 'Standing', att: bd.standingAtt, cap: bd.standingCap, color: '#94a3b8' },
+                  ];
+                  const totalCap = categories.reduce((s, c) => s + c.cap, 0);
+                  const fillPct = totalCap > 0 ? ((result.attendance / totalCap) * 100).toFixed(1) : 0;
+                  return (
+                    <div className="mc-att-breakdown">
+                      <div className="mc-att-overall">
+                        <span className="mc-att-fill">{fillPct}% filled</span>
+                        <span className="mc-att-cap">Capacity: {totalCap.toLocaleString()}</span>
+                      </div>
+                      <div className="mc-att-categories">
+                        {categories.map(c => {
+                          const pct = c.cap > 0 ? ((c.att / c.cap) * 100).toFixed(0) : 0;
+                          return (
+                            <div className="mc-att-cat" key={c.label}>
+                              <div className="mc-att-cat-header">
+                                <span className="mc-att-cat-label">{c.label}</span>
+                                <span className="mc-att-cat-nums">{c.att.toLocaleString()} / {c.cap.toLocaleString()}</span>
+                              </div>
+                              <div className="mc-att-bar-wrap">
+                                <div className="mc-att-bar" style={{ width: `${pct}%`, background: c.color }} />
+                              </div>
+                              <span className="mc-att-pct">{pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })() : (
+                  <div className="mc-att-total-only">{result.attendance.toLocaleString()} spectators</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1148,7 +1197,8 @@ export default function MatchCenter() {
                 <h4 className="mc-rivalry-recent-title">Recent Matches</h4>
                 <div className="mc-rivalry-list">
                   {rivalry.matches.slice(0, 10).map((m, i) => (
-                    <div key={i} className="mc-rivalry-match">
+                    <div key={i} className="mc-rivalry-match mc-rivalry-match-link"
+                      onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}>
                       <span className="mc-rivalry-date">{m.date}</span>
                       <span className="mc-rivalry-format">{m.format}</span>
                       <span className="mc-rivalry-summary">{m.summary}</span>
@@ -1399,7 +1449,7 @@ function buildInningsStats(innData, balls) {
   const dismissed = new Set();
   let extras = 0, extWides = 0, extNoBalls = 0, extByes = 0, extLegByes = 0;
   balls.forEach((b) => {
-    if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
+    if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, playerId: b.batsmanId, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
     const bm = batMap[b.batsman];
     if (!b.isWide) bm.runs += b.runs;
     if (!b.isWide && !b.isNoBall) bm.balls += 1;
@@ -1421,7 +1471,7 @@ function buildInningsStats(innData, balls) {
   const bowlMap = {};
   const bowlOrder = [];
   balls.forEach((b) => {
-    if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, legalBalls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, wides: 0, noBalls: 0 }; bowlOrder.push(b.bowler); }
+    if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, playerId: b.bowlerId, legalBalls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, wides: 0, noBalls: 0 }; bowlOrder.push(b.bowler); }
     const bw = bowlMap[b.bowler];
     bw.runs += b.runs;
     if (b.isWicket) bw.wickets += 1;
