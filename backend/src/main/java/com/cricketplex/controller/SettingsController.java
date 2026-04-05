@@ -74,6 +74,12 @@ public class SettingsController {
         return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
     }
 
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
+        return ResponseEntity.ok(settingsService.getDashboardStats(user));
+    }
+
     private User getUser(UserPrincipal principal) {
         return userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

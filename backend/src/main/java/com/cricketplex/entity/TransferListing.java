@@ -51,4 +51,14 @@ public class TransferListing {
     private LocalDateTime listedAt;
 
     private LocalDateTime soldAt;
+
+    @Column(name = "auction_ends_at")
+    private LocalDateTime auctionEndsAt;
+
+    @Column(name = "current_bid")
+    private Long currentBid;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_bidder_team_id")
+    private Team currentBidderTeam;
 }

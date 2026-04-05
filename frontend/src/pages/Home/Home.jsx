@@ -26,6 +26,7 @@ import Academy from '../Academy/Academy';
 import TransferMarket from '../TransferMarket/TransferMarket';
 import Finances from '../Finances/Finances';
 import GameFormulas from '../Admin/GameFormulas';
+import AdminBots from '../Admin/AdminBots';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -265,6 +266,12 @@ export default function Home() {
               <Route
                 path="admin/formulas"
                 element={<GameFormulas />}
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <Route
+                path="admin/bots"
+                element={<AdminBots />}
               />
             )}
             <Route

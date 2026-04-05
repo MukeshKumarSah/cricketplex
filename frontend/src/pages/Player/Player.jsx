@@ -1,19 +1,52 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   getPlayerProfile, getPlayerTransferStatus,
   listPlayerOnTM, firePlayer, retirePlayer, placeBid,
-  acceptBid, cancelListing,
+  cancelListing,
 } from '../../api/auth';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import toast from 'react-hot-toast';
 import './Player.css';
 
+function useCountdown(endStr) {
+  const [remaining, setRemaining] = useState('');
+  useEffect(() => {
+    if (!endStr) { setRemaining(''); return; }
+    const tick = () => {
+      const diff = new Date(endStr) - Date.now();
+      if (diff <= 0) { setRemaining('Ended'); return; }
+      const h = Math.floor(diff / 3_600_000);
+      const m = Math.floor((diff % 3_600_000) / 60_000);
+      const s = Math.floor((diff % 60_000) / 1000);
+      setRemaining(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [endStr]);
+  return remaining;
+}
+
 const ROLE_LABELS = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-Rounder', KEEPER: 'Keeper' };
 const HAND_LABELS = { RH: 'Right Hand', LH: 'Left Hand' };
-const BOWL_LABELS = { FS: 'Fast Swing', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast Medium', MF: 'Medium Fast' };
+const BOWL_LABELS = { FS: 'Finger Spin', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast Medium', MF: 'Medium Fast' };
 const AGG_LABELS = { D: 'Defensive', N: 'Neutral', A: 'Aggressive' };
 const FORMAT_ORDER = ['T20', 'ODI', 'FC'];
 const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#3b82f6', FC: '#f59e0b' };
+
+function AuctionCountdown({ endStr }) {
+  const remaining = useCountdown(endStr);
+  if (!remaining) return null;
+  const isUrgent = remaining !== 'Ended' && remaining.startsWith('00:0');
+  return (
+    <span className={`pp-tm-value highlight ${remaining === 'Ended' ? '' : ''}`}
+      style={isUrgent ? { color: '#ef4444' } : undefined}>
+      {remaining === 'Ended' ? 'Auction Ended' : remaining}
+    </span>
+  );
+}
 
 function RatingBar({ label, value, max = 100, color }) {
   const pct = Math.min((value / max) * 100, 100);
@@ -39,14 +72,36 @@ export default function Player() {
   // Transfer Market state
   const [tmStatus, setTmStatus] = useState(null);
   const [bidAmount, setBidAmount] = useState('');
+  const [startingPrice, setStartingPrice] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'fire' | 'retire' | 'sell' | null
 
-  const loadTmStatus = () => {
+  const loadTmStatus = useCallback(() => {
     getPlayerTransferStatus(id)
       .then(res => setTmStatus(res.data))
       .catch(() => {});
-  };
+  }, [id]);
+
+  // WebSocket — live bid updates
+  useEffect(() => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe('/topic/transfer', (message) => {
+          try {
+            const data = JSON.parse(message.body);
+            // If this update is about the player we're viewing, refresh TM status
+            if (tmStatus?.listingId === data.listingId) {
+              loadTmStatus();
+            }
+          } catch { /* ignore */ }
+        });
+      },
+    });
+    client.activate();
+    return () => { client.deactivate(); };
+  }, [tmStatus?.listingId, loadTmStatus]);
 
   useEffect(() => {
     (async () => {
@@ -72,11 +127,13 @@ export default function Player() {
   useEffect(() => { loadTmStatus(); }, [id]);
 
   const handleSell = async () => {
+    const askPrice = Number(startingPrice) || 0;
     setActionLoading(true);
     try {
-      const res = await listPlayerOnTM(id);
+      const res = await listPlayerOnTM(id, askPrice > 0 ? askPrice : undefined);
       toast.success(res.data.message);
       setConfirmAction(null);
+      setStartingPrice('');
       loadTmStatus();
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to list');
@@ -108,7 +165,8 @@ export default function Player() {
   };
 
   const handleBid = async () => {
-    const amt = Number(bidAmount);
+    const fallback = tmStatus.minNextBid || tmStatus.currentBid || tmStatus.marketValue;
+    const amt = Number(bidAmount || fallback);
     if (!amt || amt <= 0) { toast.error('Enter a valid bid'); return; }
     setActionLoading(true);
     try {
@@ -118,17 +176,6 @@ export default function Player() {
       loadTmStatus();
     } catch (e) {
       toast.error(e.response?.data?.error || 'Bid failed');
-    } finally { setActionLoading(false); }
-  };
-
-  const handleAcceptBid = async () => {
-    setActionLoading(true);
-    try {
-      const res = await acceptBid(tmStatus.listingId);
-      toast.success(res.data.message);
-      loadTmStatus();
-    } catch (e) {
-      toast.error(e.response?.data?.error || 'Accept failed');
     } finally { setActionLoading(false); }
   };
 
@@ -215,10 +262,26 @@ export default function Player() {
               {confirmAction && (
                 <div className="pp-tm-confirm">
                   <span className="pp-tm-confirm-text">
-                    {confirmAction === 'sell' && `List on TM? Listing fee: $${(Math.round(tmStatus.marketValue * 0.20)).toLocaleString()} (20%)`}
+                    {confirmAction === 'sell' && (() => {
+                      const base = Number(startingPrice) >= 1000 ? Number(startingPrice) : tmStatus.marketValue;
+                      return `List on TM? Listing fee: $${(Math.round(base * 0.20)).toLocaleString()} (20% of starting price)`;
+                    })()}
                     {confirmAction === 'fire' && 'Release this player? This cannot be undone.'}
                     {confirmAction === 'retire' && 'Retire this player? This cannot be undone.'}
                   </span>
+                  {confirmAction === 'sell' && (
+                    <div className="pp-tm-starting-price">
+                      <label className="pp-tm-label">Starting Price (optional)</label>
+                      <input
+                        className="pp-tm-bid-input"
+                        type="number"
+                        placeholder={`Default: $${tmStatus.marketValue?.toLocaleString()}`}
+                        value={startingPrice}
+                        onChange={e => setStartingPrice(e.target.value)}
+                        min={1000}
+                      />
+                    </div>
+                  )}
                   <div className="pp-tm-confirm-btns">
                     <button className="pp-tm-btn confirm-yes" disabled={actionLoading}
                       onClick={confirmAction === 'sell' ? handleSell : confirmAction === 'fire' ? handleFire : handleRetire}>
@@ -240,20 +303,19 @@ export default function Player() {
                 <span>TM Tax: <strong>${tmStatus.tmTax?.toLocaleString()}</strong></span>
                 <span>Bids: <strong>{tmStatus.bidCount}</strong></span>
               </div>
-              {tmStatus.bids?.length > 0 && (
-                <div className="pp-tm-bids">
-                  {tmStatus.bids.map((b, i) => (
-                    <div key={b.bidId} className="pp-tm-bid-item">
-                      <span className="pp-tm-bid-team">{b.bidderTeam}</span>
-                      <span className="pp-tm-bid-amount">${b.bidAmount?.toLocaleString()}</span>
-                      {i === 0 && <span className="pp-tm-bid-tag">Highest</span>}
-                    </div>
-                  ))}
-                  <button className="pp-tm-btn sell" onClick={handleAcceptBid} disabled={actionLoading}>
-                    {actionLoading ? 'Accepting…' : `Accept ($${tmStatus.bids[0]?.bidAmount?.toLocaleString()})`}
-                  </button>
+              {tmStatus.currentBid && tmStatus.currentBidderTeam && (
+                <div className="pp-tm-value-row">
+                  <span className="pp-tm-label">Current Bid</span>
+                  <span className="pp-tm-value highlight">${tmStatus.currentBid?.toLocaleString()} ({tmStatus.currentBidderTeam})</span>
                 </div>
               )}
+              {tmStatus.auctionEndsAt && (
+                <div className="pp-tm-value-row">
+                  <span className="pp-tm-label">Ends In</span>
+                  <AuctionCountdown endStr={tmStatus.auctionEndsAt} />
+                </div>
+              )}
+              <div className="pp-tm-auction-note">Auction auto-completes when timer expires</div>
               <button className="pp-tm-btn fire" onClick={handleCancelListing} disabled={actionLoading}>
                 Cancel Listing
               </button>
@@ -264,18 +326,24 @@ export default function Player() {
           {!tmStatus.isOwnPlayer && tmStatus.isListed && (
             <>
               <div className="pp-tm-listed-badge">Transfer Listed</div>
-              {tmStatus.highestBid && (
+              {tmStatus.currentBid && (
                 <div className="pp-tm-value-row">
-                  <span className="pp-tm-label">Highest Bid</span>
-                  <span className="pp-tm-value highlight">${tmStatus.highestBid?.toLocaleString()}</span>
+                  <span className="pp-tm-label">Current Bid</span>
+                  <span className="pp-tm-value highlight">${tmStatus.currentBid?.toLocaleString()}{tmStatus.currentBidderTeam ? ` (${tmStatus.currentBidderTeam})` : ''}</span>
+                </div>
+              )}
+              {tmStatus.auctionEndsAt && (
+                <div className="pp-tm-value-row">
+                  <span className="pp-tm-label">Ends In</span>
+                  <AuctionCountdown endStr={tmStatus.auctionEndsAt} />
                 </div>
               )}
               <div className="pp-tm-bid-row">
                 <input
                   className="pp-tm-bid-input"
                   type="number"
-                  placeholder={`Min $${(tmStatus.highestBid ? tmStatus.highestBid + 1 : tmStatus.marketValue)?.toLocaleString()}`}
-                  value={bidAmount}
+                  placeholder={`Min $${(tmStatus.minNextBid || tmStatus.currentBid || tmStatus.marketValue)?.toLocaleString()}`}
+                  value={bidAmount || (tmStatus.minNextBid || tmStatus.currentBid || tmStatus.marketValue)}
                   onChange={e => setBidAmount(e.target.value)}
                 />
                 <button className="pp-tm-btn sell" onClick={handleBid} disabled={actionLoading}>

@@ -199,13 +199,13 @@ public class TeamService {
             int batR = randInt(rng, 25, 35);
             int bowlR = randInt(rng, 0, 15);
             int fldR = randInt(rng, 10, 35);
-            squad.add(Player.builder()
+                squad.add(Player.builder()
                     .firstName(name[0]).lastName(name[1]).country(name[2]).team(team)
                     .nationality(name[2])
                     .role("BATSMAN").age(randInt(rng, 18, 35)).batHand(batHand)
                     .bowlHand(batHand).bowlType(randomPartTimeBowlType(rng))
                     .batRating(batR).bowlRating(bowlR)
-                    .keeperRating(0).fldRating(fldR)
+                    .keeperRating(randInt(rng, 5, 12)).fldRating(fldR)
                     .rating(calcOverallRating("BATSMAN", batR, bowlR, 0, fldR))
                     .wage(randInt(rng, 300, 800))
                     .confidence(randInt(rng, 40, 65))
@@ -283,13 +283,13 @@ public class TeamService {
                 bowlRat = randInt(rng, 20, 30);
             }
 
-            squad.add(Player.builder()
+                squad.add(Player.builder()
                     .firstName(name[0]).lastName(name[1]).country(name[2]).team(team)
                     .nationality(name[2])
                     .role(role).age(randInt(rng, 18, 35)).batHand(batHand)
                     .bowlHand(bowlHand).bowlType(bowlType)
                     .batRating(batRat).bowlRating(bowlRat)
-                    .keeperRating(0).fldRating(randInt(rng, 10, 35))
+                    .keeperRating(randInt(rng, 5, 12)).fldRating(randInt(rng, 10, 35))
                     .rating(calcOverallRating(role, batRat, bowlRat, 0, randInt(rng, 10, 35)))
                     .wage(randInt(rng, 300, 800))
                     .confidence(randInt(rng, 40, 65))

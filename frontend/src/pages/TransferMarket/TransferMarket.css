@@ -1,6 +1,6 @@
 /* ══════ Transfer Market ══════ */
 .tm-page {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem;
   display: flex;
@@ -23,6 +23,25 @@
   font-weight: 700;
   color: #e2e8f0;
   margin: 0;
+}
+.tm-ws-indicator {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.tm-ws-indicator.connected {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  animation: tm-live-pulse 2s ease-in-out infinite;
+}
+@keyframes tm-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* ── Tabs ── */
@@ -54,8 +73,8 @@
 
 /* ── Listing Cards ── */
 .tm-listings {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 0.6rem;
 }
 .tm-card {
@@ -70,6 +89,16 @@
 }
 .tm-card:hover { border-color: #334155; }
 .tm-card-inactive { opacity: 0.6; }
+.tm-card-leading {
+  background: rgba(34, 197, 94, 0.20);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+.tm-card-leading:hover { border-color: rgba(34, 197, 94, 0.65); }
+.tm-card-outbid {
+  background: rgba(251, 146, 60, 0.15);
+  border-color: rgba(251, 146, 60, 0.5);
+}
+.tm-card-outbid:hover { border-color: rgba(251, 146, 60, 0.65); }
 
 .tm-card-top {
   display: flex;
@@ -117,33 +146,54 @@
   color: #0f172a;
 }
 
-/* ── Stats Row ── */
-.tm-card-stats {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
+/* ── Rating Bars (two-column) ── */
+.tm-ratings-split {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 0.6rem;
 }
-.tm-mini-stat {
+.tm-ratings-col {
   display: flex;
   flex-direction: column;
+  gap: 0.3rem;
+}
+.tm-ratings-divider {
+  background: #1e293b;
+}
+.tm-rating-row {
+  display: flex;
   align-items: center;
-  background: #111827;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 0.25rem 0.45rem;
-  min-width: 38px;
+  gap: 0.35rem;
 }
-.tm-mini-label {
-  font-size: 0.5rem;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-}
-.tm-mini-value {
+.tm-rating-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  width: 36px;
+  flex-shrink: 0;
+}
+.tm-rating-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.tm-rating-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.tm-rating-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #e2e8f0;
+  width: 24px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* ── Market Info ── */
@@ -233,6 +283,27 @@
 .tm-status-badge.active { background: rgba(34, 211, 238, 0.1); color: #22d3ee; }
 .tm-status-badge.sold { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
 .tm-status-badge.cancelled { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.tm-status-badge.expired { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+/* ── Auction Timer ── */
+.tm-auction-timer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #22d3ee;
+}
+.tm-auction-timer.urgent { color: #ef4444; animation: tm-pulse 1s ease-in-out infinite; }
+.tm-auction-timer.ended { color: #64748b; }
+@keyframes tm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.tm-auction-note {
+  font-size: 0.68rem;
+  color: #475569;
+  font-style: italic;
+  margin-top: 0.2rem;
+}
 
 /* ── Bids Section ── */
 .tm-bids-section {
@@ -275,21 +346,7 @@
   padding: 0.3rem 0;
 }
 
-/* ── Accept / Cancel Buttons ── */
-.tm-accept-btn {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #0a0f1a;
-  border: none;
-  border-radius: 8px;
-  padding: 0.45rem 1rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 0.3rem;
-  transition: opacity 0.2s;
-  width: fit-content;
-}
-.tm-accept-btn:hover { opacity: 0.9; }
+/* ── Cancel Button ── */
 .tm-cancel-btn {
   background: #1e293b;
   color: #94a3b8;
@@ -309,9 +366,89 @@
   color: #334155;
 }
 
+/* ── Filters ── */
+.tm-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+.tm-filter-toggle {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tm-filter-toggle:hover { border-color: #22d3ee; color: #22d3ee; }
+.tm-filter-clear {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+.tm-filter-clear:hover { color: #ef4444; }
+
+.tm-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.6rem 1rem;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.5rem;
+}
+.tm-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.tm-filter-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.tm-filter-input,
+.tm-filter-select {
+  background: #111827;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.tm-filter-input:focus,
+.tm-filter-select:focus { border-color: #22d3ee; }
+.tm-filter-input.sm { width: 70px; }
+.tm-filter-select { cursor: pointer; }
+.tm-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.tm-filter-sep {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
 /* ── Responsive ── */
-@media (max-width: 640px) {
+@media (max-width: 740px) {
   .tm-page { padding: 1rem; }
+  .tm-listings { grid-template-columns: 1fr; }
   .tm-bid-row { flex-direction: column; }
   .tm-bid-input { width: 100%; }
+  .tm-filters { grid-template-columns: 1fr 1fr; }
+  .tm-filter-input.sm { width: 100%; }
 }

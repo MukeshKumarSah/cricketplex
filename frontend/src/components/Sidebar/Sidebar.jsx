@@ -21,6 +21,7 @@ import {
   HiOutlineGlobeAlt,
   HiOutlineBolt,
   HiOutlineCalculator,
+  HiOutlineCpuChip,
 } from 'react-icons/hi2';
 import './Sidebar.css';
 
@@ -47,6 +48,7 @@ const menuItems = [
 const adminItems = [
   { label: 'Player Pool', icon: HiOutlineShieldCheck, path: '/admin/players' },
   { label: 'Leagues', icon: HiOutlineGlobeAlt, path: '/admin/leagues' },
+  { label: 'Bot Teams', icon: HiOutlineCpuChip, path: '/admin/bots' },
   { label: 'Game Formulas', icon: HiOutlineCalculator, path: '/admin/formulas' },
 ];
 

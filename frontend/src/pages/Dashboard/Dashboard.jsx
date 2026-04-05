@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -20,8 +20,6 @@ import './Dashboard.css';
 const mockData = {
   lastActive: 'Currently Active',
   isActive: true,
-  teamMorale: 78,
-  teamFans: 142500,
   trophies: [
     { name: 'T20 Cup 2025', icon: '🏆', year: 2025 },
     { name: 'OD Shield Runner-up', icon: '🥈', year: 2025 },
@@ -138,6 +136,7 @@ export default function Dashboard() {
   const [weatherForecast, setWeatherForecast] = useState(null);
   const [weatherCountry, setWeatherCountry] = useState('');
   const [activities, setActivities] = useState([]);
+  const [dashStats, setDashStats] = useState(null);
 
   useEffect(() => {
     getSettings()
@@ -159,6 +158,9 @@ export default function Dashboard() {
       .catch(() => {});
     getRecentActivities()
       .then((res) => setActivities(res.data || []))
+      .catch(() => {});
+    getDashboardStats()
+      .then((res) => setDashStats(res.data))
       .catch(() => {});
   }, []);
 
@@ -309,6 +311,11 @@ export default function Dashboard() {
                     <div className="dash-league-division">
                       Division {lg.division} · League {lg.leagueNumber} · Season {lg.season}
                     </div>
+                    {lg.played > 0 && (
+                      <div className="dash-league-stats">
+                        P {lg.played} · W {lg.won} · L {lg.lost}{lg.tied > 0 ? ` · T ${lg.tied}` : ''} · Pts {lg.points}
+                      </div>
+                    )}
                   </div>
                   <div className="dash-league-position">
                     <span className="dash-league-pos-num">#{lg.position}</span>
@@ -339,32 +346,32 @@ export default function Dashboard() {
               <circle
                 cx="60" cy="60" r="52"
                 fill="none"
-                stroke={getMoraleColor(d.teamMorale)}
+                stroke={getMoraleColor(dashStats?.morale ?? 50)}
                 strokeWidth="10"
                 strokeLinecap="round"
-                strokeDasharray={`${(d.teamMorale / 100) * 327} 327`}
+                strokeDasharray={`${((dashStats?.morale ?? 50) / 100) * 327} 327`}
                 transform="rotate(-90 60 60)"
               />
             </svg>
             <div className="dash-morale-ring-center">
-              <span className="dash-morale-percent">{d.teamMorale}%</span>
-              <span className="dash-morale-label" style={{ color: getMoraleColor(d.teamMorale) }}>
-                {getMoraleLabel(d.teamMorale)}
+              <span className="dash-morale-percent">{dashStats?.morale ?? '–'}%</span>
+              <span className="dash-morale-label" style={{ color: getMoraleColor(dashStats?.morale ?? 50) }}>
+                {getMoraleLabel(dashStats?.morale ?? 50)}
               </span>
             </div>
           </div>
           <div className="dash-morale-breakdown">
             <div className="morale-factor">
-              <span>Match Results</span>
-              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: '82%', background: '#34d399' }} /></div>
+              <span>Recent Form ({dashStats?.recentWins ?? 0}W {dashStats?.recentDraws ?? 0}D {dashStats?.recentLosses ?? 0}L)</span>
+              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: `${dashStats?.morale ?? 50}%`, background: '#34d399' }} /></div>
             </div>
             <div className="morale-factor">
-              <span>Squad Depth</span>
-              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: '65%', background: '#fbbf24' }} /></div>
+              <span>Squad Confidence</span>
+              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: `${dashStats?.squadConfidenceFactor ?? 50}%`, background: '#fbbf24' }} /></div>
             </div>
             <div className="morale-factor">
-              <span>Facilities</span>
-              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: '90%', background: '#22d3ee' }} /></div>
+              <span>Facilities (Lv {team?.academyLevel ?? 1})</span>
+              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: `${dashStats?.facilityFactor ?? 25}%`, background: '#22d3ee' }} /></div>
             </div>
           </div>
         </div>
@@ -378,19 +385,21 @@ export default function Dashboard() {
         <div className="dash-fans-content">
           <div className="dash-fans-count">
             <HiOutlineSparkles className="dash-fans-sparkle" />
-            <span className="dash-fans-number">{d.teamFans.toLocaleString()}</span>
+            <span className="dash-fans-number">{(dashStats?.fans ?? team?.fans ?? 0).toLocaleString()}</span>
           </div>
           <div className="dash-fans-growth">
             <HiOutlineBolt className="dash-fans-bolt" />
-            <span>+2,340 this week</span>
+            <span style={{ color: '#94a3b8' }}>
+              Recent: {dashStats?.recentWins ?? 0}W {dashStats?.recentDraws ?? 0}D {dashStats?.recentLosses ?? 0}L ({dashStats?.recentMatchCount ?? 0} matches)
+            </span>
           </div>
           <div className="dash-fans-bar-wrapper">
             <div className="dash-fans-bar-track">
-              <div className="dash-fans-bar-fill" style={{ width: '57%' }} />
+              <div className="dash-fans-bar-fill" style={{ width: `${Math.min(100, ((dashStats?.fans ?? team?.fans ?? 0) / (dashStats?.fanCeiling ?? 150000)) * 100)}%` }} />
             </div>
             <div className="dash-fans-bar-labels">
               <span>0</span>
-              <span>250K target</span>
+              <span>{formatFans(dashStats?.fanCeiling ?? 150000)} ceiling</span>
             </div>
           </div>
         </div>

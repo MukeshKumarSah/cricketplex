@@ -35,6 +35,7 @@ public class MatchEngine {
     private final MatchLineupRepository matchLineupRepository;
     private final PlayerRepository playerRepository;
     private final FixtureRepository fixtureRepository;
+    private final TeamRepository teamRepository;
     private final WeatherService weatherService;
     private final ActivityLogService activityLogService;
 
@@ -164,6 +165,12 @@ public class MatchEngine {
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
         logMatchActivity(result, fixture);
+        // Only update team/player stats for league matches — friendlies have no consequences
+        if (fixture.getLeague() != null) {
+            String resolvedFormat = fixture.getLeague().getFormat();
+            updateMoraleAndFans(result, fixture, resolvedFormat);
+            updatePlayerStats(result, resolvedFormat);
+        }
         return matchResultRepository.save(result);
     }
 
@@ -480,7 +487,7 @@ public class MatchEngine {
         bowlStrength *= bowlFatigue;
         bowlStrength = Math.max(5, Math.min(bowlStrength, 120));
 
-        // ── Chase pressure (format-aware thresholds) ──
+        // ── Chase pressure (format-aware thresholds, pitch-adjusted) ──
         // Positive = hard chase (bowler confident, batter pressured)
         // Negative = easy chase (batter comfortable, bowler under pressure)
         double chasePressure = 0;
@@ -488,7 +495,21 @@ public class MatchEngine {
             int runsNeeded = ctx.target - totalRuns;
             int ballsLeft = (ctx.maxOvers * 6) - legalBallsBowled;
             if (ballsLeft > 0) {
-                double requiredRate = (runsNeeded * 6.0) / ballsLeft;
+                double rawRR = (runsNeeded * 6.0) / ballsLeft;
+                // Pitch difficulty scales the *perceived* required rate
+                // Tough pitches inflate RRR → pressure kicks in earlier
+                // Flat pitches deflate RRR → same rate feels easier
+                double pitchRRRScale = switch (ctx.pitchType != null ? ctx.pitchType : "STANDARD") {
+                    case "DUSTY"  -> 1.25;  // spin dust-bowl — chasing is brutal
+                    case "DRY"    -> 1.20;  // deteriorating — hard to score late
+                    case "GREEN"  -> 1.15;  // seam assistance — run-making tough
+                    case "BOUNCY" -> 1.10;  // variable bounce adds pressure
+                    case "UNEVEN" -> 1.15;  // unpredictable → risky chasing
+                    case "SLOW"   -> 1.10;  // low bounce limits scoring shots
+                    case "FLAT"   -> 0.85;  // batting paradise — chasing easy
+                    default       -> 1.0;   // STANDARD — no adjustment
+                };
+                double requiredRate = rawRR * pitchRRRScale;
                 if ("T20".equalsIgnoreCase(ctx.format)) {
                     if (requiredRate > 14) chasePressure = 10;
                     else if (requiredRate > 12) chasePressure = 7;
@@ -1551,6 +1572,11 @@ public class MatchEngine {
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
         logMatchActivity(result, fixture);
+        // Only update team/player stats for league matches — friendlies have no consequences
+        if (fixture.getLeague() != null) {
+            updateMoraleAndFans(result, fixture, "FC");
+            updatePlayerStats(result, "FC");
+        }
         return matchResultRepository.save(result);
     }
 
@@ -2087,6 +2113,307 @@ public class MatchEngine {
         }
     }
 
+    /**
+     * Update morale and fans for both teams after each match.
+     * Morale: stored per-team, shifts per match. Win +8, Draw +2, Loss −6. Clamped 0–100.
+     * Fans: gain diminishes toward 150K ceiling; losses penalize based on quadratic scaling.
+     */
+    private void updateMoraleAndFans(MatchResult result, Fixture fixture, String format) {
+        Team home = fixture.getHomeTeam();
+        Team away = fixture.getAwayTeam();
+        String rt = result.getResultType();
+        boolean isDraw = "DRAW".equals(rt) || "TIE".equals(rt) || "NO_RESULT".equals(rt);
+
+        if (isDraw) {
+            applyMoraleDelta(home, 2);
+            applyMoraleDelta(away, 2);
+            applyFanDelta(home, "DRAW");
+            applyFanDelta(away, "DRAW");
+            applyEloUpdate(home, away, 0.5, 0.5, format);
+        } else if (result.getWinner() != null) {
+            Team winner = result.getWinner();
+            Team loser = winner.getId().equals(home.getId()) ? away : home;
+            applyMoraleDelta(winner, 8);
+            applyMoraleDelta(loser, -6);
+            applyFanDelta(winner, "WIN");
+            applyFanDelta(loser, "LOSS");
+            applyEloUpdate(winner, loser, 1.0, 0.0, format);
+        }
+
+        teamRepository.save(home);
+        teamRepository.save(away);
+    }
+
+    /**
+     * Apply morale change after a match.
+     * Primary: resultDelta (Win +8, Draw +2, Loss −6).
+     * Secondary: squadPull — 15% nudge toward avg squad confidence.
+     * Tertiary: academyPull — 10% nudge toward academy benchmark (level × 25).
+     */
+    private void applyMoraleDelta(Team team, int resultDelta) {
+        int current = team.getMorale() != null ? team.getMorale() : 50;
+
+        // Squad confidence pull — 15% weight toward avg confidence
+        List<Player> squad = playerRepository.findByTeam(team);
+        double avgConfidence = 50.0;
+        if (!squad.isEmpty()) {
+            avgConfidence = squad.stream().mapToInt(Player::getConfidence).average().orElse(50.0);
+        }
+        double squadPull = (avgConfidence - current) * 0.15;
+
+        // Academy pull — 10% weight toward academy benchmark (level × 25)
+        int academyBenchmark = (team.getAcademyLevel() != null ? team.getAcademyLevel() : 1) * 25;
+        double academyPull = (academyBenchmark - current) * 0.10;
+
+        int newMorale = (int) Math.round(current + resultDelta + squadPull + academyPull);
+        team.setMorale(Math.max(0, Math.min(100, newMorale)));
+    }
+
+    private void applyFanDelta(Team team, String outcome) {
+        int currentFans = team.getFans() != null ? team.getFans() : 1000;
+        double ceiling = 150000.0;
+        double ratio = Math.min(1.0, currentFans / ceiling);
+        int gain, penalty;
+        switch (outcome) {
+            case "WIN":
+                gain = Math.max(20, (int)(500 * (1.0 - ratio)));
+                penalty = 0;
+                break;
+            case "DRAW":
+                gain = Math.max(10, (int)(200 * (1.0 - ratio)));
+                penalty = (int)(currentFans * 0.001 * ratio);
+                break;
+            default: // LOSS
+                gain = Math.max(5, (int)(100 * (1.0 - ratio)));
+                penalty = (int)(currentFans * 0.004 * ratio);
+                break;
+        }
+        team.setFans(Math.max(100, currentFans + gain - penalty));
+    }
+
+    /**
+     * Elo rating update (K=20) for the format-specific rating.
+     * E_A = 1 / (1 + 10^((R_B - R_A) / 400))
+     * New R_A = R_A + K * (S_A - E_A)
+     */
+    private void applyEloUpdate(Team teamA, Team teamB, double scoreA, double scoreB, String format) {
+        int K = 20;
+        int ratingA = getFormatRating(teamA, format);
+        int ratingB = getFormatRating(teamB, format);
+
+        double expectedA = 1.0 / (1.0 + Math.pow(10.0, (ratingB - ratingA) / 400.0));
+        double expectedB = 1.0 - expectedA;
+
+        int newRatingA = (int) Math.round(ratingA + K * (scoreA - expectedA));
+        int newRatingB = (int) Math.round(ratingB + K * (scoreB - expectedB));
+
+        // Floor at 100 to prevent nonsensical ratings
+        setFormatRating(teamA, format, Math.max(100, newRatingA));
+        setFormatRating(teamB, format, Math.max(100, newRatingB));
+    }
+
+    private int getFormatRating(Team team, String format) {
+        if ("T20".equalsIgnoreCase(format)) return team.getT20Rating() != null ? team.getT20Rating() : 1000;
+        if ("FC".equalsIgnoreCase(format)) return team.getFcRating() != null ? team.getFcRating() : 1000;
+        return team.getOdiRating() != null ? team.getOdiRating() : 1000; // ODI default
+    }
+
+    private void setFormatRating(Team team, String format, int rating) {
+        if ("T20".equalsIgnoreCase(format)) team.setT20Rating(rating);
+        else if ("FC".equalsIgnoreCase(format)) team.setFcRating(rating);
+        else team.setOdiRating(rating);
+    }
+
+    // ─── Post-match player fitness & confidence ──────────────────
+
+    /**
+     * Update fitness and confidence for every player who participated.
+     *
+     * FITNESS LOSS (per match):
+     *   Base loss by format: T20 = −3, ODI = −5, FC = −8
+     *   + Batting load:  ballsFaced / divisor  (T20: 40, ODI: 60, FC: 80)
+     *   + Bowling load:  oversBowled / divisor (T20: 1.5, ODI: 3, FC: 5)
+     *   Stamina scales the loss: totalLoss × (1.3 − stamina/100 × 0.6)
+     *     → stamina 100 = ×0.7 of base, stamina 0 = ×1.3 of base
+     *   Clamped to [0, 100].
+     *
+     * CONFIDENCE CHANGE (format-aware):
+     *   Batting T20:  duck = −4, <15 = −1, 25+ = +2, 40+ = +4, 75+ = +7
+     *   Batting ODI:  duck = −4, <20 = −1, 35+ = +2, 50+ = +4, 100+ = +7
+     *   Batting FC:   duck = −4, <25 = −1, 50+ = +2, 75+ = +4, 150+ = +7
+     *   Bowling:  0 wkts & expensive (T20 >10, ODI >7, FC >4) = −3, 1 wkt = +1, 2 wkt = +2, 3+ = +4, 5+ = +7
+     *   Man of Match: +5
+     *   Win: +2, Loss: −2, Draw: 0
+     *   Clamped to [0, 100].
+     *
+     * EXPERIENCE GAIN (diminishing returns):
+     *   Raw XP: Base +1, FC +1, batting/bowling bonuses, MoM +1 (range 1–7).
+     *   Effective = floor(rawXP × 50 / (50 + currentXP)).
+     *   At XP 0 → full gain. At XP 50 → half. At XP 100 → third.
+     *   Soft cap ~100: average performers stop gaining; only standouts push past.
+     */
+    private void updatePlayerStats(MatchResult result, String format) {
+        // Collect per-player batting/bowling aggregates across all innings
+        Map<UUID, int[]> playerBatStats = new HashMap<>();  // [totalRuns, totalBallsFaced, ducks]
+        Map<UUID, double[]> playerBowlStats = new HashMap<>(); // [totalOvers, totalRunsConceded, totalWickets]
+        Set<UUID> allPlayerIds = new HashSet<>();
+
+        for (Innings inn : result.getInningsList()) {
+            for (BattingScorecard bc : inn.getBattingCards()) {
+                UUID pid = bc.getPlayer().getId();
+                allPlayerIds.add(pid);
+                int[] stats = playerBatStats.computeIfAbsent(pid, k -> new int[3]);
+                stats[0] += bc.getRunsScored();
+                stats[1] += bc.getBallsFaced();
+                if (bc.getBallsFaced() > 0 && bc.getRunsScored() == 0 && bc.getDismissalType() != null) {
+                    stats[2]++; // duck
+                }
+            }
+            for (BowlingScorecard bw : inn.getBowlingCards()) {
+                UUID pid = bw.getPlayer().getId();
+                allPlayerIds.add(pid);
+                double[] stats = playerBowlStats.computeIfAbsent(pid, k -> new double[3]);
+                stats[0] += bw.getOvers();
+                stats[1] += bw.getRunsConceded();
+                stats[2] += bw.getWickets();
+            }
+        }
+
+        if (allPlayerIds.isEmpty()) return;
+
+        // Determine win/loss for confidence
+        UUID winnerId = result.getWinner() != null ? result.getWinner().getId() : null;
+        Set<UUID> winningTeamPlayerIds = new HashSet<>();
+        Set<UUID> losingTeamPlayerIds = new HashSet<>();
+        if (winnerId != null) {
+            for (Innings inn : result.getInningsList()) {
+                boolean isWinnerBatting = inn.getBattingTeam().getId().equals(winnerId);
+                for (BattingScorecard bc : inn.getBattingCards()) {
+                    if (isWinnerBatting) winningTeamPlayerIds.add(bc.getPlayer().getId());
+                    else losingTeamPlayerIds.add(bc.getPlayer().getId());
+                }
+                boolean isWinnerBowling = inn.getBowlingTeam().getId().equals(winnerId);
+                for (BowlingScorecard bw : inn.getBowlingCards()) {
+                    if (isWinnerBowling) winningTeamPlayerIds.add(bw.getPlayer().getId());
+                    else losingTeamPlayerIds.add(bw.getPlayer().getId());
+                }
+            }
+        }
+
+        UUID motmId = result.getManOfMatch() != null ? result.getManOfMatch().getId() : null;
+
+        // Format-specific constants
+        int baseFitnessLoss;
+        double batDivisor, bowlDivisor;
+        boolean isFC = "FC".equalsIgnoreCase(format);
+        boolean isT20 = "T20".equalsIgnoreCase(format);
+        if (isT20) {
+            baseFitnessLoss = 3; batDivisor = 40.0; bowlDivisor = 1.5;
+        } else if (isFC) {
+            baseFitnessLoss = 8; batDivisor = 80.0; bowlDivisor = 5.0;
+        } else { // ODI
+            baseFitnessLoss = 5; batDivisor = 60.0; bowlDivisor = 3.0;
+        }
+
+        // Load all players and update
+        List<Player> players = playerRepository.findAllById(allPlayerIds);
+        for (Player p : players) {
+            UUID pid = p.getId();
+
+            // ── Fitness loss ──
+            int[] batS = playerBatStats.getOrDefault(pid, new int[3]);
+            double[] bowlS = playerBowlStats.getOrDefault(pid, new double[3]);
+            double batLoad = batS[1] / batDivisor;    // balls faced
+            double bowlLoad = bowlS[0] / bowlDivisor;  // overs bowled
+            double rawLoss = baseFitnessLoss + batLoad + bowlLoad;
+            double staminaMulti = 1.3 - (p.getStamina() / 100.0) * 0.6; // 0.7 to 1.3
+            int fitnessLoss = (int) Math.round(rawLoss * staminaMulti);
+            p.setFitness(Math.max(0, Math.min(100, p.getFitness() - fitnessLoss)));
+
+            // ── Confidence change (format-aware thresholds) ──
+            int confDelta = 0;
+
+            // Batting performance — thresholds scale by format
+            //   T20: duck −4, <15 −1, 25+ +2, 40+ +4, 75+ +7
+            //   ODI: duck −4, <20 −1, 35+ +2, 50+ +4, 100+ +7
+            //   FC:  duck −4, <25 −1, 50+ +2, 75+ +4, 150+ +7
+            if (batS[1] > 0) {
+                int runs = batS[0];
+                int ducks = batS[2];
+                if (ducks > 0) confDelta -= 4 * ducks;
+
+                int tierSmall, tierMid, tierBig, tierElite;
+                if (isT20)     { tierSmall = 15; tierMid = 25; tierBig = 40; tierElite = 75; }
+                else if (isFC) { tierSmall = 25; tierMid = 50; tierBig = 75; tierElite = 150; }
+                else           { tierSmall = 20; tierMid = 35; tierBig = 50; tierElite = 100; } // ODI
+
+                if (runs >= tierElite)     confDelta += 7;
+                else if (runs >= tierBig)  confDelta += 4;
+                else if (runs >= tierMid)  confDelta += 2;
+                else if (runs < tierSmall && ducks == 0) confDelta -= 1;
+            }
+
+            // Bowling performance — economy threshold scales by format
+            //   T20: expensive > 10, ODI: > 7, FC: > 4
+            if (bowlS[0] > 0) {
+                int wkts = (int) bowlS[2];
+                double econ = bowlS[1] / Math.max(1.0, bowlS[0]);
+                double expensiveThreshold = isT20 ? 10.0 : isFC ? 4.0 : 7.0;
+
+                if (wkts >= 5)      confDelta += 7;
+                else if (wkts >= 3) confDelta += 4;
+                else if (wkts >= 2) confDelta += 2;
+                else if (wkts == 1) confDelta += 1;
+                else if (econ > expensiveThreshold) confDelta -= 3;
+            }
+
+            // Man of Match bonus
+            if (pid.equals(motmId)) confDelta += 5;
+
+            // Win/loss swing
+            if (winningTeamPlayerIds.contains(pid)) confDelta += 2;
+            else if (losingTeamPlayerIds.contains(pid)) confDelta -= 2;
+
+            p.setConfidence(Math.max(0, Math.min(100, p.getConfidence() + confDelta)));
+
+            // ── Experience gain (diminishing returns) ──
+            // Raw XP computed from base + format + performance + MoM,
+            // then scaled by 80/(80+currentXP) so gains shrink as XP grows.
+            // Soft cap ~100: average players plateau around 80-100 after 3-4 seasons;
+            // only consistent standout performers push past.
+            int rawXp = 1;
+            if (isFC) rawXp += 1;
+
+            // Batting performance XP
+            if (batS[1] > 0) {
+                int runs = batS[0];
+                if (isT20) {
+                    if (runs >= 75) rawXp += 2; else if (runs >= 40) rawXp += 1;
+                } else if (isFC) {
+                    if (runs >= 150) rawXp += 2; else if (runs >= 75) rawXp += 1;
+                } else { // ODI
+                    if (runs >= 100) rawXp += 2; else if (runs >= 50) rawXp += 1;
+                }
+            }
+
+            // Bowling performance XP
+            if (bowlS[0] > 0) {
+                int wkts = (int) bowlS[2];
+                if (wkts >= 5) rawXp += 2; else if (wkts >= 3) rawXp += 1;
+            }
+
+            // Man of Match
+            if (pid.equals(motmId)) rawXp += 1;
+
+            // Diminishing returns: effective = floor(rawXp × 50 / (50 + currentXP))
+            int currentXp = p.getExperience();
+            int effectiveXp = (int) (rawXp * 50.0 / (50.0 + currentXp));
+            p.setExperience(currentXp + effectiveXp);
+        }
+
+        playerRepository.saveAll(players);
+    }
+
     private void determineResult(MatchResult result, Innings first, Innings second,
                                  Team battingFirst, Team battingSecond) {
         int firstTotal = first.getTotalRuns();
@@ -2293,5 +2620,98 @@ public class MatchEngine {
             this.battingMod = battingMod;
             this.bowlingMod = bowlingMod;
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  PUBLIC: Team Strength Breakdown (for summary display)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Compute effective team strength breakdown for summary display.
+     * Uses the same pitch/weather/experience/confidence formulas as delivery simulation,
+     * but excludes per-delivery factors (fatigue, phase, chase pressure).
+     */
+    public Map<String, Object> computeTeamStrengthBreakdown(
+            List<BattingScorecard> battingCards,
+            List<BowlingScorecard> bowlingCards,
+            String pitchType, String condition, int temperature) {
+
+        // Sort batting by position
+        List<BattingScorecard> sorted = new ArrayList<>(battingCards);
+        sorted.sort(Comparator.comparingInt(BattingScorecard::getBattingPosition));
+
+        double topOrder = 0, middleOrder = 0, lowerOrder = 0;
+        double totalFielding = 0;
+        double wkSkill = 0;
+
+        for (BattingScorecard bc : sorted) {
+            Player p = bc.getPlayer();
+            int pos = bc.getBattingPosition();
+
+            // Effective batting = same formula as ME minus fatigue/phase/chase
+            double batEff = p.getBatRating()
+                    + (p.getConfidence() / 100.0) * 6.0
+                    + Math.min(p.getExperience() * 0.3, 10.0)
+                    + (p.getFitness() / 100.0) * 3.0
+                    + getBatterPitchModifier(pitchType, p.getBatHand(), p.getBatRating(), p.getExperience())
+                    + getWeatherEffect(condition, temperature, p.getBowlType()).battingMod
+                    + getBatterWeatherModifier(condition, temperature, p.getExperience(), p.getBatRating());
+            batEff = Math.max(5, Math.min(batEff, 120));
+
+            if (pos <= 3) topOrder += batEff;
+            else if (pos <= 7) middleOrder += batEff;
+            else lowerOrder += batEff;
+
+            totalFielding += p.getFldRating();
+            if ("WK".equals(p.getRole()) || "WK_BAT".equals(p.getRole())
+                    || "KEEPER".equals(p.getRole())) {
+                wkSkill = Math.max(wkSkill, p.getKeeperRating());
+            }
+        }
+
+        // Bowling: only bowlers who actually bowled, grouped by seam/spin
+        double seamBowling = 0, spinBowling = 0;
+        int seamCount = 0, spinCount = 0;
+        Set<String> seamTypes = Set.of("F", "FM", "MF", "M");
+        Set<String> spinTypes = Set.of("FS", "WS");
+
+        for (BowlingScorecard bc : bowlingCards) {
+            Player p = bc.getPlayer();
+            String bType = p.getBowlType() != null ? p.getBowlType() : "M";
+            PitchEffect pe = getPitchEffect(pitchType, bType);
+            WeatherEffect we = getWeatherEffect(condition, temperature, bType);
+            double typeMatch = getBowlerTypeMatchup(bType, "RH", pitchType); // avg vs RH
+
+            double bowlEff = p.getBowlRating()
+                    + (p.getConfidence() / 100.0) * 5.0
+                    + Math.min(p.getExperience() * 0.3, 10.0)
+                    + (p.getFitness() / 100.0) * 3.0
+                    + pe.bowlerBonus
+                    + we.bowlingMod
+                    + typeMatch;
+            bowlEff = Math.max(5, Math.min(bowlEff, 120));
+
+            if (seamTypes.contains(bType)) { seamBowling += bowlEff; seamCount++; }
+            else if (spinTypes.contains(bType)) { spinBowling += bowlEff; spinCount++; }
+            else { seamBowling += bowlEff; seamCount++; }
+        }
+
+        double fldComponent = totalFielding + wkSkill;
+        double total = topOrder + middleOrder + lowerOrder + seamBowling + spinBowling
+                + Math.round(fldComponent / 4.0);
+
+        Map<String, Object> breakdown = new LinkedHashMap<>();
+        breakdown.put("topOrder", Math.round(topOrder));
+        breakdown.put("middleOrder", Math.round(middleOrder));
+        breakdown.put("lowerOrder", Math.round(lowerOrder));
+        breakdown.put("seamBowling", Math.round(seamBowling));
+        breakdown.put("seamCount", seamCount);
+        breakdown.put("spinBowling", Math.round(spinBowling));
+        breakdown.put("spinCount", spinCount);
+        breakdown.put("fielding", Math.round(totalFielding));
+        breakdown.put("wkSkill", Math.round(wkSkill));
+        breakdown.put("fldComponent", Math.round(fldComponent));
+        breakdown.put("total", Math.round(total));
+        return breakdown;
     }
 }

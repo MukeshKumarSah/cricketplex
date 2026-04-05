@@ -24,6 +24,7 @@ export const uploadTeamPic = (file) => {
 };
 export const updateTeam = (data) => API.put('/settings/team', data);
 export const changePassword = (data) => API.put('/settings/password', data);
+export const getDashboardStats = () => API.get('/settings/dashboard-stats');
 
 // Ground Management
 export const getStadiumSeats = () => API.get('/ground/seats');
@@ -125,11 +126,10 @@ export const removeTraining = (playerId) => API.delete(`/academy/training/${play
 export const getTrainingHistory = () => API.get('/academy/training-history');
 
 // Transfer Market
-export const listPlayerOnTM = (playerId) => API.post('/transfer/list', { playerId });
+export const listPlayerOnTM = (playerId, startingPrice) => API.post('/transfer/list', { playerId, ...(startingPrice && { startingPrice }) });
 export const getActiveListings = () => API.get('/transfer/listings');
 export const getMyListings = () => API.get('/transfer/my-listings');
 export const placeBid = (listingId, bidAmount) => API.post('/transfer/bid', { listingId, bidAmount });
-export const acceptBid = (listingId) => API.post(`/transfer/accept/${listingId}`);
 export const cancelListing = (listingId) => API.post(`/transfer/cancel/${listingId}`);
 export const firePlayer = (playerId) => API.post(`/transfer/fire/${playerId}`);
 export const retirePlayer = (playerId) => API.post(`/transfer/retire/${playerId}`);

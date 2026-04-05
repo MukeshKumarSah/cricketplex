@@ -14,4 +14,6 @@ public interface TransferBidRepository extends JpaRepository<TransferBid, UUID> 
     Optional<TransferBid> findFirstByListingIdOrderByBidAmountDesc(UUID listingId);
 
     List<TransferBid> findByBidderTeamIdOrderByBidAtDesc(UUID bidderTeamId);
+
+    boolean existsByListingIdAndBidderTeamId(UUID listingId, UUID bidderTeamId);
 }

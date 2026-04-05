@@ -19,4 +19,12 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
            "(mr.fixture.homeTeam.id = :t2 AND mr.fixture.awayTeam.id = :t1)) " +
            "ORDER BY mr.fixture.matchDate DESC")
     List<MatchResult> findBetweenTeams(@Param("t1") UUID team1Id, @Param("t2") UUID team2Id);
+
+    @Query("SELECT mr FROM MatchResult mr WHERE " +
+           "mr.fixture.status = 'COMPLETED' AND " +
+           "mr.resultType <> 'PENDING' AND " +
+           "mr.fixture.league IS NOT NULL AND " +
+           "(mr.fixture.homeTeam.id = :tid OR mr.fixture.awayTeam.id = :tid) " +
+           "ORDER BY mr.fixture.matchDate DESC")
+    List<MatchResult> findRecentByTeam(@Param("tid") UUID teamId);
 }

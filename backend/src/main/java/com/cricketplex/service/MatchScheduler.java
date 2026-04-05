@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,13 +30,14 @@ public class MatchScheduler {
     private final MatchEngine matchEngine;
 
     @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
+    @Transactional
     public void autoSimulateMatches() {
         LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
         LocalDate today = nowUtc.toLocalDate();
 
-        // Get all fixtures that are on or before today and still SCHEDULED
+        // Get all fixtures that are on or before today and still SCHEDULED (with league eagerly loaded)
         List<Fixture> candidates = fixtureRepository
-                .findByStatusAndMatchDateLessThanEqual("SCHEDULED", today);
+                .findScheduledWithLeague("SCHEDULED", today);
 
         for (Fixture f : candidates) {
             try {

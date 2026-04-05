@@ -106,6 +106,7 @@ com\cricketplex\entity\Player$PlayerBuilder.class
 com\cricketplex\exception\GlobalExceptionHandler.class
 com\cricketplex\service\SearchService.class
 com\cricketplex\entity\DefaultLineup.class
+com\cricketplex\service\TransferAuctionService.class
 com\cricketplex\repository\ActivityLogRepository.class
 com\cricketplex\repository\BowlingScorecardRepository.class
 com\cricketplex\service\MatchEngine$BatsmanState.class
@@ -147,4 +148,5 @@ com\cricketplex\entity\Team.class
 com\cricketplex\entity\TransferListing$TransferListingBuilder.class
 com\cricketplex\controller\AdminPlayerController.class
 com\cricketplex\service\LeagueService.class
+com\cricketplex\config\WebSocketConfig.class
 com\cricketplex\entity\Innings.class

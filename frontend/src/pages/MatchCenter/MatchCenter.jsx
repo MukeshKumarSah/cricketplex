@@ -302,7 +302,7 @@ export default function MatchCenter() {
         cumulative.push(total);
         runRatePerOver.push(total / (o + 1));
       }
-      inningsData.push({ battingTeam: innData.battingTeam, runsPerOver, wicketsPerOver, runRatePerOver, cumulative });
+      inningsData.push({ battingTeam: innData.battingTeam, inningsIdx: i, runsPerOver, wicketsPerOver, runRatePerOver, cumulative });
     }
     return inningsData;
   }, [commentary, currentInnings, currentBallIdx, matchEnded, isLive]);
@@ -408,6 +408,46 @@ export default function MatchCenter() {
     }
     return inningsSummaries;
   }, [commentary, currentInnings, currentBallIdx, matchEnded, isLive]);
+
+  // ─── Performance points (MoM scoring formula) ───
+  const { homePoints, awayPoints } = useMemo(() => {
+    if (!result?.innings) return { homePoints: [], awayPoints: [] };
+    const players = {};
+    for (const inn of result.innings) {
+      for (const bc of inn.battingCard || []) {
+        if (!players[bc.playerId]) {
+          players[bc.playerId] = { id: bc.playerId, name: bc.playerName, teamName: inn.battingTeam, batPts: 0, bowlPts: 0 };
+        }
+        let pts = bc.runs * 1.0 + bc.fours * 1.5 + bc.sixes * 2.0;
+        if (bc.runs >= 50) pts += 15;
+        if (bc.runs >= 100) pts += 30;
+        players[bc.playerId].batPts += pts;
+      }
+      for (const bc of inn.bowlingCard || []) {
+        if (!players[bc.playerId]) {
+          players[bc.playerId] = { id: bc.playerId, name: bc.playerName, teamName: inn.bowlingTeam, batPts: 0, bowlPts: 0 };
+        }
+        let pts = bc.wickets * 20.0 + bc.maidens * 5.0 + bc.dotBalls * 0.5;
+        if (bc.wickets >= 3) pts += 15;
+        if (bc.wickets >= 5) pts += 30;
+        const oversNum = parseFloat(bc.overs);
+        if (oversNum > 0 && bc.economy < 5.0) pts += 10;
+        players[bc.playerId].bowlPts += pts;
+      }
+    }
+    const all = Object.values(players)
+      .map((p) => ({ ...p, totalPts: +(p.batPts + p.bowlPts).toFixed(1), batPts: +p.batPts.toFixed(1), bowlPts: +p.bowlPts.toFixed(1) }))
+      .sort((a, b) => b.totalPts - a.totalPts);
+    return {
+      homePoints: all.filter((p) => p.teamName === result.homeTeamName),
+      awayPoints: all.filter((p) => p.teamName === result.awayTeamName),
+    };
+  }, [result]);
+
+  // ─── Team Strength Breakdown (pre-computed by backend using ME formulas) ───
+  const teamStrengths = result?.teamStrengths?.home && result?.teamStrengths?.away
+    ? { home: result.teamStrengths.home, away: result.teamStrengths.away }
+    : null;
 
   if (loading) return <div className="mc-loading">Loading match...</div>;
   if (!commentary || !result) return <div className="mc-loading">Match data not available.</div>;
@@ -660,9 +700,25 @@ export default function MatchCenter() {
                       </div>
                     ))}
                     <div className="mc-sc-footer">
-                      <span>Extras: {scInn.extras}</span>
+                      <span>Extras: {scInn.extras} <span className="mc-sc-extras-detail">(w {scInn.extWides}, nb {scInn.extNoBalls}, b {scInn.extByes}, lb {scInn.extLegByes})</span></span>
                       <span>Total: {scInn.scoreDisplay}</span>
                     </div>
+                    {(() => {
+                      const sInn = summaryData.find(s => s.inningsNumber === scActiveInnings);
+                      if (!sInn || sInn.fallOfWickets.length === 0) return null;
+                      return (
+                        <div className="mc-fow">
+                          <h4>Fall of Wickets</h4>
+                          <div className="mc-fow-list">
+                            {sInn.fallOfWickets.map((fw) => (
+                              <span key={fw.wicket} className="mc-fow-item">
+                                {fw.score}/{fw.wicket} <span className="mc-fow-name">({fw.batsman}, {fw.over})</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="mc-sc-section">
@@ -771,7 +827,7 @@ export default function MatchCenter() {
             <h3 className="mc-section-title">Run Rate Chart <span className="mc-section-sub">Cumulative RR per Over</span></h3>
             <RunRateChart data={graphData} format={result.format} />
             <h3 className="mc-section-title">Worm Chart <span className="mc-section-sub">Cumulative Runs</span></h3>
-            <WormChart data={graphData} />
+            <WormChart data={graphData} format={result.format} />
           </div>
         )}
 
@@ -901,15 +957,31 @@ export default function MatchCenter() {
                     </div>
                     {pInn.partnerships.map((p, i) => {
                       const maxRuns = Math.max(...pInn.partnerships.map((pp) => pp.runs), 1);
+                      const barWidth = (p.runs / maxRuns) * 100;
+                      const batTotal = p.bat1Runs + p.bat2Runs;
+                      const total = batTotal + p.extras;
+                      const b1Pct = total > 0 ? (p.bat1Runs / total) * 100 : 0;
+                      const b2Pct = total > 0 ? (p.bat2Runs / total) * 100 : 0;
+                      const exPct = total > 0 ? (p.extras / total) * 100 : 0;
                       return (
                         <div key={i} className="mc-part-row">
                           <span className="mc-part-num">{i + 1}</span>
-                          <span className="mc-part-name">{p.bat1}</span>
-                          <span className="mc-part-name">{p.bat2}</span>
-                          <span className="mc-part-stat mc-part-runs">{p.runs}</span>
+                          <span className="mc-part-name">
+                            {p.bat1}
+                            <span className="mc-part-contrib">{p.bat1Runs} ({p.bat1Balls})</span>
+                          </span>
+                          <span className="mc-part-name">
+                            {p.bat2}
+                            <span className="mc-part-contrib">{p.bat2Runs} ({p.bat2Balls})</span>
+                          </span>
+                          <span className="mc-part-stat mc-part-runs">{p.runs}{p.extras > 0 ? <span className="mc-part-extras-hint"> +{p.extras}e</span> : ''}</span>
                           <span className="mc-part-stat">{p.balls}</span>
                           <div className="mc-part-bar-wrap">
-                            <div className="mc-part-bar" style={{ width: `${(p.runs / maxRuns) * 100}%` }} />
+                            <div className="mc-part-bar-split" style={{ width: `${barWidth}%` }}>
+                              <div className="mc-part-bar-b1" style={{ width: `${b1Pct}%` }} />
+                              <div className="mc-part-bar-b2" style={{ width: `${b2Pct}%` }} />
+                              {exPct > 0 && <div className="mc-part-bar-ex" style={{ width: `${exPct}%` }} />}
+                            </div>
                           </div>
                         </div>
                       );
@@ -933,24 +1005,12 @@ export default function MatchCenter() {
             {matchEnded && result.manOfMatch && (
               <div className="mc-summary-motm">
                 <span className="mc-motm-label">Player of the Match</span>
-                <span className="mc-motm-name">{result.manOfMatch}</span>
+                <span className="mc-motm-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/player/${result.manOfMatchId}`)}>{result.manOfMatch}</span>
               </div>
             )}
             {summaryData.map((sInn) => (
               <div key={sInn.inningsNumber} className="mc-summary-innings">
                 <h3 className="mc-section-title">{sInn.battingTeam}</h3>
-                {sInn.fallOfWickets.length > 0 && (
-                  <div className="mc-fow">
-                    <h4>Fall of Wickets</h4>
-                    <div className="mc-fow-list">
-                      {sInn.fallOfWickets.map((fw) => (
-                        <span key={fw.wicket} className="mc-fow-item">
-                          {fw.score}/{fw.wicket} <span className="mc-fow-name">({fw.batsman}, {fw.over})</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 {sInn.milestones.length > 0 && (
                   <div className="mc-milestones">
                     <h4>Milestones</h4>
@@ -969,6 +1029,92 @@ export default function MatchCenter() {
                 )}
               </div>
             ))}
+
+            {/* Performance Points */}
+            {matchEnded && (homePoints.length > 0 || awayPoints.length > 0) && (
+              <div className="mc-perf-section">
+                <h3 className="mc-section-title">⭐ Performance Points</h3>
+                <div className="mc-perf-teams">
+                  {[{ label: result.homeTeamName, players: homePoints }, { label: result.awayTeamName, players: awayPoints }].map((team) => (
+                    <div className="mc-perf-team" key={team.label}>
+                      <div className="mc-perf-team-header">{team.label}</div>
+                      <div className="mc-perf-table">
+                        <div className="mc-perf-head">
+                          <span className="mc-perf-col-rank">#</span>
+                          <span className="mc-perf-col-name">Player</span>
+                          <span className="mc-perf-col-num">Bat</span>
+                          <span className="mc-perf-col-num">Bowl</span>
+                          <span className="mc-perf-col-total">Total</span>
+                        </div>
+                        {team.players.map((p, i) => (
+                          <div
+                            key={p.id}
+                            className={`mc-perf-row ${p.id === result.manOfMatchId ? 'mc-perf-motm' : ''}`}
+                            onClick={() => navigate(`/player/${p.id}`)}
+                          >
+                            <span className="mc-perf-col-rank">{i + 1}</span>
+                            <span className="mc-perf-col-name">
+                              {p.name}
+                              {p.id === result.manOfMatchId && <span className="mc-perf-motm-badge">MoM</span>}
+                            </span>
+                            <span className="mc-perf-col-num">{p.batPts}</span>
+                            <span className="mc-perf-col-num">{p.bowlPts}</span>
+                            <span className="mc-perf-col-total">{p.totalPts}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Team Strength Breakdown */}
+            {matchEnded && teamStrengths && (
+              <div className="mc-strength-section">
+                <h3 className="mc-section-title">💪 Team Strength Breakdown</h3>
+                <div className="mc-strength-teams">
+                  {[
+                    { label: result.homeTeamName, data: teamStrengths.home },
+                    { label: result.awayTeamName, data: teamStrengths.away },
+                  ].map((team) => {
+                    const d = team.data;
+                    const rows = [
+                      { label: 'Top Order (1-3)', value: d.topOrder, cls: 'bat' },
+                      { label: 'Middle Order (4-7)', value: d.middleOrder, cls: 'bat' },
+                      { label: 'Lower Order (8-11)', value: d.lowerOrder, cls: 'bat' },
+                      { label: `Seam Bowling (${d.seamCount})`, value: d.seamBowling, cls: 'bowl' },
+                      { label: `Spin Bowling (${d.spinCount})`, value: d.spinBowling, cls: 'bowl' },
+                      { label: 'Fielding', value: d.fldComponent, cls: 'fld' },
+                    ];
+                    const maxVal = Math.max(...rows.map((r) => r.value), 1);
+                    return (
+                      <div className="mc-strength-team" key={team.label}>
+                        <div className="mc-strength-team-header">{team.label}</div>
+                        <div className="mc-strength-rows">
+                          {rows.map((r) => (
+                            <div className="mc-strength-row" key={r.label}>
+                              <span className="mc-strength-label">{r.label}</span>
+                              <div className="mc-strength-bar-wrap">
+                                <div
+                                  className={`mc-strength-bar mc-strength-${r.cls}`}
+                                  style={{ width: `${(r.value / maxVal) * 100}%` }}
+                                />
+                              </div>
+                              <span className="mc-strength-val">{r.value}</span>
+                            </div>
+                          ))}
+                          <div className="mc-strength-total-row">
+                            <span className="mc-strength-label">Total</span>
+                            <span className="mc-strength-total-val">{d.total}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1052,93 +1198,117 @@ export default function MatchCenter() {
 
 function ManhattanChart({ data, format }) {
   if (!data || data.length === 0) return <div className="mc-empty">No data yet.</div>;
-  const maxOvers = format === 'T20' ? 20 : format === 'FC' ? Math.max(...data.map(d => d.runsPerOver.length), 1) : 50;
-  const allRuns = data.flatMap((d) => d.runsPerOver);
-  const maxRun = Math.max(...allRuns, 6);
-  const W = 600, H = 220, PAD = 30;
-  const barW = (W - PAD * 2) / maxOvers;
-  const scaleY = (v) => H - PAD - (v / maxRun) * (H - PAD * 2);
-  const COLORS = ['#22d3ee', '#a78bfa'];
+  const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c'];
+  const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+  const sharedMaxRun = Math.max(...data.flatMap(d => d.runsPerOver), 6);
+  const sharedMaxOvers = format === 'T20' ? 20 : format === 'ODI' ? 50
+    : Math.max(...data.map(d => d.runsPerOver.length), 1);
 
   return (
-    <div className="mc-chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart">
-        {[0, Math.ceil(maxRun / 4), Math.ceil(maxRun / 2), Math.ceil(maxRun * 3 / 4), maxRun].map((v) => (
-          <g key={v}>
-            <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
-            <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
-          </g>
-        ))}
-        {data.map((d, idx) =>
-          d.runsPerOver.map((r, o) => {
-            const x = PAD + o * barW + (idx * barW * 0.4);
-            const bw = barW * 0.35;
-            const wkts = d.wicketsPerOver?.[o] || 0;
-            return (
-              <g key={`${idx}-${o}`}>
-                <rect x={x} y={scaleY(r)} width={bw}
-                  height={H - PAD - scaleY(r)} fill={COLORS[idx]} opacity={0.8} rx={2} />
-                {wkts > 0 && (
-                  <g>
-                    <circle cx={x + bw / 2} cy={scaleY(r) - 8} r={5} fill="#ef4444" opacity={0.9} />
-                    <text x={x + bw / 2} y={scaleY(r) - 4.5} fill="#fff" fontSize="7" fontWeight="700" textAnchor="middle">{wkts}</text>
+    <div className="mc-manhattan-group">
+      {data.map((d, idx) => {
+        const overs = d.runsPerOver.length;
+        const maxOvers = sharedMaxOvers;
+        const maxRun = sharedMaxRun;
+        const H = 180, PAD = 30;
+        const W = format === 'FC' ? Math.max(600, maxOvers * 12 + PAD * 2) : 600;
+        const barW = (W - PAD * 2) / maxOvers;
+        const scaleY = (v) => H - PAD - (v / maxRun) * (H - PAD * 2);
+        const labelStep = format === 'T20' ? 2 : maxOvers > 80 ? 10 : 5;
+        const isScrollable = W > 600;
+        const color = COLORS[idx % COLORS.length];
+        const totalRuns = d.cumulative?.[overs - 1] ?? d.runsPerOver.reduce((a, b) => a + b, 0);
+        const totalWkts = d.wicketsPerOver?.reduce((a, b) => a + b, 0) ?? 0;
+        const label = data.length > 2
+          ? `${d.battingTeam} — ${ORDINAL[d.inningsIdx] || ''} Innings`
+          : `${d.battingTeam}`;
+
+        return (
+          <div key={idx} className="mc-chart-wrap">
+            <div className="mc-manhattan-header">
+              <span className="mc-manhattan-team" style={{ color }}>{label}</span>
+              <span className="mc-manhattan-summary">{totalRuns}/{totalWkts} ({overs} ov)</span>
+            </div>
+            <div className={isScrollable ? 'mc-chart-scroll' : undefined}>
+              <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
+                {[0, Math.ceil(maxRun / 4), Math.ceil(maxRun / 2), Math.ceil(maxRun * 3 / 4), maxRun].map((v) => (
+                  <g key={v}>
+                    <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
+                    <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
                   </g>
-                )}
-              </g>
-            );
-          })
-        )}
-        {Array.from({ length: maxOvers }, (_, i) => (
-          (i % (format === 'T20' ? 2 : format === 'FC' ? 10 : 5) === 0) && (
-            <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
-          )
-        ))}
-      </svg>
-      <div className="mc-chart-legend">
-        {data.map((d, i) => (
-          <span key={i} className="mc-legend-item">
-            <span className="mc-legend-dot" style={{ background: COLORS[i] }} />
-            {d.battingTeam}
-          </span>
-        ))}
-        <span className="mc-legend-item">
-          <span className="mc-legend-dot" style={{ background: '#ef4444' }} />
-          Wicket
-        </span>
-      </div>
+                ))}
+                {d.runsPerOver.map((r, o) => {
+                  const bw = barW * 0.7;
+                  const x = PAD + o * barW + barW * 0.15;
+                  const wkts = d.wicketsPerOver?.[o] || 0;
+                  return (
+                    <g key={o}>
+                      <rect x={x} y={scaleY(r)} width={bw}
+                        height={H - PAD - scaleY(r)} fill={color} opacity={0.85} rx={1} />
+                      {wkts > 0 && (
+                        <g>
+                          <circle cx={x + bw / 2} cy={scaleY(r) - 8} r={5} fill="#ef4444" opacity={0.9} />
+                          <text x={x + bw / 2} y={scaleY(r) - 4.5} fill="#fff" fontSize="7" fontWeight="700" textAnchor="middle">{wkts}</text>
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
+                {Array.from({ length: maxOvers }, (_, i) => (
+                  (i % labelStep === 0) && (
+                    <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+                  )
+                ))}
+              </svg>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function WormChart({ data }) {
+function WormChart({ data, format }) {
   if (!data || data.length === 0) return <div className="mc-empty">No data yet.</div>;
   const maxOvers = Math.max(...data.map((d) => d.cumulative.length), 1);
   const maxRuns = Math.max(...data.flatMap((d) => d.cumulative), 10);
-  const W = 600, H = 200, PAD = 30;
+  const H = 200, PAD = 30;
+  const W = format === 'FC' ? Math.max(600, maxOvers * 8 + PAD * 2) : 600;
   const scaleX = (o) => PAD + (o / (maxOvers - 1 || 1)) * (W - PAD * 2);
   const scaleY = (v) => H - PAD - (v / maxRuns) * (H - PAD * 2);
-  const COLORS = ['#22d3ee', '#a78bfa'];
+  const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c'];
+  const DASHES = ['none', '6,3', '2,2', '8,3,2,3'];
+  const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+  const labelStep = format === 'T20' ? 2 : format === 'FC' ? (maxOvers > 80 ? 10 : 5) : 5;
+  const isScrollable = format === 'FC' && W > 600;
 
   return (
     <div className="mc-chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart">
-        {[0, Math.ceil(maxRuns / 4), Math.ceil(maxRuns / 2), Math.ceil(maxRuns * 3 / 4), maxRuns].map((v) => (
-          <g key={v}>
-            <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
-            <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
-          </g>
-        ))}
-        {data.map((d, idx) => {
-          if (d.cumulative.length === 0) return null;
-          const points = d.cumulative.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
-          return <polyline key={idx} points={points} fill="none" stroke={COLORS[idx]} strokeWidth="2.5" strokeLinejoin="round" />;
-        })}
-      </svg>
+      <div className={isScrollable ? 'mc-chart-scroll' : undefined}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
+          {[0, Math.ceil(maxRuns / 4), Math.ceil(maxRuns / 2), Math.ceil(maxRuns * 3 / 4), maxRuns].map((v) => (
+            <g key={v}>
+              <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
+              <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
+            </g>
+          ))}
+          {data.map((d, idx) => {
+            if (d.cumulative.length === 0) return null;
+            const points = d.cumulative.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
+            return <polyline key={idx} points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="2.5" strokeLinejoin="round" strokeDasharray={data.length > 2 ? DASHES[idx % DASHES.length] : 'none'} />;
+          })}
+          {Array.from({ length: maxOvers }, (_, i) => (
+            (i % labelStep === 0) && (
+              <text key={i} x={scaleX(i)} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+            )
+          ))}
+        </svg>
+      </div>
       <div className="mc-chart-legend">
         {data.map((d, i) => (
           <span key={i} className="mc-legend-item">
-            <span className="mc-legend-dot" style={{ background: COLORS[i] }} />
-            {d.battingTeam}
+            <span className="mc-legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
+            {d.battingTeam}{format === 'FC' && data.length > 2 ? ` (${ORDINAL[d.inningsIdx] || ''})` : ''}
           </span>
         ))}
       </div>
@@ -1150,38 +1320,51 @@ function RunRateChart({ data, format }) {
   if (!data || data.length === 0) return <div className="mc-empty">No data yet.</div>;
   const maxOvers = Math.max(...data.map((d) => d.runRatePerOver.length), 1);
   const maxRR = Math.max(...data.flatMap((d) => d.runRatePerOver), 6);
-  const W = 600, H = 200, PAD = 30;
+  const H = 200, PAD = 30;
+  const W = format === 'FC' ? Math.max(600, maxOvers * 8 + PAD * 2) : 600;
   const scaleX = (o) => PAD + (o / (maxOvers - 1 || 1)) * (W - PAD * 2);
   const scaleY = (v) => H - PAD - (v / maxRR) * (H - PAD * 2);
-  const COLORS = ['#22d3ee', '#a78bfa'];
+  const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c'];
+  const DASHES = ['none', '6,3', '2,2', '8,3,2,3'];
+  const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+  const labelStep = format === 'T20' ? 2 : format === 'FC' ? (maxOvers > 80 ? 10 : 5) : 5;
+  const isScrollable = format === 'FC' && W > 600;
+  const showDots = maxOvers <= 60;
 
   return (
     <div className="mc-chart-wrap">
-      <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart">
-        {[0, (maxRR / 4).toFixed(1), (maxRR / 2).toFixed(1), (maxRR * 3 / 4).toFixed(1), maxRR.toFixed(1)].map((v, i) => (
-          <g key={i}>
-            <line x1={PAD} y1={scaleY(Number(v))} x2={W - PAD} y2={scaleY(Number(v))} stroke="#1e293b" strokeWidth="0.5" />
-            <text x={PAD - 4} y={scaleY(Number(v)) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
-          </g>
-        ))}
-        {data.map((d, idx) => {
-          if (d.runRatePerOver.length === 0) return null;
-          const points = d.runRatePerOver.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
-          return (
-            <g key={idx}>
-              <polyline points={points} fill="none" stroke={COLORS[idx]} strokeWidth="2" strokeLinejoin="round" strokeDasharray={idx === 1 ? '6,3' : 'none'} />
-              {d.runRatePerOver.map((v, o) => (
-                <circle key={o} cx={scaleX(o)} cy={scaleY(v)} r={2.5} fill={COLORS[idx]} />
-              ))}
+      <div className={isScrollable ? 'mc-chart-scroll' : undefined}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
+          {[0, (maxRR / 4).toFixed(1), (maxRR / 2).toFixed(1), (maxRR * 3 / 4).toFixed(1), maxRR.toFixed(1)].map((v, i) => (
+            <g key={i}>
+              <line x1={PAD} y1={scaleY(Number(v))} x2={W - PAD} y2={scaleY(Number(v))} stroke="#1e293b" strokeWidth="0.5" />
+              <text x={PAD - 4} y={scaleY(Number(v)) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
             </g>
-          );
-        })}
-      </svg>
+          ))}
+          {data.map((d, idx) => {
+            if (d.runRatePerOver.length === 0) return null;
+            const points = d.runRatePerOver.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
+            return (
+              <g key={idx}>
+                <polyline points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="2" strokeLinejoin="round" strokeDasharray={DASHES[idx % DASHES.length]} />
+                {showDots && d.runRatePerOver.map((v, o) => (
+                  <circle key={o} cx={scaleX(o)} cy={scaleY(v)} r={2.5} fill={COLORS[idx % COLORS.length]} />
+                ))}
+              </g>
+            );
+          })}
+          {Array.from({ length: maxOvers }, (_, i) => (
+            (i % labelStep === 0) && (
+              <text key={i} x={scaleX(i)} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+            )
+          ))}
+        </svg>
+      </div>
       <div className="mc-chart-legend">
         {data.map((d, i) => (
           <span key={i} className="mc-legend-item">
-            <span className="mc-legend-dot" style={{ background: COLORS[i] }} />
-            {d.battingTeam}
+            <span className="mc-legend-dot" style={{ background: COLORS[i % COLORS.length] }} />
+            {d.battingTeam}{format === 'FC' && data.length > 2 ? ` (${ORDINAL[d.inningsIdx] || ''})` : ''}
           </span>
         ))}
       </div>
@@ -1214,7 +1397,7 @@ function buildInningsStats(innData, balls) {
   const batMap = {};
   const batOrder = [];
   const dismissed = new Set();
-  let extras = 0;
+  let extras = 0, extWides = 0, extNoBalls = 0, extByes = 0, extLegByes = 0;
   balls.forEach((b) => {
     if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
     const bm = batMap[b.batsman];
@@ -1225,7 +1408,10 @@ function buildInningsStats(innData, balls) {
     if (b.isSix) bm.sixes += 1;
     if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isWicket) bm.dots += 1;
     if (b.isWicket) { dismissed.add(b.batsman); bm.notOut = false; bm.dismissal = b.dismissalType || 'out'; bm.bowler = b.bowler; bm.fielder = b.fielder || null; }
-    if (b.isWide || b.isNoBall) extras += 1;
+    if (b.isWide) { extras += 1; extWides += 1; }
+    if (b.isNoBall) { extras += 1; extNoBalls += 1; }
+    if (b.isBye) { extras += b.runs; extByes += b.runs; }
+    if (b.isLegBye) { extras += b.runs; extLegByes += b.runs; }
   });
   const battingCard = batOrder.map((name) => {
     const bm = batMap[name];
@@ -1272,30 +1458,60 @@ function buildInningsStats(innData, balls) {
   return {
     inningsNumber: innData.inningsNumber ?? 1,
     battingTeam: innData.battingTeam,
-    scoreDisplay, battingCard, bowlingCard, extras,
+    scoreDisplay, battingCard, bowlingCard, extras, extWides, extNoBalls, extByes, extLegByes,
   };
 }
 
 function computePartnerships(balls) {
   if (balls.length === 0) return [];
   const partnerships = [];
-  let pRuns = 0, pBalls = 0;
+  let pRuns = 0, pBalls = 0, pExtras = 0;
   let currentBatsmen = new Set();
+  let batRuns = {};
+  let batBalls = {};
+  const flush = () => {
+    const bats = [...currentBatsmen];
+    const b1 = bats[0] || '—', b2 = bats[1] || '—';
+    partnerships.push({
+      bat1: b1, bat2: b2, runs: pRuns, balls: pBalls, extras: pExtras,
+      bat1Runs: batRuns[b1] || 0, bat1Balls: batBalls[b1] || 0,
+      bat2Runs: batRuns[b2] || 0, bat2Balls: batBalls[b2] || 0,
+    });
+  };
   balls.forEach((b) => {
     currentBatsmen.add(b.batsman);
+    if (!(b.batsman in batRuns)) { batRuns[b.batsman] = 0; batBalls[b.batsman] = 0; }
     pRuns += b.runs;
-    if (!b.isWide && !b.isNoBall) pBalls += 1;
+    if (b.isWide) {
+      // Wide: all runs are extras, batter doesn't face
+      pExtras += b.runs;
+    } else if (b.isNoBall) {
+      // No-ball: 1 penalty = extra, rest goes to batter
+      pExtras += 1;
+      batRuns[b.batsman] += Math.max(0, b.runs - 1);
+      batBalls[b.batsman] += 1;
+      pBalls += 1;
+    } else if (b.isBye || b.isLegBye) {
+      // Bye/Leg-bye: all runs are extras, batter just faced the ball
+      pExtras += b.runs;
+      batBalls[b.batsman] += 1;
+      pBalls += 1;
+    } else {
+      // Normal delivery: batter gets all runs
+      batRuns[b.batsman] += b.runs;
+      batBalls[b.batsman] += 1;
+      pBalls += 1;
+    }
     if (b.isWicket) {
-      const bats = [...currentBatsmen];
-      partnerships.push({ bat1: bats[0] || '—', bat2: bats[1] || '—', runs: pRuns, balls: pBalls });
-      pRuns = 0;
-      pBalls = 0;
+      flush();
+      pRuns = 0; pBalls = 0; pExtras = 0;
+      batRuns = {}; batBalls = {};
       currentBatsmen.delete(b.batsman);
+      for (const name of currentBatsmen) { batRuns[name] = 0; batBalls[name] = 0; }
     }
   });
   if (pBalls > 0 || pRuns > 0) {
-    const bats = [...currentBatsmen];
-    partnerships.push({ bat1: bats[0] || '—', bat2: bats[1] || '—', runs: pRuns, balls: pBalls });
+    flush();
   }
   return partnerships;
 }

@@ -5,12 +5,15 @@ import com.cricketplex.dto.TeamSetupRequest;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.LeagueTeam;
 import com.cricketplex.entity.Fixture;
+import com.cricketplex.entity.Innings;
+import com.cricketplex.entity.MatchResult;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.MatchLineupRepository;
+import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
@@ -40,6 +43,7 @@ public class TeamController {
     private final LeagueTeamRepository leagueTeamRepository;
     private final TeamRepository teamRepository;
     private final FixtureRepository fixtureRepository;
+    private final MatchResultRepository matchResultRepository;
     private final MatchLineupRepository matchLineupRepository;
     private final WeatherService weatherService;
 
@@ -110,16 +114,76 @@ public class TeamController {
         for (LeagueTeam lt : myLeagueTeams) {
             League league = lt.getLeague();
 
-            // Get all teams in this league to find position
+            // Get all teams in this league
             List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueId(league.getId());
 
-            // Sort by points desc, then NRR desc (for now all 0, so alphabetical)
-            // When matches exist, this will sort by actual standings
-            int position = 1;
+            // Compute standings from completed fixtures
+            Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
+            Map<UUID, double[]> nrrData = new LinkedHashMap<>(); // [runsScored, oversPlayed, runsConceded, oversBowled]
             for (LeagueTeam entry : allInLeague) {
-                if (entry.getTeam().getId().equals(myTeam.getId())) break;
-                position++;
+                stats.put(entry.getTeam().getId(), new int[5]);
+                nrrData.put(entry.getTeam().getId(), new double[4]);
             }
+
+            List<Fixture> fixtures = fixtureRepository.findByLeagueId(league.getId());
+            for (Fixture f : fixtures) {
+                if (!"COMPLETED".equals(f.getStatus())) continue;
+                Optional<MatchResult> mrOpt = matchResultRepository.findByFixtureId(f.getId());
+                if (mrOpt.isEmpty()) continue;
+                MatchResult mr = mrOpt.get();
+
+                UUID homeId = f.getHomeTeam().getId();
+                UUID awayId = f.getAwayTeam().getId();
+                int[] hs = stats.get(homeId);
+                int[] as = stats.get(awayId);
+                if (hs == null || as == null) continue;
+
+                hs[0]++;
+                as[0]++;
+
+                // Accumulate NRR data from innings
+                for (Innings inn : mr.getInningsList()) {
+                    UUID batTeamId = inn.getBattingTeam().getId();
+                    UUID bowlTeamId = inn.getBowlingTeam().getId();
+                    double overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
+                    int runs = inn.getTotalRuns() != null ? inn.getTotalRuns() : 0;
+                    double[] batNrr = nrrData.get(batTeamId);
+                    double[] bowlNrr = nrrData.get(bowlTeamId);
+                    if (batNrr != null) { batNrr[0] += runs; batNrr[1] += overs; }
+                    if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += overs; }
+                }
+
+                if ("TIE".equals(mr.getResultType())) {
+                    hs[3]++; as[3]++;
+                    hs[4] += 1; as[4] += 1;
+                } else if (mr.getWinner() != null) {
+                    UUID winnerId = mr.getWinner().getId();
+                    if (winnerId.equals(homeId)) {
+                        hs[1]++; as[2]++; hs[4] += 2;
+                    } else if (winnerId.equals(awayId)) {
+                        as[1]++; hs[2]++; as[4] += 2;
+                    }
+                }
+            }
+
+            // Sort teams by points DESC, then NRR DESC, then wins DESC (matches LeagueController)
+            List<UUID> sorted = new ArrayList<>(stats.keySet());
+            sorted.sort((a, b) -> {
+                int cmp = Integer.compare(stats.get(b)[4], stats.get(a)[4]);
+                if (cmp != 0) return cmp;
+                double[] na = nrrData.get(a);
+                double[] nb = nrrData.get(b);
+                double nrrA = (na[1] > 0 && na[3] > 0) ? (na[0] / na[1]) - (na[2] / na[3]) : 0.0;
+                double nrrB = (nb[1] > 0 && nb[3] > 0) ? (nb[0] / nb[1]) - (nb[2] / nb[3]) : 0.0;
+                cmp = Double.compare(nrrB, nrrA);
+                if (cmp != 0) return cmp;
+                return Integer.compare(stats.get(b)[1], stats.get(a)[1]);
+            });
+
+            int position = sorted.indexOf(myTeam.getId()) + 1;
+            if (position == 0) position = allInLeague.size(); // fallback
+
+            int[] myStats = stats.getOrDefault(myTeam.getId(), new int[5]);
 
             Map<String, Object> leagueInfo = new LinkedHashMap<>();
             leagueInfo.put("leagueId", league.getId());
@@ -132,6 +196,11 @@ public class TeamController {
             leagueInfo.put("matchStartTimeUtc", league.getMatchStartTime());
             leagueInfo.put("position", position);
             leagueInfo.put("totalTeams", allInLeague.size());
+            leagueInfo.put("played", myStats[0]);
+            leagueInfo.put("won", myStats[1]);
+            leagueInfo.put("lost", myStats[2]);
+            leagueInfo.put("tied", myStats[3]);
+            leagueInfo.put("points", myStats[4]);
             leagues.add(leagueInfo);
         }
 
@@ -206,5 +275,11 @@ public class TeamController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    private double oversToDecimal(double overs) {
+        int fullOvers = (int) overs;
+        int extraBalls = (int) Math.round((overs - fullOvers) * 10);
+        return fullOvers + extraBalls / 6.0;
     }
 }

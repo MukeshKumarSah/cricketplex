@@ -6,6 +6,7 @@ import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ActivityLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,11 @@ import java.util.*;
 public class TransferMarketController {
 
     private static final long MIN_TM_TAX = 5000L;
+    private static final long MIN_STARTING_BID = 1000L;
+    private static final long MIN_BID_INCREMENT = 1000L;
+    private static final double BID_INCREMENT_PCT = 0.05;
+    private static final long AUCTION_HOURS = 48L;
+    private static final long ANTI_SNIPE_SECONDS = 120L; // 2 minutes
 
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
@@ -27,18 +33,19 @@ public class TransferMarketController {
     private final TransferBidRepository bidRepository;
     private final TransactionLogRepository transactionLogRepository;
     private final ActivityLogService activityLogService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // ════════════════════════════════════════════
-    //  POST /api/transfer/list — list player on TM
+    //  POST /api/transfer/list — list player on TM (48h auction)
     // ════════════════════════════════════════════
     @PostMapping("/list")
     @Transactional
     public ResponseEntity<?> listPlayer(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, Object> body) {
 
         Team team = getTeam(principal);
-        UUID playerId = UUID.fromString(body.get("playerId"));
+        UUID playerId = UUID.fromString((String) body.get("playerId"));
 
         Player player = playerRepository.findById(playerId)
                 .orElseThrow(() -> new IllegalArgumentException("Player not found"));
@@ -54,8 +61,19 @@ public class TransferMarketController {
         }
 
         long marketValue = calculateMarketValue(player);
-        long listingFee = (long) (marketValue * 0.20);
-        long tmTax = Math.max((long) (marketValue * 0.05), MIN_TM_TAX);
+
+        // Starting bid: seller can set their own, minimum $1,000
+        long startingBid = Math.max(MIN_STARTING_BID, marketValue);
+        if (body.get("startingPrice") != null) {
+            long requested = ((Number) body.get("startingPrice")).longValue();
+            if (requested >= MIN_STARTING_BID) {
+                startingBid = requested;
+            }
+        }
+
+        // Listing fee & tax based on starting bid (what seller actually lists at)
+        long listingFee = (long) (startingBid * 0.20);
+        long tmTax = Math.max((long) (startingBid * 0.05), MIN_TM_TAX);
 
         // Deduct listing fee
         if (team.getFunds() < listingFee) {
@@ -73,17 +91,21 @@ public class TransferMarketController {
                 .listingFee(listingFee)
                 .tmTax(tmTax)
                 .status("ACTIVE")
+                .currentBid(startingBid)
+                .auctionEndsAt(LocalDateTime.now().plusHours(AUCTION_HOURS))
                 .build();
         listingRepository.save(listing);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("listingId", listing.getId());
         resp.put("marketValue", marketValue);
+        resp.put("startingBid", startingBid);
         resp.put("listingFee", listingFee);
         resp.put("tmTax", tmTax);
-        resp.put("message", "Player listed. Listing fee of $" + String.format("%,d", listingFee) + " deducted.");
+        resp.put("auctionEndsAt", listing.getAuctionEndsAt().toString());
+        resp.put("message", "Player listed for 48-hour auction. Listing fee of $" + String.format("%,d", listingFee) + " deducted.");
 
-        activityLogService.log(team, "listed", "Listed " + player.getFirstName() + " " + player.getLastName() + " on Transfer Market (value $" + String.format("%,d", marketValue) + ").");
+        activityLogService.log(team, "listed", "Listed " + player.getFirstName() + " " + player.getLastName() + " on Transfer Market (value $" + String.format("%,d", marketValue) + ", 48h auction).");
 
         return ResponseEntity.ok(resp);
     }
@@ -94,16 +116,27 @@ public class TransferMarketController {
     @GetMapping("/listings")
     public ResponseEntity<?> getActiveListings(@AuthenticationPrincipal UserPrincipal principal) {
         Team myTeam = getTeam(principal);
-        List<TransferListing> listings = listingRepository.findByStatusOrderByListedAtDesc("ACTIVE");
+        List<TransferListing> listings = listingRepository.findByStatusOrderByListedAtAsc("ACTIVE");
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (TransferListing l : listings) {
             Map<String, Object> m = buildListingMap(l);
             m.put("isOwn", l.getSellerTeam().getId().equals(myTeam.getId()));
+            m.put("currentBid", l.getCurrentBid());
+            m.put("currentBidderTeam", l.getCurrentBidderTeam() != null ? l.getCurrentBidderTeam().getTeamName() : null);
+            m.put("auctionEndsAt", l.getAuctionEndsAt() != null ? l.getAuctionEndsAt().toString() : null);
 
-            // Get highest bid
-            Optional<TransferBid> topBid = bidRepository.findFirstByListingIdOrderByBidAmountDesc(l.getId());
-            m.put("highestBid", topBid.map(TransferBid::getBidAmount).orElse(null));
+            // Bid status relative to current user
+            boolean isLeading = l.getCurrentBidderTeam() != null && l.getCurrentBidderTeam().getId().equals(myTeam.getId());
+            m.put("isLeadingBidder", isLeading);
+            m.put("hasBid", isLeading || bidRepository.existsByListingIdAndBidderTeamId(l.getId(), myTeam.getId()));
+
+            // Compute minimum next bid: max(currentBid * 1.05, currentBid + 1000)
+            long current = l.getCurrentBid() != null ? l.getCurrentBid() : MIN_STARTING_BID;
+            long minNextBid = Math.max((long) Math.ceil(current * (1.0 + BID_INCREMENT_PCT)), current + MIN_BID_INCREMENT);
+            m.put("minNextBid", minNextBid);
+
+            // Bid count
             m.put("bidCount", bidRepository.findByListingIdOrderByBidAmountDesc(l.getId()).size());
 
             result.add(m);
@@ -122,6 +155,9 @@ public class TransferMarketController {
         List<Map<String, Object>> result = new ArrayList<>();
         for (TransferListing l : listings) {
             Map<String, Object> m = buildListingMap(l);
+            m.put("currentBid", l.getCurrentBid());
+            m.put("currentBidderTeam", l.getCurrentBidderTeam() != null ? l.getCurrentBidderTeam().getTeamName() : null);
+            m.put("auctionEndsAt", l.getAuctionEndsAt() != null ? l.getAuctionEndsAt().toString() : null);
 
             // Bids for this listing
             List<TransferBid> bids = bidRepository.findByListingIdOrderByBidAmountDesc(l.getId());
@@ -142,7 +178,7 @@ public class TransferMarketController {
     }
 
     // ════════════════════════════════════════════
-    //  POST /api/transfer/bid — place a bid
+    //  POST /api/transfer/bid — place a bid (5% or +1000 min increment, anti-snipe)
     // ════════════════════════════════════════════
     @PostMapping("/bid")
     @Transactional
@@ -154,7 +190,8 @@ public class TransferMarketController {
         UUID listingId = UUID.fromString((String) body.get("listingId"));
         long bidAmount = ((Number) body.get("bidAmount")).longValue();
 
-        TransferListing listing = listingRepository.findById(listingId)
+        // Pessimistic lock — serialises concurrent bids on the same listing
+        TransferListing listing = listingRepository.findByIdForUpdate(listingId)
                 .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
 
         if (!"ACTIVE".equals(listing.getStatus())) {
@@ -163,16 +200,26 @@ public class TransferMarketController {
         if (listing.getSellerTeam().getId().equals(team.getId())) {
             return ResponseEntity.badRequest().body(Map.of("error", "You cannot bid on your own listing"));
         }
-        if (bidAmount < listing.getMarketValue()) {
-            return ResponseEntity.badRequest().body(Map.of("error",
-                    "Bid must be at least the market value ($" + String.format("%,d", listing.getMarketValue()) + ")"));
+
+        // Check auction hasn't expired
+        if (listing.getAuctionEndsAt() != null && LocalDateTime.now().isAfter(listing.getAuctionEndsAt())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Auction has ended"));
         }
 
-        // Must be higher than current highest bid
-        Optional<TransferBid> topBid = bidRepository.findFirstByListingIdOrderByBidAmountDesc(listing.getId());
-        if (topBid.isPresent() && bidAmount <= topBid.get().getBidAmount()) {
+        // Minimum bid: max(currentBid * 1.05, currentBid + 1000)
+        long currentBid = listing.getCurrentBid() != null ? listing.getCurrentBid() : MIN_STARTING_BID;
+        boolean isFirstBid = listing.getCurrentBidderTeam() == null;
+        long minBid;
+        if (isFirstBid) {
+            minBid = currentBid; // First bid just needs to meet the starting bid
+        } else {
+            minBid = Math.max((long) Math.ceil(currentBid * (1.0 + BID_INCREMENT_PCT)), currentBid + MIN_BID_INCREMENT);
+        }
+
+        if (bidAmount < minBid) {
             return ResponseEntity.badRequest().body(Map.of("error",
-                    "Bid must be higher than current highest ($" + String.format("%,d", topBid.get().getBidAmount()) + ")"));
+                    "Bid must be at least $" + String.format("%,d", minBid)
+                    + " (5% above current bid or +$1,000, whichever is higher)"));
         }
 
         // Check buyer funds
@@ -180,6 +227,7 @@ public class TransferMarketController {
             return ResponseEntity.badRequest().body(Map.of("error", "Insufficient funds"));
         }
 
+        // Save bid record
         TransferBid bid = TransferBid.builder()
                 .listing(listing)
                 .bidderTeam(team)
@@ -187,100 +235,39 @@ public class TransferMarketController {
                 .build();
         bidRepository.save(bid);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Bid of $" + String.format("%,d", bidAmount) + " placed",
-                "bidId", bid.getId()
-        ));
-    }
+        // Update listing with current highest
+        listing.setCurrentBid(bidAmount);
+        listing.setCurrentBidderTeam(team);
 
-    // ════════════════════════════════════════════
-    //  POST /api/transfer/accept/{listingId} — accept highest bid
-    // ════════════════════════════════════════════
-    @PostMapping("/accept/{listingId}")
-    @Transactional
-    public ResponseEntity<?> acceptHighestBid(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @PathVariable UUID listingId) {
-
-        Team sellerTeam = getTeam(principal);
-
-        TransferListing listing = listingRepository.findById(listingId)
-                .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
-
-        if (!listing.getSellerTeam().getId().equals(sellerTeam.getId())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Not your listing"));
+        // Anti-snipe: if less than 2 minutes remain, reset deadline TO 2 minutes from now
+        if (listing.getAuctionEndsAt() != null) {
+            long secondsRemaining = java.time.Duration.between(LocalDateTime.now(), listing.getAuctionEndsAt()).getSeconds();
+            if (secondsRemaining < ANTI_SNIPE_SECONDS) {
+                listing.setAuctionEndsAt(LocalDateTime.now().plusSeconds(ANTI_SNIPE_SECONDS));
+            }
         }
-        if (!"ACTIVE".equals(listing.getStatus())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Listing is no longer active"));
-        }
-
-        Optional<TransferBid> topBidOpt = bidRepository.findFirstByListingIdOrderByBidAmountDesc(listing.getId());
-        if (topBidOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "No bids to accept"));
-        }
-
-        TransferBid topBid = topBidOpt.get();
-        Team buyerTeam = topBid.getBidderTeam();
-        long salePrice = topBid.getBidAmount();
-
-        // Check buyer still has funds
-        if (buyerTeam.getFunds() < salePrice) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Buyer no longer has sufficient funds"));
-        }
-
-        // Deduct from buyer
-        buyerTeam.setFunds(buyerTeam.getFunds() - salePrice);
-
-        // Seller receives sale price
-        sellerTeam.setFunds(sellerTeam.getFunds() + salePrice);
-
-        // TM tax settlement: listing fee (20% of listing price) was already paid
-        // Total tax owed = 5% of sold price
-        // If listingFee > totalTax: refund difference to seller
-        // If listingFee < totalTax: charge difference from seller
-        long listingFee = listing.getListingFee();
-        long totalTax = Math.max((long) (salePrice * 0.05), MIN_TM_TAX);
-        long settlement = listingFee - totalTax;
-
-        if (settlement > 0) {
-            // Refund excess to seller
-            sellerTeam.setFunds(sellerTeam.getFunds() + settlement);
-        } else if (settlement < 0) {
-            // Charge additional to seller
-            sellerTeam.setFunds(sellerTeam.getFunds() + settlement); // settlement is negative
-        }
-
-        // Transfer player
-        Player player = listing.getPlayer();
-        player.setTeam(buyerTeam);
-        playerRepository.save(player);
-
-        // Update listing
-        listing.setStatus("SOLD");
-        listing.setBuyerTeam(buyerTeam);
-        listing.setSalePrice(salePrice);
-        listing.setSoldAt(LocalDateTime.now());
         listingRepository.save(listing);
 
-        teamRepository.save(sellerTeam);
-        teamRepository.save(buyerTeam);
-
-        String playerName = player.getFirstName() + " " + player.getLastName();
-        logTransaction(buyerTeam, "TM_PURCHASE", "Purchased " + playerName + " from " + sellerTeam.getTeamName(), -salePrice);
-        logTransaction(sellerTeam, "TM_SALE", "Sold " + playerName + " to " + buyerTeam.getTeamName(), salePrice);
-        if (settlement != 0) {
-            logTransaction(sellerTeam, "TM_TAX_SETTLE", "TM tax settlement for " + playerName, settlement);
-        }
-
-        activityLogService.log(buyerTeam, "bought", "Bought " + playerName + " from " + sellerTeam.getTeamName() + " for $" + String.format("%,d", salePrice) + ".");
-        activityLogService.log(sellerTeam, "sold", "Sold " + playerName + " to " + buyerTeam.getTeamName() + " for $" + String.format("%,d", salePrice) + ".");
+        // Broadcast to all connected clients
+        long newMinBid = Math.max(
+                (long) Math.ceil(bidAmount * (1.0 + BID_INCREMENT_PCT)),
+                bidAmount + MIN_BID_INCREMENT);
+        Map<String, Object> wsUpdate = new LinkedHashMap<>();
+        wsUpdate.put("type", "BID_UPDATE");
+        wsUpdate.put("listingId", listing.getId());
+        wsUpdate.put("currentBid", bidAmount);
+        wsUpdate.put("currentBidderTeam", team.getTeamName());
+        wsUpdate.put("currentBidderTeamId", team.getId());
+        wsUpdate.put("auctionEndsAt", listing.getAuctionEndsAt() != null ? listing.getAuctionEndsAt().toString() : null);
+        wsUpdate.put("minNextBid", newMinBid);
+        wsUpdate.put("bidCount", bidRepository.findByListingIdOrderByBidAmountDesc(listing.getId()).size());
+        messagingTemplate.convertAndSend("/topic/transfer", wsUpdate);
 
         Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("message", "Player sold to " + buyerTeam.getTeamName() + " for $" + String.format("%,d", salePrice));
-        resp.put("salePrice", salePrice);
-        resp.put("totalTax", totalTax);
-        resp.put("listingFee", listingFee);
-        resp.put("settlement", settlement);
+        resp.put("message", "Bid of $" + String.format("%,d", bidAmount) + " placed");
+        resp.put("bidId", bid.getId());
+        resp.put("myTeamId", team.getId());
+        resp.put("auctionEndsAt", listing.getAuctionEndsAt() != null ? listing.getAuctionEndsAt().toString() : null);
         return ResponseEntity.ok(resp);
     }
 
@@ -396,6 +383,14 @@ public class TransferMarketController {
             resp.put("listingId", l.getId());
             resp.put("listingFee", l.getListingFee());
             resp.put("tmTax", l.getTmTax());
+            resp.put("currentBid", l.getCurrentBid());
+            resp.put("currentBidderTeam", l.getCurrentBidderTeam() != null ? l.getCurrentBidderTeam().getTeamName() : null);
+            resp.put("auctionEndsAt", l.getAuctionEndsAt() != null ? l.getAuctionEndsAt().toString() : null);
+
+            long current = l.getCurrentBid() != null ? l.getCurrentBid() : MIN_STARTING_BID;
+            boolean isFirstBid = l.getCurrentBidderTeam() == null;
+            long minNextBid = isFirstBid ? current : Math.max((long) Math.ceil(current * (1.0 + BID_INCREMENT_PCT)), current + MIN_BID_INCREMENT);
+            resp.put("minNextBid", minNextBid);
 
             Optional<TransferBid> topBid = bidRepository.findFirstByListingIdOrderByBidAmountDesc(l.getId());
             resp.put("highestBid", topBid.map(TransferBid::getBidAmount).orElse(null));
@@ -467,6 +462,8 @@ public class TransferMarketController {
         Map<String, Object> pm = new LinkedHashMap<>();
         pm.put("id", p.getId());
         pm.put("name", p.getFirstName() + " " + p.getLastName());
+        pm.put("firstName", p.getFirstName());
+        pm.put("lastName", p.getLastName());
         pm.put("role", p.getRole());
         pm.put("age", p.getAge());
         pm.put("country", p.getCountry());
@@ -476,7 +473,11 @@ public class TransferMarketController {
         pm.put("keeperRating", p.getKeeperRating());
         pm.put("fldRating", p.getFldRating());
         pm.put("stamina", p.getStamina());
+        pm.put("fitness", p.getFitness());
+        pm.put("experience", p.getExperience());
         pm.put("confidence", p.getConfidence());
+        pm.put("batHand", p.getBatHand());
+        pm.put("bowlType", p.getBowlType());
         m.put("player", pm);
 
         return m;

@@ -75,6 +75,45 @@ export default function Scorecard() {
     };
   })();
 
+  // ── Compute performance points for all players (same formula as MoM engine) ──
+  const performancePoints = (() => {
+    if (!data.innings) return [];
+    const players = {}; // playerId -> { name, teamName, teamId, batPts, bowlPts, totalPts }
+
+    for (const inn of data.innings) {
+      for (const bc of inn.battingCard || []) {
+        if (!players[bc.playerId]) {
+          players[bc.playerId] = { id: bc.playerId, name: bc.playerName, teamName: inn.battingTeam, teamId: inn.battingTeamId, batPts: 0, bowlPts: 0 };
+        }
+        let pts = bc.runs * 1.0 + bc.fours * 1.5 + bc.sixes * 2.0;
+        if (bc.runs >= 50) pts += 15;
+        if (bc.runs >= 100) pts += 30;
+        players[bc.playerId].batPts += pts;
+      }
+      for (const bc of inn.bowlingCard || []) {
+        if (!players[bc.playerId]) {
+          players[bc.playerId] = { id: bc.playerId, name: bc.playerName, teamName: inn.bowlingTeam, teamId: null, batPts: 0, bowlPts: 0 };
+        }
+        let pts = bc.wickets * 20.0 + bc.maidens * 5.0 + bc.dotBalls * 0.5;
+        if (bc.wickets >= 3) pts += 15;
+        if (bc.wickets >= 5) pts += 30;
+        const oversNum = parseFloat(bc.overs);
+        if (oversNum > 0 && bc.economy < 5.0) pts += 10;
+        players[bc.playerId].bowlPts += pts;
+      }
+    }
+
+    return Object.values(players)
+      .map((p) => ({ ...p, totalPts: +(p.batPts + p.bowlPts).toFixed(1), batPts: +p.batPts.toFixed(1), bowlPts: +p.bowlPts.toFixed(1) }))
+      .sort((a, b) => b.totalPts - a.totalPts);
+  })();
+
+  // Group performance points by team
+  const homeTeamName = data.homeTeamName;
+  const awayTeamName = data.awayTeamName;
+  const homePoints = performancePoints.filter((p) => p.teamName === homeTeamName);
+  const awayPoints = performancePoints.filter((p) => p.teamName === awayTeamName);
+
   return (
     <div className="scorecard-page">
       {/* Header */}
@@ -270,6 +309,45 @@ export default function Scorecard() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Performance Points ── */}
+      {performancePoints.length > 0 && (
+        <div className="sc-perf-section">
+          <h3 className="sc-section-title">⭐ Performance Points</h3>
+          <div className="sc-perf-teams">
+            {[{ label: homeTeamName, players: homePoints }, { label: awayTeamName, players: awayPoints }].map((team) => (
+              <div className="sc-perf-team" key={team.label}>
+                <div className="sc-perf-team-header">{team.label}</div>
+                <div className="sc-perf-table">
+                  <div className="sc-perf-head">
+                    <span className="sc-perf-col-rank">#</span>
+                    <span className="sc-perf-col-name">Player</span>
+                    <span className="sc-perf-col-num">Bat</span>
+                    <span className="sc-perf-col-num">Bowl</span>
+                    <span className="sc-perf-col-total">Total</span>
+                  </div>
+                  {team.players.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`sc-perf-row ${p.id === data.manOfMatchId ? 'sc-perf-motm' : ''}`}
+                      onClick={() => navigate(`/player/${p.id}`)}
+                    >
+                      <span className="sc-perf-col-rank">{i + 1}</span>
+                      <span className="sc-perf-col-name">
+                        {p.name}
+                        {p.id === data.manOfMatchId && <span className="sc-perf-motm-badge">MoM</span>}
+                      </span>
+                      <span className="sc-perf-col-num">{p.batPts}</span>
+                      <span className="sc-perf-col-num">{p.bowlPts}</span>
+                      <span className="sc-perf-col-total">{p.totalPts}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -49,6 +49,10 @@ public class Team {
 
     @Column(nullable = false)
     @Builder.Default
+    private Integer morale = 50;
+
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean isBot = false;
 
     @Column(nullable = false)

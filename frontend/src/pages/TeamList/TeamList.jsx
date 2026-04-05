@@ -60,9 +60,10 @@ export default function TeamList() {
     const q = search.toLowerCase();
     const list = teams.filter(
       (t) =>
-        t.teamName.toLowerCase().includes(q) ||
+        !t.isBot &&
+        (t.teamName.toLowerCase().includes(q) ||
         t.managerName.toLowerCase().includes(q) ||
-        t.country.toLowerCase().includes(q)
+        t.country.toLowerCase().includes(q))
     );
     list.sort((a, b) => {
       let aVal, bVal;

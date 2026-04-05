@@ -195,6 +195,16 @@
   display: flex;
   gap: 0.4rem;
 }
+.pp-tm-starting-price {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.pp-tm-auction-note {
+  font-size: 0.68rem;
+  color: #475569;
+  font-style: italic;
+}
 .pp-tm-listed-badge {
   font-size: 0.7rem;
   font-weight: 700;

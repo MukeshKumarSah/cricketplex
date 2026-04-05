@@ -183,6 +183,46 @@ public class MatchSimController {
         }
         resp.put("innings", inningsList);
 
+        // Team Strength Breakdown (using ME formulas: pitch + weather + exp + conf + fitness)
+        try {
+            Fixture fx = result.getFixture();
+            String pitchType = fx.getPitchType();
+            Map<String, Object> weather = weatherService.getWeather(
+                    fx.getHomeTeam().getCountry(), fx.getMatchDate());
+            String condition = (String) weather.get("condition");
+            int temperature = (int) weather.get("temperature");
+
+            // Find first innings per team for batting cards (has all 11), and bowling cards
+            List<Innings> innings = result.getInningsList();
+            Innings homeBatInn = null, awayBatInn = null;
+            Innings homeBowlInn = null, awayBowlInn = null;
+            UUID homeId = fx.getHomeTeam().getId();
+            UUID awayId = fx.getAwayTeam().getId();
+            for (Innings inn : innings) {
+                if (homeBatInn == null && inn.getBattingTeam().getId().equals(homeId)) homeBatInn = inn;
+                if (awayBatInn == null && inn.getBattingTeam().getId().equals(awayId)) awayBatInn = inn;
+                if (homeBowlInn == null && inn.getBowlingTeam().getId().equals(homeId)) homeBowlInn = inn;
+                if (awayBowlInn == null && inn.getBowlingTeam().getId().equals(awayId)) awayBowlInn = inn;
+            }
+
+            Map<String, Object> strengths = new LinkedHashMap<>();
+            if (homeBatInn != null && homeBowlInn != null) {
+                strengths.put("home", matchEngine.computeTeamStrengthBreakdown(
+                        new ArrayList<>(homeBatInn.getBattingCards()),
+                        new ArrayList<>(homeBowlInn.getBowlingCards()),
+                        pitchType, condition, temperature));
+            }
+            if (awayBatInn != null && awayBowlInn != null) {
+                strengths.put("away", matchEngine.computeTeamStrengthBreakdown(
+                        new ArrayList<>(awayBatInn.getBattingCards()),
+                        new ArrayList<>(awayBowlInn.getBowlingCards()),
+                        pitchType, condition, temperature));
+            }
+            resp.put("teamStrengths", strengths);
+        } catch (Exception ignored) {
+            // If weather derivation fails, skip strengths
+        }
+
         return resp;
     }
 
@@ -223,6 +263,12 @@ public class MatchSimController {
                 card.put("fielder", bc.getFielder().getFirstName() + " " + bc.getFielder().getLastName());
             }
             card.put("notOut", bc.getDismissalType() == null);
+            card.put("batRating", bc.getPlayer().getBatRating());
+            card.put("bowlRating", bc.getPlayer().getBowlRating());
+            card.put("fldRating", bc.getPlayer().getFldRating());
+            card.put("keeperRating", bc.getPlayer().getKeeperRating());
+            card.put("bowlType", bc.getPlayer().getBowlType());
+            card.put("role", bc.getPlayer().getRole());
             batCards.add(card);
         }
         innMap.put("battingCard", batCards);
@@ -243,6 +289,8 @@ public class MatchSimController {
             card.put("dotBalls", bc.getDotBalls());
             card.put("wides", bc.getWides());
             card.put("noBalls", bc.getNoBalls());
+            card.put("bowlType", bc.getPlayer().getBowlType());
+            card.put("bowlRating", bc.getPlayer().getBowlRating());
             bowlCards.add(card);
         }
         innMap.put("bowlingCard", bowlCards);

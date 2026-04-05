@@ -365,3 +365,135 @@
   font-weight: 700;
   color: #e2e8f0;
 }
+
+/* ── Performance Points Section ── */
+.sc-perf-section {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sc-perf-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.sc-perf-team {
+  border-right: 1px solid #334155;
+}
+.sc-perf-team:last-child { border-right: none; }
+
+.sc-perf-team-header {
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #22d3ee;
+  background: #0f172a80;
+  border-bottom: 1px solid #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sc-perf-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.sc-perf-head {
+  display: flex;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #334155;
+}
+
+.sc-perf-head span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sc-perf-row {
+  display: flex;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid #1a2332;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sc-perf-row:hover { background: #0f172a60; }
+.sc-perf-row:last-child { border-bottom: none; }
+
+.sc-perf-row.sc-perf-motm {
+  background: #f59e0b10;
+}
+.sc-perf-row.sc-perf-motm:hover { background: #f59e0b18; }
+
+.sc-perf-col-rank {
+  flex: 0 0 28px;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.sc-perf-col-name {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-perf-col-num {
+  flex: 0 0 48px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-perf-col-total {
+  flex: 0 0 52px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-perf-motm-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #f59e0b;
+  background: #f59e0b18;
+  border: 1px solid #f59e0b40;
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .sc-perf-teams {
+    grid-template-columns: 1fr;
+  }
+  .sc-perf-team {
+    border-right: none;
+    border-bottom: 1px solid #334155;
+  }
+  .sc-perf-team:last-child { border-bottom: none; }
+}
