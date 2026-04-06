@@ -200,7 +200,7 @@ export default function Squad() {
               <div className="sq-card-meta">
                 <span className="sq-meta-item">{p.nationality || p.country}</span>
                 <span className="sq-meta-sep">·</span>
-                <span className="sq-meta-item">Age {p.age}</span>
+                <span className="sq-meta-item">Age {p.age}yr {p.ageDays ?? 0}d</span>
                 <span className="sq-meta-sep">·</span>
                 <span className="sq-meta-item">{p.batHand} Bat</span>
                 {p.bowlHand && (

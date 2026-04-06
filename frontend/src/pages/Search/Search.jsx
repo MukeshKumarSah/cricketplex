@@ -177,7 +177,7 @@ export default function Search() {
                 <div className="search-card-info">
                   <span className="search-card-name">{p.firstName} {p.lastName}</span>
                   <span className="search-card-meta">
-                    {p.nationality} · Age {p.age} · ⭐ {p.rating}
+                    {p.nationality} · Age {p.age}yr {p.ageDays ?? 0}d · ⭐ {p.rating}
                   </span>
                   <span className="search-card-meta">
                     Team: {p.teamName}

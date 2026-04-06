@@ -17,6 +17,7 @@ com\cricketplex\entity\BallEvent$BallEventBuilder.class
 com\cricketplex\dto\TeamSetupRequest.class
 com\cricketplex\service\SettingsService.class
 com\cricketplex\service\TeamService.class
+com\cricketplex\service\PlayerAgingService.class
 com\cricketplex\entity\ChatMessage$ChatMessageBuilder.class
 com\cricketplex\repository\BowlingOrderRepository.class
 com\cricketplex\entity\Team$TeamBuilder.class

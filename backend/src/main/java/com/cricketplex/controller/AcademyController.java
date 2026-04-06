@@ -65,6 +65,7 @@ public class AcademyController {
             m.put("name", p.getFirstName() + " " + p.getLastName());
             m.put("role", p.getRole());
             m.put("age", p.getAge());
+            m.put("ageDays", p.getAgeDays());
             m.put("batRating", p.getBatRating());
             m.put("bowlRating", p.getBowlRating());
             m.put("keeperRating", p.getKeeperRating());
@@ -406,6 +407,7 @@ public class AcademyController {
         m.put("country", p.getCountry());
         m.put("role", p.getRole());
         m.put("age", p.getAge());
+        m.put("ageDays", p.getAgeDays());
         m.put("batRating", p.getBatRating());
         m.put("bowlRating", p.getBowlRating());
         m.put("keeperRating", p.getKeeperRating());

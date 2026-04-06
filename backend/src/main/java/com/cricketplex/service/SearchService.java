@@ -55,6 +55,7 @@ public class SearchService {
             entry.put("nationality", p.getNationality());
             entry.put("role", p.getRole());
             entry.put("age", p.getAge());
+            entry.put("ageDays", p.getAgeDays());
             entry.put("rating", p.getRating());
             entry.put("teamName", p.getTeam().getTeamName());
             entry.put("teamId", p.getTeam().getId());

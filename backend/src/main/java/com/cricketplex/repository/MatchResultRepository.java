@@ -13,6 +13,11 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
     Optional<MatchResult> findByFixtureId(UUID fixtureId);
     boolean existsByFixtureId(UUID fixtureId);
 
+    @Query("SELECT mr FROM MatchResult mr LEFT JOIN FETCH mr.fixture f " +
+           "WHERE f.homeTeam.id = :teamId AND f.status = 'COMPLETED' AND mr.attendance IS NOT NULL " +
+           "ORDER BY f.matchDate DESC")
+    List<MatchResult> findRecentHomeAttendance(@Param("teamId") UUID teamId);
+
     @Query("SELECT mr FROM MatchResult mr LEFT JOIN FETCH mr.inningsList WHERE mr.fixture.id = :fixtureId")
     Optional<MatchResult> findByFixtureIdWithInnings(@Param("fixtureId") UUID fixtureId);
 

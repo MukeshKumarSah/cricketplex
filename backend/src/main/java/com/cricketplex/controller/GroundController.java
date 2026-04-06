@@ -55,6 +55,12 @@ public class GroundController {
         return ResponseEntity.ok(groundService.updateMatchPitch(user, matchId, pitchType));
     }
 
+    @GetMapping("/attendance-history")
+    public ResponseEntity<?> getAttendanceHistory(@AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
+        return ResponseEntity.ok(groundService.getRecentHomeAttendance(user));
+    }
+
     private User getUser(UserPrincipal principal) {
         return userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

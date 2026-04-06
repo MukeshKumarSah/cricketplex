@@ -3,6 +3,7 @@ package com.cricketplex.repository;
 import com.cricketplex.entity.Player;
 import com.cricketplex.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,4 +24,12 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
 
     @Query("SELECT p FROM Player p WHERE LOWER(p.firstName) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(p.lastName) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<Player> searchByName(@Param("q") String query);
+
+    @Modifying
+    @Query("UPDATE Player p SET p.ageDays = p.ageDays + 1")
+    int incrementAgeDays();
+
+    @Modifying
+    @Query("UPDATE Player p SET p.age = p.age + 1, p.ageDays = 0 WHERE p.ageDays >= :daysPerSeason")
+    int rollOverAge(@Param("daysPerSeason") int daysPerSeason);
 }

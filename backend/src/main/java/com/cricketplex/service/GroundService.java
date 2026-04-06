@@ -1,10 +1,8 @@
 package com.cricketplex.service;
 
-import com.cricketplex.entity.Fixture;
-import com.cricketplex.entity.StadiumSeats;
-import com.cricketplex.entity.Team;
-import com.cricketplex.entity.User;
+import com.cricketplex.entity.*;
 import com.cricketplex.repository.FixtureRepository;
+import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.StadiumSeatsRepository;
 import com.cricketplex.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +19,7 @@ public class GroundService {
     private final TeamRepository teamRepository;
     private final StadiumSeatsRepository stadiumSeatsRepository;
     private final FixtureRepository fixtureRepository;
+    private final MatchResultRepository matchResultRepository;
 
     private Team getTeam(User user) {
         return teamRepository.findByOwner(user)
@@ -139,5 +138,24 @@ public class GroundService {
         result.put("id", fixture.getId());
         result.put("pitchType", fixture.getPitchType());
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getRecentHomeAttendance(User user) {
+        Team team = getTeam(user);
+        List<MatchResult> results = matchResultRepository.findRecentHomeAttendance(team.getId());
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (MatchResult mr : results) {
+            if (list.size() >= 5) break;
+            Fixture f = mr.getFixture();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("opponent", f.getAwayTeam().getTeamName());
+            m.put("format", f.getFormat());
+            m.put("matchDate", f.getMatchDate().toString());
+            m.put("attendance", mr.getAttendance());
+            list.add(m);
+        }
+        return list;
     }
 }

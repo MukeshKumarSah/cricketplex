@@ -351,7 +351,7 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
             <div className="tm-player-info" onClick={() => navigate(`/player/${l.player.id}`)}>
               <span className="tm-player-name">{l.player.name}</span>
               <span className="tm-player-role">{ROLE_SHORT[l.player.role]}</span>
-              <span className="tm-player-age">Age {l.player.age}</span>
+              <span className="tm-player-age">Age {l.player.age}yr {l.player.ageDays ?? 0}d</span>
               <span className="tm-player-country">{l.player.country}</span>
             </div>
             <div className="tm-player-rating">{l.player.rating}</div>
@@ -439,7 +439,7 @@ function MyListingsSection({ listings, handleCancel, navigate }) {
             <div className="tm-player-info" onClick={() => navigate(`/player/${l.player.id}`)}>
               <span className="tm-player-name">{l.player.name}</span>
               <span className="tm-player-role">{ROLE_SHORT[l.player.role]}</span>
-              <span className="tm-player-age">Age {l.player.age}</span>
+              <span className="tm-player-age">Age {l.player.age}yr {l.player.ageDays ?? 0}d</span>
             </div>
             <span className={`tm-status-badge ${l.status.toLowerCase()}`}>{l.status}</span>
           </div>

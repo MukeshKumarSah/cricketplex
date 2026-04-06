@@ -154,6 +154,7 @@ public class LineupService {
             pm.put("confidence", p.getConfidence());
             pm.put("rating", p.getRating());
             pm.put("age", p.getAge());
+            pm.put("ageDays", p.getAgeDays());
             pm.put("batAggression", p.getBatAggression());
             pm.put("bowlAggression", p.getBowlAggression());
             playerList.add(pm);

@@ -84,13 +84,9 @@ public class TransferAuctionService {
         buyerTeam.setFunds(buyerTeam.getFunds() - salePrice);
         sellerTeam.setFunds(sellerTeam.getFunds() + salePrice);
 
-        // TM tax settlement
-        long listingFee = listing.getListingFee();
+        // TM tax — 5% of sale price, deducted from seller's proceeds (listing fee already paid separately)
         long totalTax = Math.max((long) (salePrice * 0.05), MIN_TM_TAX);
-        long settlement = listingFee - totalTax;
-        if (settlement != 0) {
-            sellerTeam.setFunds(sellerTeam.getFunds() + settlement);
-        }
+        sellerTeam.setFunds(sellerTeam.getFunds() - totalTax);
 
         // Transfer player
         Player player = listing.getPlayer();
@@ -112,10 +108,8 @@ public class TransferAuctionService {
                 "Purchased " + playerName + " from " + sellerTeam.getTeamName(), -salePrice);
         logTransaction(sellerTeam, "TM_SALE",
                 "Sold " + playerName + " to " + buyerTeam.getTeamName(), salePrice);
-        if (settlement != 0) {
-            logTransaction(sellerTeam, "TM_TAX_SETTLE",
-                    "TM tax settlement for " + playerName, settlement);
-        }
+        logTransaction(sellerTeam, "TM_TAX",
+                "TM tax (5%) on sale of " + playerName, -totalTax);
 
         activityLogService.log(buyerTeam, "bought",
                 "Won auction for " + playerName + " from " + sellerTeam.getTeamName()

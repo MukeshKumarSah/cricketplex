@@ -70,6 +70,7 @@ public class TeamListController {
             m.put("lastName", p.getLastName());
             m.put("role", p.getRole());
             m.put("age", p.getAge());
+            m.put("ageDays", p.getAgeDays());
             m.put("batHand", p.getBatHand());
             m.put("bowlHand", p.getBowlHand());
             m.put("bowlType", p.getBowlType());

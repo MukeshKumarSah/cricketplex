@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches, getAttendanceHistory } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -138,6 +138,7 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [dashStats, setDashStats] = useState(null);
   const [dashMatches, setDashMatches] = useState([]);
+  const [attendanceHistory, setAttendanceHistory] = useState([]);
 
   useEffect(() => {
     getSettings()
@@ -162,6 +163,9 @@ export default function Dashboard() {
       .catch(() => {});
     getDashboardStats()
       .then((res) => setDashStats(res.data))
+      .catch(() => {});
+    getAttendanceHistory()
+      .then((res) => setAttendanceHistory(res.data || []))
       .catch(() => {});
     getMyMatches()
       .then((res) => {
@@ -308,6 +312,19 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
+
+        {attendanceHistory.length > 0 && (
+          <div className="dash-attendance">
+            <h4 className="dash-attendance-title">Recent Home Attendance</h4>
+            {attendanceHistory.map((a, i) => (
+              <div key={i} className="dash-attendance-row">
+                <span className="dash-attendance-opponent">vs {a.opponent}</span>
+                <span className="dash-attendance-format">{a.format}</span>
+                <span className="dash-attendance-count">{a.attendance?.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ── Upcoming Matches ── */}

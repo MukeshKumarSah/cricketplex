@@ -224,7 +224,7 @@ export default function Player() {
         </div>
 
         <div className="pp-info-grid">
-          <div className="pp-info-item"><span className="pp-info-label">Age</span><span className="pp-info-val">{data.age}</span></div>
+          <div className="pp-info-item"><span className="pp-info-label">Age</span><span className="pp-info-val">{data.age}yr {data.ageDays ?? 0}d</span></div>
           <div className="pp-info-item"><span className="pp-info-label">Country</span><span className="pp-info-val">{data.country}</span></div>
           <div className="pp-info-item"><span className="pp-info-label">Bat</span><span className="pp-info-val">{HAND_LABELS[data.batHand] || data.batHand}</span></div>
           {data.bowlHand && <div className="pp-info-item"><span className="pp-info-label">Bowl</span><span className="pp-info-val">{HAND_LABELS[data.bowlHand]} {BOWL_LABELS[data.bowlType] || data.bowlType}</span></div>}

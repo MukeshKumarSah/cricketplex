@@ -32,6 +32,7 @@ export const updateStadiumSeats = (data) => API.put('/ground/seats', data);
 export const getUpcomingHomeMatches = () => API.get('/ground/matches');
 export const updateMatchPitch = (matchId, pitchType) =>
   API.put(`/ground/matches/${matchId}/pitch`, { pitchType });
+export const getAttendanceHistory = () => API.get('/ground/attendance-history');
 
 // Team List
 export const getTeamList = () => API.get('/teams');

@@ -266,7 +266,7 @@ function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, 
                 <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
                   <span className="ac-player-name">{p.name}</span>
                   <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
-                  <span className="ac-player-age">Age {p.age}</span>
+                  <span className="ac-player-age">Age {p.age}yr {p.ageDays ?? 0}d</span>
                 </div>
                 <div className="ac-player-training">
                   <span className="ac-training-badge focused">{p.trainingType}</span>

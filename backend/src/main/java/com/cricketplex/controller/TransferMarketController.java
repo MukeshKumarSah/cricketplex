@@ -489,6 +489,7 @@ public class TransferMarketController {
         pm.put("lastName", p.getLastName());
         pm.put("role", p.getRole());
         pm.put("age", p.getAge());
+        pm.put("ageDays", p.getAgeDays());
         pm.put("country", p.getCountry());
         pm.put("rating", p.getRating());
         pm.put("batRating", p.getBatRating());

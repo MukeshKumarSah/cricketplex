@@ -274,7 +274,7 @@ export default function TeamProfile() {
                               {ROLE_LABEL[p.role] || p.role}
                             </span>
                           </td>
-                          <td>{p.age}</td>
+                          <td>{p.age}yr {p.ageDays ?? 0}d</td>
                           <td style={{ color: ratingColor(p.batRating) }}>{p.batRating}</td>
                           <td style={{ color: ratingColor(p.bowlRating) }}>{p.bowlRating}</td>
                           <td style={{ color: ratingColor(p.fldRating) }}>{p.fldRating}</td>

@@ -39,6 +39,10 @@ public class Player {
     @Column(nullable = false)
     private int age;
 
+    @Column(name = "age_days", nullable = false)
+    @Builder.Default
+    private int ageDays = 0;
+
     @Column(name = "bat_hand", nullable = false)
     private String batHand;        // RH, LH
 

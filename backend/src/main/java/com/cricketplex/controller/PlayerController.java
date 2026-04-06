@@ -37,6 +37,7 @@ public class PlayerController {
         resp.put("nationality", player.getNationality());
         resp.put("role", player.getRole());
         resp.put("age", player.getAge());
+        resp.put("ageDays", player.getAgeDays());
         resp.put("batHand", player.getBatHand());
         resp.put("bowlHand", player.getBowlHand());
         resp.put("bowlType", player.getBowlType());
