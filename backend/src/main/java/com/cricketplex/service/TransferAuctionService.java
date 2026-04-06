@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class TransferAuctionService {
     @Scheduled(fixedDelay = 30_000, initialDelay = 10_000)
     @Transactional
     public void finalizeExpiredAuctions() {
-        List<TransferListing> expired = listingRepository.findExpiredAuctions(LocalDateTime.now());
+        List<TransferListing> expired = listingRepository.findExpiredAuctions(LocalDateTime.now(ZoneOffset.UTC));
         for (TransferListing listing : expired) {
             try {
                 finalizeAuction(listing);
@@ -100,7 +101,7 @@ public class TransferAuctionService {
         listing.setStatus("SOLD");
         listing.setBuyerTeam(buyerTeam);
         listing.setSalePrice(salePrice);
-        listing.setSoldAt(LocalDateTime.now());
+        listing.setSoldAt(LocalDateTime.now(ZoneOffset.UTC));
         listingRepository.save(listing);
 
         teamRepository.save(sellerTeam);

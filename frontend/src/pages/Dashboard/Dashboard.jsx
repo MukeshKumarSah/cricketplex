@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -137,6 +137,7 @@ export default function Dashboard() {
   const [weatherCountry, setWeatherCountry] = useState('');
   const [activities, setActivities] = useState([]);
   const [dashStats, setDashStats] = useState(null);
+  const [dashMatches, setDashMatches] = useState([]);
 
   useEffect(() => {
     getSettings()
@@ -161,6 +162,31 @@ export default function Dashboard() {
       .catch(() => {});
     getDashboardStats()
       .then((res) => setDashStats(res.data))
+      .catch(() => {});
+    getMyMatches()
+      .then((res) => {
+        const all = res.data || [];
+        const completed = all.filter((m) => m.status === 'COMPLETED');
+        const live = all.filter((m) => m.status === 'IN_PROGRESS' || m.status === 'LIVE');
+        const upcoming = all.filter((m) => m.status === 'SCHEDULED');
+        // Smart pick: 2 completed + 1 live + 2 upcoming (adjust based on availability)
+        let picked = [];
+        if (live.length > 0) {
+          const c = completed.slice(-2);
+          const l = live.slice(0, 1);
+          const need = 5 - c.length - l.length;
+          const u = upcoming.slice(0, Math.max(need, 0));
+          picked = [...c, ...l, ...u];
+        } else if (completed.length > 0) {
+          const c = completed.slice(-2);
+          const need = 5 - c.length;
+          const u = upcoming.slice(0, Math.max(need, 0));
+          picked = [...c, ...u];
+        } else {
+          picked = upcoming.slice(0, 5);
+        }
+        setDashMatches(picked.slice(0, 5));
+      })
       .catch(() => {});
   }, []);
 
@@ -281,6 +307,49 @@ export default function Dashboard() {
               <HiOutlineGlobeAlt /> {team?.country || 'Unknown'}
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* ── Upcoming Matches ── */}
+      <section className="dash-card dash-matches-card">
+        <div className="dash-card-header">
+          <HiOutlineCalendarDays className="dash-card-icon" />
+          <h2>Matches</h2>
+          <span className="dash-matches-view-all" onClick={() => navigate('/matches')}>View All</span>
+        </div>
+        <div className="dash-matches-list">
+          {dashMatches.length > 0 ? dashMatches.map((m) => {
+            const isLive = m.status === 'IN_PROGRESS' || m.status === 'LIVE';
+            const isDone = m.status === 'COMPLETED';
+            const statusClass = isLive ? 'live' : isDone ? 'completed' : 'upcoming';
+            const statusLabel = isLive ? 'LIVE' : isDone ? 'Completed' : 'Upcoming';
+            const formatColors = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
+            return (
+              <div
+                key={m.id}
+                className={`dash-match-row dash-match-${statusClass}`}
+                onClick={() => navigate(isLive ? `/match/${m.id}/live` : isDone ? `/match/${m.id}/scorecard` : `/match/${m.id}/preview`)}
+              >
+                <div className="dash-match-date">
+                  {m.matchDate ? new Date(m.matchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                </div>
+                <div className="dash-match-format" style={{ background: formatColors[m.format] || '#64748b' }}>
+                  {m.format}
+                </div>
+                <div className="dash-match-teams">
+                  <span className={m.isHome ? 'dash-match-my-team' : ''}>{m.homeTeamName}</span>
+                  <span className="dash-match-vs">vs</span>
+                  <span className={!m.isHome ? 'dash-match-my-team' : ''}>{m.awayTeamName}</span>
+                </div>
+                <span className={`dash-match-status ${statusClass}`}>{statusLabel}</span>
+              </div>
+            );
+          }) : (
+            <div className="dash-empty-state">
+              <span className="dash-empty-icon">🏏</span>
+              <p>No matches scheduled yet.</p>
+            </div>
+          )}
         </div>
       </section>
 

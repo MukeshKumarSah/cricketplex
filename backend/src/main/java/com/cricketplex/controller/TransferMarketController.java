@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @RestController
@@ -92,7 +93,7 @@ public class TransferMarketController {
                 .tmTax(tmTax)
                 .status("ACTIVE")
                 .currentBid(startingBid)
-                .auctionEndsAt(LocalDateTime.now().plusHours(AUCTION_HOURS))
+                .auctionEndsAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(AUCTION_HOURS))
                 .build();
         listingRepository.save(listing);
 
@@ -202,7 +203,7 @@ public class TransferMarketController {
         }
 
         // Check auction hasn't expired
-        if (listing.getAuctionEndsAt() != null && LocalDateTime.now().isAfter(listing.getAuctionEndsAt())) {
+        if (listing.getAuctionEndsAt() != null && LocalDateTime.now(ZoneOffset.UTC).isAfter(listing.getAuctionEndsAt())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Auction has ended"));
         }
 
@@ -241,9 +242,9 @@ public class TransferMarketController {
 
         // Anti-snipe: if less than 2 minutes remain, reset deadline TO 2 minutes from now
         if (listing.getAuctionEndsAt() != null) {
-            long secondsRemaining = java.time.Duration.between(LocalDateTime.now(), listing.getAuctionEndsAt()).getSeconds();
+            long secondsRemaining = java.time.Duration.between(LocalDateTime.now(ZoneOffset.UTC), listing.getAuctionEndsAt()).getSeconds();
             if (secondsRemaining < ANTI_SNIPE_SECONDS) {
-                listing.setAuctionEndsAt(LocalDateTime.now().plusSeconds(ANTI_SNIPE_SECONDS));
+                listing.setAuctionEndsAt(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(ANTI_SNIPE_SECONDS));
             }
         }
         listingRepository.save(listing);

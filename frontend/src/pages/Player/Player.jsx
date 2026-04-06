@@ -15,7 +15,7 @@ function useCountdown(endStr) {
   useEffect(() => {
     if (!endStr) { setRemaining(''); return; }
     const tick = () => {
-      const diff = new Date(endStr) - Date.now();
+      const diff = new Date(endStr + 'Z') - Date.now();
       if (diff <= 0) { setRemaining('Ended'); return; }
       const h = Math.floor(diff / 3_600_000);
       const m = Math.floor((diff % 3_600_000) / 60_000);

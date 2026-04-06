@@ -3,6 +3,7 @@ package com.cricketplex.service;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.LeagueTeam;
 import com.cricketplex.entity.Team;
+import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.TeamRepository;
@@ -119,6 +120,8 @@ public class BotTeamService {
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final TeamService teamService;
+    private final FixtureRepository fixtureRepository;
+    private final FixtureService fixtureService;
 
     /**
      * Generate bot teams for all 18 countries.
@@ -234,11 +237,30 @@ public class BotTeamService {
             details.add(country + ": created " + countryCreated + " bot teams, " + (countryCreated * 3) + " league assignments");
         }
 
+        // Generate fixtures for all leagues that have 8 teams but no fixtures yet
+        int fixturesGenerated = 0;
+        List<League> allLeagues = leagueRepository.findAll();
+        for (League league : allLeagues) {
+            long teamCount = leagueTeamRepository.countByLeagueId(league.getId());
+            if (teamCount >= TEAMS_PER_LEAGUE && fixtureRepository.countByLeagueId(league.getId()) == 0) {
+                try {
+                    fixtureService.generateFixtures(league);
+                    fixturesGenerated++;
+                    log.info("Generated fixtures for {} {} {}.{}",
+                            league.getCountry(), league.getFormat(),
+                            league.getDivision(), league.getLeagueNumber());
+                } catch (Exception e) {
+                    log.error("Failed to generate fixtures for league {}: {}", league.getId(), e.getMessage());
+                }
+            }
+        }
+
         return Map.of(
                 "created", created,
                 "assigned", assigned,
                 "skipped", skipped,
                 "total", created + skipped,
+                "fixturesGenerated", fixturesGenerated,
                 "details", details
         );
     }
