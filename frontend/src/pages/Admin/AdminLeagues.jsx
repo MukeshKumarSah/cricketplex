@@ -16,6 +16,7 @@ import {
   generateBotTeams,
   getBotStats,
   deleteLeague,
+  triggerAging,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminLeagues.css';
@@ -211,6 +212,31 @@ export default function AdminLeagues() {
         >
           <HiOutlineCpuChip />
           {generatingBots ? 'Generating...' : botStats?.totalBotTeams >= 432 ? 'All Bot Teams Generated' : 'Generate Bot Teams'}
+        </button>
+      </div>
+
+      {/* ── Force Player Aging ── */}
+      <div className="al-card">
+        <div className="al-card-head">
+          <h2>Player Aging</h2>
+          <span className="al-badge">Manual</span>
+        </div>
+        <p className="al-form-hint">
+          Forces the daily aging catch-up. Applies any missed days since the last recorded aging date.
+          Safe to run multiple times — it's idempotent (skips if already up-to-date).
+        </p>
+        <button
+          className="al-btn-bot"
+          onClick={async () => {
+            try {
+              const res = await triggerAging();
+              toast.success(res.data.message || 'Aging complete');
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Aging failed');
+            }
+          }}
+        >
+          ⏳ Force Age Players
         </button>
       </div>
 

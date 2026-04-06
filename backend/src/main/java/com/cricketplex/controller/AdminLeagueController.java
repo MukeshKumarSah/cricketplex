@@ -2,6 +2,7 @@ package com.cricketplex.controller;
 
 import com.cricketplex.service.BotTeamService;
 import com.cricketplex.service.LeagueService;
+import com.cricketplex.service.PlayerAgingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +19,7 @@ public class AdminLeagueController {
 
     private final LeagueService leagueService;
     private final BotTeamService botTeamService;
+    private final PlayerAgingService playerAgingService;
 
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {
@@ -57,5 +59,11 @@ public class AdminLeagueController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
+    }
+
+    @PostMapping("/trigger-aging")
+    public ResponseEntity<?> triggerAging() {
+        playerAgingService.applyMissedDays();
+        return ResponseEntity.ok(Map.of("message", "Player aging catch-up complete"));
     }
 }

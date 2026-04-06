@@ -81,6 +81,7 @@ C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\c
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\service\TeamService.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\MatchResult.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\controller\TeamListController.java
+C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\AppStateRepository.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\security\JwtAuthenticationFilter.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\security\JwtTokenProvider.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\TransferBidRepository.java
@@ -117,4 +118,5 @@ C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\c
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\service\LeagueService.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\ChatMemberRepository.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\config\SecurityConfig.java
+C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\AppState.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\service\FileStorageService.java

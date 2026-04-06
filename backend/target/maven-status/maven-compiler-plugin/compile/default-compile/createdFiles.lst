@@ -70,6 +70,7 @@ com\cricketplex\repository\AcademyPullRepository.class
 com\cricketplex\service\MatchEngine$WeatherEffect.class
 com\cricketplex\repository\HomeMatchRepository.class
 com\cricketplex\controller\FriendlyChallengeController.class
+com\cricketplex\repository\AppStateRepository.class
 com\cricketplex\repository\UserRepository.class
 com\cricketplex\controller\FileController.class
 com\cricketplex\repository\TeamRepository.class
@@ -97,6 +98,7 @@ com\cricketplex\entity\BowlingOrder$BowlingOrderBuilder.class
 com\cricketplex\repository\DefaultLineupRepository.class
 com\cricketplex\entity\DefaultLineup$DefaultLineupBuilder.class
 com\cricketplex\controller\TransferMarketController.class
+com\cricketplex\entity\AppState.class
 com\cricketplex\entity\Player.class
 com\cricketplex\controller\StatsController.class
 com\cricketplex\entity\PlayerLastName$PlayerLastNameBuilder.class
