@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getActiveListings, getMyListings, placeBid, cancelListing,
+  getActiveListings, getMyListings, placeBid, cancelListing, getRecentSales,
 } from '../../api/auth';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -155,9 +155,22 @@ export default function TransferMarket() {
     }
   };
 
+  const [recentSales, setRecentSales] = useState([]);
+  const [salesLoading, setSalesLoading] = useState(false);
+
+  const loadRecentSales = useCallback(async () => {
+    setSalesLoading(true);
+    try {
+      const res = await getRecentSales();
+      setRecentSales(res.data);
+    } catch { /* ignore */ }
+    setSalesLoading(false);
+  }, []);
+
   const tabs = [
     { key: 'browse', label: 'Browse Market' },
     { key: 'my-listings', label: 'My Listings' },
+    { key: 'activity', label: 'TM Activity' },
   ];
 
   return (
@@ -191,6 +204,10 @@ export default function TransferMarket() {
           handleCancel={handleCancel}
           navigate={navigate}
         />
+      )}
+
+      {tab === 'activity' && (
+        <ActivitySection sales={recentSales} loading={salesLoading} onLoad={loadRecentSales} />
       )}
     </div>
   );
@@ -479,13 +496,47 @@ function MyListingsSection({ listings, handleCancel, navigate }) {
             <div className="tm-no-bids">No bids yet — auction expires when timer ends</div>
           )}
 
-          {l.status === 'ACTIVE' && (
+          {l.canCancel && (
             <button className="tm-cancel-btn" onClick={() => handleCancel(l.listingId)}>
               Cancel Listing
             </button>
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function ActivitySection({ sales, loading, onLoad }) {
+  useEffect(() => { onLoad(); }, [onLoad]);
+
+  if (loading) return <div className="tm-loading">Loading recent sales…</div>;
+  if (!sales.length) return <div className="tm-empty">No completed sales yet</div>;
+
+  return (
+    <div className="tm-activity">
+      <table className="tm-activity-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Sold From</th>
+            <th>Sold To</th>
+            <th>Initial Price</th>
+            <th>Final Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sales.map((s, i) => (
+            <tr key={i}>
+              <td>{s.playerName}</td>
+              <td>{s.soldFrom}</td>
+              <td>{s.soldTo}</td>
+              <td>${s.initialPrice?.toLocaleString()}</td>
+              <td>${s.finalPrice?.toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

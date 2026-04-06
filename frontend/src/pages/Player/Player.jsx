@@ -316,9 +316,11 @@ export default function Player() {
                 </div>
               )}
               <div className="pp-tm-auction-note">Auction auto-completes when timer expires</div>
-              <button className="pp-tm-btn fire" onClick={handleCancelListing} disabled={actionLoading}>
-                Cancel Listing
-              </button>
+              {tmStatus.canCancel && (
+                <button className="pp-tm-btn fire" onClick={handleCancelListing} disabled={actionLoading}>
+                  Cancel Listing
+                </button>
+              )}
             </>
           )}
 

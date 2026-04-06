@@ -443,6 +443,37 @@
   font-size: 0.85rem;
 }
 
+/* ── Activity Table ── */
+.tm-activity { margin-top: 0.5rem; }
+.tm-activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.tm-activity-table th {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  border-bottom: 1px solid #1e293b;
+}
+.tm-activity-table td {
+  padding: 0.55rem 0.8rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid #111827;
+}
+.tm-activity-table tbody tr:hover {
+  background: rgba(34, 211, 238, 0.04);
+}
+.tm-activity-table td:nth-child(4),
+.tm-activity-table td:nth-child(5) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 740px) {
   .tm-page { padding: 1rem; }

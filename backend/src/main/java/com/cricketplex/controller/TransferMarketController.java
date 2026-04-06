@@ -160,6 +160,15 @@ public class TransferMarketController {
             m.put("currentBidderTeam", l.getCurrentBidderTeam() != null ? l.getCurrentBidderTeam().getTeamName() : null);
             m.put("auctionEndsAt", l.getAuctionEndsAt() != null ? l.getAuctionEndsAt().toString() : null);
 
+            // Can cancel: ACTIVE, no bids, within 5 minutes of listing
+            if ("ACTIVE".equals(l.getStatus())) {
+                boolean noBids = bidRepository.findByListingIdOrderByBidAmountDesc(l.getId()).isEmpty();
+                long mins = java.time.Duration.between(l.getListedAt(), LocalDateTime.now(ZoneOffset.UTC)).toMinutes();
+                m.put("canCancel", noBids && mins < 5);
+            } else {
+                m.put("canCancel", false);
+            }
+
             // Bids for this listing
             List<TransferBid> bids = bidRepository.findByListingIdOrderByBidAmountDesc(l.getId());
             List<Map<String, Object>> bidList = new ArrayList<>();
@@ -293,6 +302,16 @@ public class TransferMarketController {
             return ResponseEntity.badRequest().body(Map.of("error", "Listing is no longer active"));
         }
 
+        // Only allow cancel within 5 minutes of listing AND if no bids placed
+        boolean hasBids = !bidRepository.findByListingIdOrderByBidAmountDesc(listing.getId()).isEmpty();
+        if (hasBids) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cannot cancel — bids have been placed on this listing"));
+        }
+        long minutesSinceListed = java.time.Duration.between(listing.getListedAt(), LocalDateTime.now(ZoneOffset.UTC)).toMinutes();
+        if (minutesSinceListed >= 5) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Cannot cancel — listing can only be cancelled within 5 minutes"));
+        }
+
         listing.setStatus("CANCELLED");
         listingRepository.save(listing);
 
@@ -400,6 +419,9 @@ public class TransferMarketController {
             // Get bids if own player
             if (player.getTeam() != null && player.getTeam().getId().equals(myTeam.getId())) {
                 List<TransferBid> bids = bidRepository.findByListingIdOrderByBidAmountDesc(l.getId());
+                boolean noBids = bids.isEmpty();
+                long mins = java.time.Duration.between(l.getListedAt(), LocalDateTime.now(ZoneOffset.UTC)).toMinutes();
+                resp.put("canCancel", noBids && mins < 5);
                 List<Map<String, Object>> bidList = new ArrayList<>();
                 for (TransferBid b : bids) {
                     Map<String, Object> bm = new LinkedHashMap<>();
@@ -482,6 +504,27 @@ public class TransferMarketController {
         m.put("player", pm);
 
         return m;
+    }
+
+    // ════════════════════════════════════════════
+    //  GET /api/transfer/recent-sales — last 20 completed sales
+    // ════════════════════════════════════════════
+    @GetMapping("/recent-sales")
+    public ResponseEntity<?> getRecentSales() {
+        List<TransferListing> sales = listingRepository.findTop20ByStatusOrderBySoldAtDesc("SOLD");
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (TransferListing l : sales) {
+            Player p = l.getPlayer();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("playerName", p.getFirstName() + " " + p.getLastName());
+            m.put("soldFrom", l.getSellerTeam().getTeamName());
+            m.put("soldTo", l.getBuyerTeam() != null ? l.getBuyerTeam().getTeamName() : null);
+            m.put("initialPrice", l.getListingFee() * 5);
+            m.put("finalPrice", l.getSalePrice());
+            m.put("soldAt", l.getSoldAt() != null ? l.getSoldAt().toString() : null);
+            result.add(m);
+        }
+        return ResponseEntity.ok(result);
     }
 
     private void logTransaction(Team team, String type, String description, long amount) {

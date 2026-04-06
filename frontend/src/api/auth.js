@@ -134,6 +134,7 @@ export const cancelListing = (listingId) => API.post(`/transfer/cancel/${listing
 export const firePlayer = (playerId) => API.post(`/transfer/fire/${playerId}`);
 export const retirePlayer = (playerId) => API.post(`/transfer/retire/${playerId}`);
 export const getPlayerTransferStatus = (playerId) => API.get(`/transfer/player-status/${playerId}`);
+export const getRecentSales = () => API.get('/transfer/recent-sales');
 
 // Finances
 export const getFinances = (type) => API.get('/finances', { params: type ? { type } : {} });

@@ -25,4 +25,6 @@ public interface TransferListingRepository extends JpaRepository<TransferListing
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT l FROM TransferListing l WHERE l.id = :id")
     Optional<TransferListing> findByIdForUpdate(UUID id);
+
+    List<TransferListing> findTop20ByStatusOrderBySoldAtDesc(String status);
 }
