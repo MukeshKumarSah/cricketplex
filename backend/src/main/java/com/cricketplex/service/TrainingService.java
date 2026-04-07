@@ -42,11 +42,10 @@ import java.util.*;
 public class TrainingService {
 
     private static final String KEY = "last_training_date";
-    private static final double BASE_GAIN = 0.4;
-    private static final double STAMINA_SCALE = 0.25;
+    private static final double BASE_GAIN = 0.55;
     private static final double FOCUSED_MULTIPLIER = 2.5;
     private static final double GENERAL_MULTIPLIER = 1.0;
-    private static final double SKILL_DECAY_EXPONENT = 1.8;
+    private static final double SKILL_DECAY_EXPONENT = 2.0;
     private static final int FOCUSED_FITNESS_COST = 2;
     private static final int GENERAL_FITNESS_COST = 1;
 
@@ -132,20 +131,22 @@ public class TrainingService {
         playerRepository.saveAll(players);
     }
 
-    // ── Age factor: continuous curve using exact age (years + days/56) ──
-    // Peak at 17 (1.15), gradual decline — every year matters.
-    // 17→1.15, 18→1.10, 19→1.05, 20→1.00, 21→0.96, 22→0.92, 23→0.88,
-    // 24→0.84, 25→0.80, 27→0.70, 30→0.55, 33→0.40, 36→0.25, 38+→0.20
+    // ── Age factor: maturation curve using exact age (years + days/56) ──
+    // Youth players learn fundamentals slowly, peak training at 20-22,
+    // then gradual decline. Value of youth = more years of training ahead.
+    // 17→0.60, 18→0.73, 19→0.87, 20→1.00 (peak), 22→1.00,
+    // 25→0.91, 30→0.71, 35→0.46, 39→0.20 (floor)
     private static final int DAYS_PER_SEASON = 56;
 
     private double ageFactor(Player p) {
         double exactAge = p.getAge() + (double) p.getAgeDays() / DAYS_PER_SEASON;
-        if (exactAge <= 17.0) return 1.15;
-        if (exactAge <= 20.0) return 1.15 - (exactAge - 17.0) * 0.05;  // 17→1.15, 20→1.00
-        if (exactAge <= 25.0) return 1.00 - (exactAge - 20.0) * 0.04;  // 20→1.00, 25→0.80
-        if (exactAge <= 30.0) return 0.80 - (exactAge - 25.0) * 0.05;  // 25→0.80, 30→0.55
-        if (exactAge <= 34.0) return 0.55 - (exactAge - 30.0) * 0.0375;// 30→0.55, 34→0.40
-        return Math.max(0.20, 0.40 - (exactAge - 34.0) * 0.05);        // 34→0.40, 38→0.20, floor
+        if (exactAge <= 17.0) return 0.60;
+        if (exactAge <= 20.0) return 0.60 + (exactAge - 17.0) * (0.40 / 3.0);  // 17→0.60, 20→1.00 maturation ramp
+        if (exactAge <= 22.0) return 1.00;                                      // peak training years
+        if (exactAge <= 25.0) return 1.00 - (exactAge - 22.0) * 0.03;          // 22→1.00, 25→0.91
+        if (exactAge <= 30.0) return 0.91 - (exactAge - 25.0) * 0.04;          // 25→0.91, 30→0.71
+        if (exactAge <= 35.0) return 0.71 - (exactAge - 30.0) * 0.05;          // 30→0.71, 35→0.46
+        return Math.max(0.20, 0.46 - (exactAge - 35.0) * 0.065);              // 35→0.46, 39→0.20, floor
     }
 
     // ── Skill decay: smooth exponential slowdown ──
@@ -155,20 +156,25 @@ public class TrainingService {
     }
 
     // ── Core gain calculation ──
+    // baseGain is flat — stamina doesn't affect learning ability.
+    // Fitness has minimal impact: 80% floor, 100% ceiling.
     private double calcGain(Player p, int currentSkill, double multiplier) {
-        double base = BASE_GAIN + (p.getStamina() / 100.0) * STAMINA_SCALE;
-        double fit = p.getFitness() / 100.0;
+        double fit = 0.80 + (p.getFitness() / 100.0) * 0.20;  // range 0.80 – 1.00
         double age = ageFactor(p);
         double decay = skillDecay(currentSkill);
-        return base * multiplier * age * fit * decay;
+        return BASE_GAIN * multiplier * age * fit * decay;
     }
 
     private int applyGain(Team team, Player p, String trainingType, String skill,
                           int currentVal, double multiplier, Random rng) {
         double raw = calcGain(p, currentVal, multiplier);
-        // Add small randomness (±20%)
-        raw *= (0.8 + rng.nextDouble() * 0.4);
-        // Accumulate fractionally — use floor + random chance for the fractional part
+        // Wide randomness: 0.4× to 1.8× (occasionally poor or great sessions)
+        // Gaussian-ish: average of two randoms → bell-curved around 1.1×
+        double r1 = 0.4 + rng.nextDouble() * 1.4;   // 0.4 – 1.8
+        double r2 = 0.4 + rng.nextDouble() * 1.4;
+        double randomFactor = (r1 + r2) / 2.0;       // avg → ~1.1, range 0.4 – 1.8
+        raw *= randomFactor;
+        // Accumulate fractionally — floor + probabilistic rounding
         int guaranteed = (int) raw;
         double frac = raw - guaranteed;
         int gain = guaranteed + (rng.nextDouble() < frac ? 1 : 0);
