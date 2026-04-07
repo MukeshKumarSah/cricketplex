@@ -15,20 +15,20 @@ const TX_TYPES = [
   { value: 'TM_LISTING_FEE', label: 'Listing Fees' },
   { value: 'TM_SALE', label: 'Sales' },
   { value: 'TM_PURCHASE', label: 'Purchases' },
-  { value: 'TM_TAX_SETTLE', label: 'Tax Settlement' },
-  { value: 'SALARY', label: 'Salaries' },
-  { value: 'MATCH_INCOME', label: 'Match Income' },
-  { value: 'SEAT_INCOME', label: 'Seat Income' },
+  { value: 'TM_TAX', label: 'TM Tax' },
+  { value: 'GATE_MONEY', label: 'Gate Money' },
+  { value: 'ACADEMY_UPGRADE', label: 'Academy Upgrade' },
+  { value: 'ACADEMY_DOWNGRADE', label: 'Academy Downgrade' },
 ];
 
 const TYPE_COLORS = {
   TM_LISTING_FEE: '#f59e0b',
   TM_SALE: '#22c55e',
   TM_PURCHASE: '#ef4444',
-  TM_TAX_SETTLE: '#a855f7',
-  SALARY: '#ef4444',
-  MATCH_INCOME: '#22c55e',
-  SEAT_INCOME: '#3b82f6',
+  TM_TAX: '#a855f7',
+  GATE_MONEY: '#3b82f6',
+  ACADEMY_UPGRADE: '#ef4444',
+  ACADEMY_DOWNGRADE: '#22c55e',
 };
 
 function formatMoney(val) {

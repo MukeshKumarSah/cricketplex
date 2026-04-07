@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -54,11 +55,13 @@ public class TrainingService {
     private final TrainingAssignmentRepository trainingAssignmentRepository;
     private final TrainingLogRepository trainingLogRepository;
     private final AppStateRepository appStateRepository;
+    private final ActivityLogService activityLogService;
+    private final TransactionTemplate txTemplate;
 
     @PostConstruct
     public void catchUpOnStartup() {
         log.info("Checking for missed training days...");
-        applyMissedDays();
+        txTemplate.executeWithoutResult(status -> applyMissedDays());
     }
 
     @Scheduled(cron = "0 45 0 * * *", zone = "UTC")
@@ -94,7 +97,12 @@ public class TrainingService {
         List<Team> allTeams = teamRepository.findAll();
         for (long d = 0; d < missedDays; d++) {
             for (Team team : allTeams) {
-                runTrainingForTeam(team);
+                int totalGains = runTrainingForTeam(team);
+                int focusedCount = (int) trainingAssignmentRepository.findByTeamId(team.getId()).stream().count();
+                int playerCount = playerRepository.findByTeam(team).size();
+                activityLogService.log(team, "training-done",
+                        "Daily training completed: " + focusedCount + " focused, "
+                                + (playerCount - focusedCount) + " general. Total skill gains: +" + totalGains + ".");
             }
             log.debug("Training day {}/{} complete for {} teams", d + 1, missedDays, allTeams.size());
         }
@@ -104,7 +112,7 @@ public class TrainingService {
         log.info("Training complete — {} day(s) applied", missedDays);
     }
 
-    private void runTrainingForTeam(Team team) {
+    private int runTrainingForTeam(Team team) {
         List<Player> players = playerRepository.findByTeam(team);
         List<TrainingAssignment> assignments = trainingAssignmentRepository.findByTeamId(team.getId());
 
@@ -114,8 +122,10 @@ public class TrainingService {
         }
 
         Random rng = new Random();
+        int totalGains = 0;
 
         for (Player p : players) {
+            int before = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
             String focusedType = assignmentMap.get(p.getId());
             if (focusedType != null) {
                 applyFocusedTraining(team, p, focusedType, rng);
@@ -126,9 +136,12 @@ public class TrainingService {
             }
             // Recalc overall rating
             p.setRating(calcOverallRating(p));
+            int after = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
+            totalGains += (after - before);
         }
 
         playerRepository.saveAll(players);
+        return totalGains;
     }
 
     // ── Age factor: maturation curve using exact age (years + days/56) ──

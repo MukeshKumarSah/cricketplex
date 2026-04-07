@@ -40,6 +40,7 @@ const activityIcon = (type) => {
     case 'revenue': return '💰';
     case 'ground': return '🏟️';
     case 'training': return '🏋️';
+    case 'training-done': return '✅';
     case 'retired': return '👋';
     case 'released': return '🚪';
     case 'signup': return '🎉';
@@ -62,6 +63,7 @@ const activityTagColor = (type) => {
     case 'revenue': return '#fbbf24';
     case 'ground': return '#fb923c';
     case 'training': return '#818cf8';
+    case 'training-done': return '#34d399';
     case 'retired': return '#94a3b8';
     case 'released': return '#94a3b8';
     case 'signup': return '#22d3ee';
@@ -84,6 +86,7 @@ const activityTagLabel = (type) => {
     case 'revenue': return 'Revenue';
     case 'ground': return 'Ground';
     case 'training': return 'Training';
+    case 'training-done': return 'Trained';
     case 'retired': return 'Retired';
     case 'released': return 'Released';
     case 'signup': return 'Welcome';
@@ -95,7 +98,7 @@ const activityTagLabel = (type) => {
 
 const timeAgo = (dateStr) => {
   const now = new Date();
-  const past = new Date(dateStr);
+  const past = new Date(dateStr + (dateStr.endsWith('Z') ? '' : 'Z'));
   const diff = Math.floor((now - past) / 1000);
   if (diff < 60) return 'just now';
   if (diff < 3600) return Math.floor(diff / 60) + 'm ago';

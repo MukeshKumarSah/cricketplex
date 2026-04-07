@@ -38,6 +38,7 @@ public class AcademyController {
     private final TrainingAssignmentRepository trainingAssignmentRepository;
     private final TrainingLogRepository trainingLogRepository;
     private final ActivityLogService activityLogService;
+    private final TransactionLogRepository transactionLogRepository;
 
     // ════════════════════════════════════════════
     //  GET /api/academy — overview
@@ -80,6 +81,7 @@ public class AcademyController {
         resp.put("academyLevel", level);
         resp.put("maxFocusedSpots", maxSpots);
         resp.put("usedFocusedSpots", assignments.size());
+        resp.put("funds", team.getFunds());
         resp.put("players", playerList);
         return ResponseEntity.ok(resp);
     }
@@ -96,12 +98,26 @@ public class AcademyController {
             return ResponseEntity.badRequest().body(Map.of("error", "Academy is already at max level (4)"));
         }
         int cost = getUpgradeCost(current + 1);
+        if (team.getFunds() < cost) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "Insufficient funds. Upgrade costs $" + String.format("%,d", cost)
+                            + " but you only have $" + String.format("%,d", team.getFunds())));
+        }
+        team.setFunds(team.getFunds() - cost);
         team.setAcademyLevel(current + 1);
         teamRepository.save(team);
+        transactionLogRepository.save(TransactionLog.builder()
+                .team(team).type("ACADEMY_UPGRADE")
+                .description("Academy upgraded to Level " + (current + 1))
+                .amount((long) -cost).balanceAfter(team.getFunds())
+                .build());
+        activityLogService.log(team, "academy",
+                "Academy upgraded to Level " + (current + 1) + " for $" + String.format("%,d", cost) + ".");
         return ResponseEntity.ok(Map.of(
-                "message", "Academy upgraded to Level " + (current + 1),
+                "message", "Academy upgraded to Level " + (current + 1) + " (−$" + String.format("%,d", cost) + ")",
                 "academyLevel", current + 1,
-                "maxFocusedSpots", FOCUSED_SPOTS[current + 1]
+                "maxFocusedSpots", FOCUSED_SPOTS[current + 1],
+                "funds", team.getFunds()
         ));
     }
 
@@ -122,7 +138,6 @@ public class AcademyController {
         // Remove excess training assignments if downgrading reduces slots
         long used = trainingAssignmentRepository.countByTeamId(team.getId());
         if (used > newMax) {
-            // Remove the most recently added assignments that exceed the limit
             List<TrainingAssignment> assignments = trainingAssignmentRepository.findByTeamId(team.getId());
             int toRemove = (int) (used - newMax);
             for (int i = assignments.size() - 1; i >= 0 && toRemove > 0; i--) {
@@ -131,20 +146,39 @@ public class AcademyController {
             }
         }
 
+        int refund = getDowngradeRefund(current);
+        team.setFunds(team.getFunds() + refund);
         team.setAcademyLevel(newLevel);
         teamRepository.save(team);
+        transactionLogRepository.save(TransactionLog.builder()
+                .team(team).type("ACADEMY_DOWNGRADE")
+                .description("Academy downgraded to Level " + newLevel + " (refund)")
+                .amount((long) refund).balanceAfter(team.getFunds())
+                .build());
+        activityLogService.log(team, "academy",
+                "Academy downgraded to Level " + newLevel + ". Refunded $" + String.format("%,d", refund) + ".");
         return ResponseEntity.ok(Map.of(
-                "message", "Academy downgraded to Level " + newLevel,
+                "message", "Academy downgraded to Level " + newLevel + " (+$" + String.format("%,d", refund) + " refund)",
                 "academyLevel", newLevel,
-                "maxFocusedSpots", FOCUSED_SPOTS[newLevel]
+                "maxFocusedSpots", FOCUSED_SPOTS[newLevel],
+                "funds", team.getFunds()
         ));
     }
 
     private int getUpgradeCost(int targetLevel) {
         return switch (targetLevel) {
-            case 2 -> 5000;
-            case 3 -> 15000;
-            case 4 -> 40000;
+            case 2 -> 40000;
+            case 3 -> 100000;
+            case 4 -> 200000;
+            default -> 0;
+        };
+    }
+
+    private int getDowngradeRefund(int fromLevel) {
+        return switch (fromLevel) {
+            case 4 -> 150000;
+            case 3 -> 75000;
+            case 2 -> 30000;
             default -> 0;
         };
     }

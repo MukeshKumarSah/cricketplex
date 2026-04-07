@@ -61,11 +61,20 @@ const sections = [
       {
         title: 'Academy Upgrade Costs',
         rows: [
-          ['Level 1 → 2', '$5,000'],
-          ['Level 2 → 3', '$15,000'],
-          ['Level 3 → 4', '$40,000'],
+          ['Level 1 → 2', '$40,000'],
+          ['Level 2 → 3', '$100,000'],
+          ['Level 3 → 4', '$200,000'],
           ['Max Level', '4'],
         ],
+      },
+      {
+        title: 'Academy Downgrade Refunds',
+        rows: [
+          ['Level 4 → 3', '$150,000'],
+          ['Level 3 → 2', '$75,000'],
+          ['Level 2 → 1', '$30,000'],
+        ],
+        note: 'Refunds are less than upgrade costs — you lose money on downgrades.',
       },
     ],
   },

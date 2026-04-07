@@ -28,7 +28,8 @@ const SKILL_LABELS = {
   batRating: 'Bat', bowlRating: 'Bowl', keeperRating: 'WK',
   fldRating: 'Fld', stamina: 'Stam', confidence: 'Conf',
 };
-const UPGRADE_COST = { 2: '5,000', 3: '15,000', 4: '40,000' };
+const UPGRADE_COST = { 2: 40000, 3: 100000, 4: 200000 };
+const DOWNGRADE_REFUND = { 4: 150000, 3: 75000, 2: 30000 };
 const LEVEL_SPOTS = { 1: 3, 2: 5, 3: 7, 4: 10 };
 
 export default function Academy() {
@@ -105,7 +106,14 @@ export default function Academy() {
     if (tab === 'training-history' && !trainingHistory) loadTrainingHistory();
   }, [tab]);
 
+  const fmt = (n) => '$' + Number(n).toLocaleString();
+
   const handleUpgrade = async () => {
+    const nextLevel = overview.academyLevel + 1;
+    const cost = UPGRADE_COST[nextLevel];
+    if (!window.confirm(
+      `Upgrade Academy to Level ${nextLevel}?\n\nCost: ${fmt(cost)}\nCurrent Funds: ${fmt(overview.funds)}\nAfter: ${fmt(overview.funds - cost)}\n\nFocused slots: ${LEVEL_SPOTS[overview.academyLevel]} → ${LEVEL_SPOTS[nextLevel]}`
+    )) return;
     setUpgrading(true);
     try {
       const res = await upgradeAcademy();
@@ -119,6 +127,11 @@ export default function Academy() {
   };
 
   const handleDowngrade = async () => {
+    const curLevel = overview.academyLevel;
+    const refund = DOWNGRADE_REFUND[curLevel];
+    if (!window.confirm(
+      `Downgrade Academy to Level ${curLevel - 1}?\n\nRefund: +${fmt(refund)}\nCurrent Funds: ${fmt(overview.funds)}\nAfter: ${fmt(overview.funds + refund)}\n\nFocused slots: ${LEVEL_SPOTS[curLevel]} → ${LEVEL_SPOTS[curLevel - 1]}\nExcess training assignments will be removed.`
+    )) return;
     setUpgrading(true);
     try {
       const res = await downgradeAcademy();
@@ -149,12 +162,14 @@ export default function Academy() {
         <div className="ac-level-controls">
           {overview.academyLevel > 1 && (
             <button className="ac-level-btn downgrade" onClick={handleDowngrade} disabled={upgrading}
-              title="Downgrade academy">▼ Downgrade</button>
+              title={`Downgrade to Level ${overview.academyLevel - 1} (+${fmt(DOWNGRADE_REFUND[overview.academyLevel])} refund)`}>
+              ▼ Downgrade (+{fmt(DOWNGRADE_REFUND[overview.academyLevel])})
+            </button>
           )}
           {overview.academyLevel < 4 && (
             <button className="ac-level-btn upgrade" onClick={handleUpgrade} disabled={upgrading}
-              title={`Upgrade to Level ${overview.academyLevel + 1} (${LEVEL_SPOTS[overview.academyLevel + 1]} spots)`}>
-              ▲ Upgrade to L{overview.academyLevel + 1}
+              title={`Upgrade to Level ${overview.academyLevel + 1} (${LEVEL_SPOTS[overview.academyLevel + 1]} spots, costs ${fmt(UPGRADE_COST[overview.academyLevel + 1])})`}>
+              ▲ Upgrade to L{overview.academyLevel + 1} ({fmt(UPGRADE_COST[overview.academyLevel + 1])})
             </button>
           )}
         </div>

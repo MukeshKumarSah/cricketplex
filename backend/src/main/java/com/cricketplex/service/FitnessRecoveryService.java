@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -37,11 +38,12 @@ public class FitnessRecoveryService {
 
     private final PlayerRepository playerRepository;
     private final AppStateRepository appStateRepository;
+    private final TransactionTemplate txTemplate;
 
     @PostConstruct
     public void catchUpOnStartup() {
         log.info("Checking for missed fitness recovery days...");
-        applyMissedDays();
+        txTemplate.executeWithoutResult(status -> applyMissedDays());
     }
 
     @Scheduled(cron = "0 15 0 * * *", zone = "UTC")

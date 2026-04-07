@@ -104,6 +104,7 @@ com\cricketplex\controller\StatsController.class
 com\cricketplex\entity\PlayerLastName$PlayerLastNameBuilder.class
 com\cricketplex\entity\LineupPlayer.class
 com\cricketplex\entity\Fixture.class
+com\cricketplex\service\FitnessRecoveryService.class
 com\cricketplex\entity\BowlingOrder.class
 com\cricketplex\repository\PlayerFirstNameRepository.class
 com\cricketplex\entity\League$LeagueBuilder.class
