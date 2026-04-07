@@ -74,11 +74,12 @@ public class TeamController {
     public ResponseEntity<?> allCountryAvailability() {
         List<Map<String, Object>> list = new ArrayList<>();
         for (String country : FixtureService.getAllCountries()) {
-            boolean available = teamService.isCountryAvailable(country);
+            int slots = teamService.countAvailableSlots(country);
             String matchTime = FixtureService.getMatchStartTime(country);
             list.add(Map.of(
                     "country", country,
-                    "available", available,
+                    "available", slots > 0,
+                    "slots", slots,
                     "matchStartTimeUtc", matchTime
             ));
         }

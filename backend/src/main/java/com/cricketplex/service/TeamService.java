@@ -106,21 +106,39 @@ public class TeamService {
     }
 
     private boolean hasAvailableBotSlot(String country, String format) {
+        return countBotSlots(country, format) > 0;
+    }
+
+    private int countBotSlots(String country, String format) {
         Integer maxDiv = leagueRepository.findMaxDivisionForFormat(country, format);
-        if (maxDiv == null) return false;
+        if (maxDiv == null) return 0;
 
         List<League> bottomLeagues = leagueRepository
                 .findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(
                         country, format, 1);
 
+        int count = 0;
         for (League l : bottomLeagues) {
             if (!l.getDivision().equals(maxDiv)) continue;
             List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(l.getId());
             for (LeagueTeam lt : entries) {
-                if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) return true;
+                if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) count++;
             }
         }
-        return false;
+        return count;
+    }
+
+    /**
+     * Count available slots for a country.
+     * Bottleneck is the format with the fewest bot slots.
+     */
+    public int countAvailableSlots(String country) {
+        String[] formats = {"T20", "ODI", "FC"};
+        int min = Integer.MAX_VALUE;
+        for (String format : formats) {
+            min = Math.min(min, countBotSlots(country, format));
+        }
+        return min == Integer.MAX_VALUE ? 0 : min;
     }
 
     /**

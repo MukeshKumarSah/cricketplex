@@ -85,7 +85,7 @@ export default function TeamSetup() {
                       <span className="ts-card-name">{c.country}</span>
                       <span className="ts-card-meta">
                         <span className={`ts-card-status ${full ? 'full' : 'open'}`}>
-                          {full ? 'Full' : 'Open'}
+                          {full ? 'Full' : `${c.slots} slot${c.slots !== 1 ? 's' : ''}`}
                         </span>
                         <span className="ts-card-time">{c.matchStartTimeUtc} UTC</span>
                       </span>
