@@ -89,6 +89,8 @@ export const generateBotTeams = () => API.post('/admin/leagues/generate-bots');
 export const getBotStats = () => API.get('/admin/leagues/bot-stats');
 export const deleteLeague = (id) => API.delete(`/admin/leagues/${id}`);
 export const triggerAging = () => API.post('/admin/leagues/trigger-aging');
+export const triggerFitness = () => API.post('/admin/leagues/trigger-fitness');
+export const triggerTraining = () => API.post('/admin/leagues/trigger-training');
 
 // Lineup
 export const getLineupData = (fixtureId) => API.get(`/match/${fixtureId}/lineup`);

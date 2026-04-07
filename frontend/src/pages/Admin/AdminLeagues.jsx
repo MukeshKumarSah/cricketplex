@@ -17,6 +17,8 @@ import {
   getBotStats,
   deleteLeague,
   triggerAging,
+  triggerFitness,
+  triggerTraining,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminLeagues.css';
@@ -237,6 +239,56 @@ export default function AdminLeagues() {
           }}
         >
           ⏳ Force Age Players
+        </button>
+      </div>
+
+      {/* ── Fitness Recovery ── */}
+      <div className="al-card">
+        <div className="al-card-head">
+          <h2>Fitness Recovery</h2>
+          <span className="al-badge">Manual</span>
+        </div>
+        <p className="al-form-hint">
+          Forces daily fitness recovery catch-up. Recovery = 1 + (stamina × 5 / 100) per day, capped at 100.
+          Idempotent — skips if already up-to-date.
+        </p>
+        <button
+          className="al-btn-bot"
+          onClick={async () => {
+            try {
+              const res = await triggerFitness();
+              toast.success(res.data.message || 'Fitness recovery complete');
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Fitness recovery failed');
+            }
+          }}
+        >
+          💪 Force Fitness Recovery
+        </button>
+      </div>
+
+      {/* ── Training ── */}
+      <div className="al-card">
+        <div className="al-card-head">
+          <h2>Training</h2>
+          <span className="al-badge">Manual</span>
+        </div>
+        <p className="al-form-hint">
+          Forces daily training catch-up for all teams. Applies focused/general training with skill decay formula.
+          Idempotent — skips if already up-to-date.
+        </p>
+        <button
+          className="al-btn-bot"
+          onClick={async () => {
+            try {
+              const res = await triggerTraining();
+              toast.success(res.data.message || 'Training complete');
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Training failed');
+            }
+          }}
+        >
+          🏋️ Force Training
         </button>
       </div>
 

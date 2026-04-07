@@ -1,8 +1,10 @@
 package com.cricketplex.controller;
 
 import com.cricketplex.service.BotTeamService;
+import com.cricketplex.service.FitnessRecoveryService;
 import com.cricketplex.service.LeagueService;
 import com.cricketplex.service.PlayerAgingService;
+import com.cricketplex.service.TrainingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +22,8 @@ public class AdminLeagueController {
     private final LeagueService leagueService;
     private final BotTeamService botTeamService;
     private final PlayerAgingService playerAgingService;
+    private final FitnessRecoveryService fitnessRecoveryService;
+    private final TrainingService trainingService;
 
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {
@@ -65,5 +69,17 @@ public class AdminLeagueController {
     public ResponseEntity<?> triggerAging() {
         playerAgingService.applyMissedDays();
         return ResponseEntity.ok(Map.of("message", "Player aging catch-up complete"));
+    }
+
+    @PostMapping("/trigger-fitness")
+    public ResponseEntity<?> triggerFitness() {
+        fitnessRecoveryService.applyMissedDays();
+        return ResponseEntity.ok(Map.of("message", "Fitness recovery catch-up complete"));
+    }
+
+    @PostMapping("/trigger-training")
+    public ResponseEntity<?> triggerTraining() {
+        trainingService.applyMissedDays();
+        return ResponseEntity.ok(Map.of("message", "Training catch-up complete"));
     }
 }
