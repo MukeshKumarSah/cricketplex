@@ -44,6 +44,7 @@ export default function Academy() {
   const [lastPull, setLastPull] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [upgrading, setUpgrading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const loadOverview = () => {
     getAcademyOverview()
@@ -108,37 +109,47 @@ export default function Academy() {
 
   const fmt = (n) => '$' + Number(n).toLocaleString();
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = () => {
     const nextLevel = overview.academyLevel + 1;
     const cost = UPGRADE_COST[nextLevel];
-    if (!window.confirm(
-      `Upgrade Academy to Level ${nextLevel}?\n\nCost: ${fmt(cost)}\nCurrent Funds: ${fmt(overview.funds)}\nAfter: ${fmt(overview.funds - cost)}\n\nFocused slots: ${LEVEL_SPOTS[overview.academyLevel]} → ${LEVEL_SPOTS[nextLevel]}`
-    )) return;
-    setUpgrading(true);
-    try {
-      const res = await upgradeAcademy();
-      toast.success(res.data.message);
-      loadOverview();
-    } catch (e) {
-      toast.error(e.response?.data?.error || 'Upgrade failed');
-    } finally {
-      setUpgrading(false);
-    }
+    setConfirmModal({
+      type: 'upgrade',
+      title: `Upgrade to Level ${nextLevel}`,
+      rows: [
+        ['Cost', fmt(cost)],
+        ['Current Funds', fmt(overview.funds)],
+        ['After', fmt(overview.funds - cost)],
+        ['Focused Slots', `${LEVEL_SPOTS[overview.academyLevel]} → ${LEVEL_SPOTS[nextLevel]}`],
+      ],
+    });
   };
 
-  const handleDowngrade = async () => {
+  const handleDowngrade = () => {
     const curLevel = overview.academyLevel;
     const refund = DOWNGRADE_REFUND[curLevel];
-    if (!window.confirm(
-      `Downgrade Academy to Level ${curLevel - 1}?\n\nRefund: +${fmt(refund)}\nCurrent Funds: ${fmt(overview.funds)}\nAfter: ${fmt(overview.funds + refund)}\n\nFocused slots: ${LEVEL_SPOTS[curLevel]} → ${LEVEL_SPOTS[curLevel - 1]}\nExcess training assignments will be removed.`
-    )) return;
+    setConfirmModal({
+      type: 'downgrade',
+      title: `Downgrade to Level ${curLevel - 1}`,
+      rows: [
+        ['Refund', '+' + fmt(refund)],
+        ['Current Funds', fmt(overview.funds)],
+        ['After', fmt(overview.funds + refund)],
+        ['Focused Slots', `${LEVEL_SPOTS[curLevel]} → ${LEVEL_SPOTS[curLevel - 1]}`],
+      ],
+      warning: 'Excess training assignments will be removed.',
+    });
+  };
+
+  const confirmAction = async () => {
+    const action = confirmModal.type;
+    setConfirmModal(null);
     setUpgrading(true);
     try {
-      const res = await downgradeAcademy();
+      const res = action === 'upgrade' ? await upgradeAcademy() : await downgradeAcademy();
       toast.success(res.data.message);
       loadOverview();
     } catch (e) {
-      toast.error(e.response?.data?.error || 'Downgrade failed');
+      toast.error(e.response?.data?.error || `${action === 'upgrade' ? 'Upgrade' : 'Downgrade'} failed`);
     } finally {
       setUpgrading(false);
     }
@@ -210,6 +221,34 @@ export default function Academy() {
 
       {tab === 'training-history' && (
         <TrainingHistorySection data={trainingHistory} navigate={navigate} />
+      )}
+
+      {confirmModal && (
+        <div className="ac-modal-overlay" onClick={() => setConfirmModal(null)}>
+          <div className="ac-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="ac-modal-title">{confirmModal.title}</h3>
+            <div className="ac-modal-rows">
+              {confirmModal.rows.map(([label, value], i) => (
+                <div className="ac-modal-row" key={i}>
+                  <span className="ac-modal-label">{label}</span>
+                  <span className="ac-modal-value">{value}</span>
+                </div>
+              ))}
+            </div>
+            {confirmModal.warning && (
+              <p className="ac-modal-warning">{confirmModal.warning}</p>
+            )}
+            <div className="ac-modal-actions">
+              <button className="ac-modal-btn cancel" onClick={() => setConfirmModal(null)}>Cancel</button>
+              <button
+                className={`ac-modal-btn ${confirmModal.type === 'upgrade' ? 'confirm-upgrade' : 'confirm-downgrade'}`}
+                onClick={confirmAction}
+              >
+                {confirmModal.type === 'upgrade' ? 'Upgrade' : 'Downgrade'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
