@@ -1,49 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setupTeam, checkCountryAvailability } from '../../api/auth';
+import { setupTeam, getAllCountryAvailability } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { COUNTRIES, COUNTRY_MATCH_TIMES } from '../../constants/countries';
 import './TeamSetup.css';
 
 export default function TeamSetup() {
   const navigate = useNavigate();
   const { updateUser, user } = useAuth();
-  const [form, setForm] = useState({ teamName: '', country: '' });
+  const [teamName, setTeamName] = useState('');
+  const [selected, setSelected] = useState(null);
+  const [countries, setCountries] = useState([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [availability, setAvailability] = useState(null); // { available, matchStartTimeUtc }
-  const [checking, setChecking] = useState(false);
 
-  const checkAvailability = useCallback(async (country) => {
-    if (!country) { setAvailability(null); return; }
-    setChecking(true);
-    try {
-      const { data } = await checkCountryAvailability(country);
-      setAvailability(data);
-    } catch {
-      setAvailability(null);
-    } finally {
-      setChecking(false);
-    }
+  useEffect(() => {
+    getAllCountryAvailability()
+      .then(res => setCountries(res.data))
+      .catch(() => toast.error('Failed to load countries'))
+      .finally(() => setLoadingCountries(false));
   }, []);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (name === 'country') {
-      checkAvailability(value);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (availability && !availability.available) {
-      toast.error('Leagues are full for this country. Please choose a different country.');
+    if (!selected || !selected.available) {
+      toast.error('Please select a country with available slots.');
+      return;
+    }
+    if (!teamName.trim()) {
+      toast.error('Please enter a team name.');
       return;
     }
     setLoading(true);
     try {
-      await setupTeam(form);
+      await setupTeam({ teamName: teamName.trim(), country: selected.country });
       updateUser({ ...user, teamSetupDone: true });
       toast.success('Team created! Welcome to CricketPlex!');
       navigate('/');
@@ -53,9 +43,6 @@ export default function TeamSetup() {
       setLoading(false);
     }
   };
-
-  const matchTime = form.country ? COUNTRY_MATCH_TIMES[form.country] : null;
-  const countryFull = availability && !availability.available;
 
   return (
     <div className="team-setup-container">
@@ -70,53 +57,55 @@ export default function TeamSetup() {
             <label htmlFor="teamName">Team Name</label>
             <input
               id="teamName"
-              name="teamName"
               type="text"
               placeholder="Enter your team name"
-              value={form.teamName}
-              onChange={handleChange}
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="country">Country</label>
-            <select
-              id="country"
-              name="country"
-              value={form.country}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select a country</option>
-              {COUNTRIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-
-            {form.country && (
-              <div className="ts-country-info">
-                {checking ? (
-                  <span className="ts-checking">Checking availability…</span>
-                ) : countryFull ? (
-                  <span className="ts-full">
-                    Leagues are full for {form.country}. Please choose a different country.
-                  </span>
-                ) : availability?.available ? (
-                  <span className="ts-available">Slots available</span>
-                ) : null}
-                {matchTime && (
-                  <span className="ts-match-time">
-                    League matches start daily at <strong>{matchTime} UTC</strong>
-                  </span>
-                )}
+            <label>Select Country</label>
+            {loadingCountries ? (
+              <div className="ts-loading">Loading countries…</div>
+            ) : (
+              <div className="ts-country-grid">
+                {countries.map((c) => {
+                  const isSelected = selected?.country === c.country;
+                  const full = !c.available;
+                  return (
+                    <button
+                      type="button"
+                      key={c.country}
+                      className={`ts-country-card${isSelected ? ' selected' : ''}${full ? ' full' : ''}`}
+                      onClick={() => !full && setSelected(c)}
+                      disabled={full}
+                    >
+                      <span className="ts-card-name">{c.country}</span>
+                      <span className="ts-card-meta">
+                        <span className={`ts-card-status ${full ? 'full' : 'open'}`}>
+                          {full ? 'Full' : 'Open'}
+                        </span>
+                        <span className="ts-card-time">{c.matchStartTimeUtc} UTC</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <button type="submit" className="auth-btn" disabled={loading || countryFull}>
+          {selected && (
+            <div className="ts-selected-info">
+              <span>Selected: <strong>{selected.country}</strong></span>
+              <span className="ts-selected-time">
+                Matches at <strong>{selected.matchStartTimeUtc} UTC</strong> daily
+              </span>
+            </div>
+          )}
+
+          <button type="submit" className="auth-btn" disabled={loading || !selected?.available}>
             {loading ? 'Creating Team...' : 'Create Team & Continue'}
           </button>
         </form>

@@ -15,7 +15,7 @@
   border-radius: 16px;
   padding: 2.5rem;
   width: 100%;
-  max-width: 480px;
+  max-width: 680px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
@@ -43,55 +43,110 @@
   gap: 1.25rem;
 }
 
-.team-setup-form select {
-  padding: 0.75rem 1rem;
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  color: #f1f5f9;
-  font-size: 0.95rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-  cursor: pointer;
+/* ── Country Grid ── */
+.ts-loading {
+  color: #64748b;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1.5rem 0;
 }
 
-.team-setup-form select:focus {
-  border-color: #22d3ee;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+.ts-country-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.4rem;
 }
 
-.team-setup-form select option {
-  background: #1e293b;
-  color: #f1f5f9;
-}
-
-/* ── Country Info ── */
-.ts-country-info {
+.ts-country-card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
+  align-items: flex-start;
+  gap: 0.3rem;
+  background: #0f172a;
+  border: 1.5px solid #1e293b;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.ts-country-card:hover:not(:disabled) {
+  border-color: #334155;
+  background: #111827;
+}
+.ts-country-card.selected {
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.06);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15);
+}
+.ts-country-card.full {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ts-card-name {
   font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e8f0;
 }
-.ts-checking {
-  color: #64748b;
-  font-style: italic;
+.ts-country-card.selected .ts-card-name { color: #22d3ee; }
+
+.ts-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
 }
-.ts-available {
+
+.ts-card-status {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.ts-card-status.open {
+  background: rgba(34, 197, 94, 0.1);
   color: #22c55e;
-  font-weight: 600;
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
-.ts-full {
+.ts-card-status.full {
+  background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-  font-weight: 600;
-  background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
 }
-.ts-match-time {
+
+.ts-card-time {
+  font-size: 0.65rem;
+  color: #475569;
+  margin-left: auto;
+}
+
+/* ── Selected Info ── */
+.ts-selected-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.82rem;
   color: #94a3b8;
 }
-.ts-match-time strong {
-  color: #22d3ee;
+.ts-selected-info strong { color: #22d3ee; }
+
+.ts-selected-time {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.ts-selected-time strong { color: #22d3ee; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ts-country-grid { grid-template-columns: repeat(2, 1fr); }
+  .team-setup-card { padding: 1.5rem; }
 }

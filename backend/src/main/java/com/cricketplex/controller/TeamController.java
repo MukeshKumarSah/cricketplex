@@ -67,6 +67,24 @@ public class TeamController {
         ));
     }
 
+    /**
+     * Returns availability + match time for all countries in one call.
+     */
+    @GetMapping("/all-country-availability")
+    public ResponseEntity<?> allCountryAvailability() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (String country : FixtureService.getAllCountries()) {
+            boolean available = teamService.isCountryAvailable(country);
+            String matchTime = FixtureService.getMatchStartTime(country);
+            list.add(Map.of(
+                    "country", country,
+                    "available", available,
+                    "matchStartTimeUtc", matchTime
+            ));
+        }
+        return ResponseEntity.ok(list);
+    }
+
     @PostMapping("/setup")
     public ResponseEntity<?> setupTeam(@AuthenticationPrincipal UserPrincipal principal,
                                        @Valid @RequestBody TeamSetupRequest request) {

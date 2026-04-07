@@ -76,6 +76,48 @@ const sections = [
         ],
         note: 'Refunds are less than upgrade costs — you lose money on downgrades.',
       },
+      {
+        title: 'Weekly Finances (every Saturday 00:05 UTC)',
+        rows: [
+          ['Sponsorship', 'Base $10K + morale bonus + fan bonus + position bonus'],
+          ['  Morale Bonus', '(morale / 100) × $20,000'],
+          ['  Fan Bonus', '(min(fans, 10K) / 10K) × $15,000'],
+          ['  Position Bonus', '((leagueSize + 1 − position) / leagueSize) × $10,000'],
+        ],
+      },
+      {
+        title: 'Weekly Interest',
+        rows: [
+          ['Rate', '2% of current funds'],
+          ['Cap', '$50,000 max interest'],
+          ['Negative Funds', 'No interest if funds ≤ 0'],
+        ],
+      },
+      {
+        title: 'Weekly Academy Maintenance',
+        rows: [
+          ['Level 1', '$10,000'],
+          ['Level 2', '$30,000'],
+          ['Level 3', '$65,000'],
+          ['Level 4', '$100,000'],
+        ],
+      },
+      {
+        title: 'Weekly Player Salaries',
+        rows: [
+          ['Calculation', 'Sum of all player wages'],
+        ],
+      },
+      {
+        title: 'Weekly Ground Maintenance',
+        rows: [
+          ['Standing Seats', '$0.20 per seat'],
+          ['Economy Seats', '$0.40 per seat'],
+          ['Standard Seats', '$0.70 per seat'],
+          ['Premium Seats', '$1.00 per seat'],
+        ],
+        note: 'Default ground: 3K standing + 12K economy + 8K standard + 2K premium = $13,000/week',
+      },
     ],
   },
   {

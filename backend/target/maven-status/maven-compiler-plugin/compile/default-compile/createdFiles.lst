@@ -136,6 +136,7 @@ com\cricketplex\service\ChatService.class
 com\cricketplex\service\FileStorageService.class
 com\cricketplex\entity\LeagueTeam$LeagueTeamBuilder.class
 com\cricketplex\entity\TransferBid.class
+com\cricketplex\service\WeeklyFinanceService.class
 com\cricketplex\dto\ApiResponse$ApiResponseBuilder.class
 com\cricketplex\entity\LineupPlayer$LineupPlayerBuilder.class
 com\cricketplex\dto\AuthResponse.class

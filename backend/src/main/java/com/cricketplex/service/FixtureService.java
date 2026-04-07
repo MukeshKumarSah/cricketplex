@@ -66,6 +66,13 @@ public class FixtureService {
         return COUNTRY_MATCH_TIMES.getOrDefault(country, "14:00");
     }
 
+    /** All supported countries, sorted alphabetically. */
+    public static List<String> getAllCountries() {
+        List<String> countries = new ArrayList<>(COUNTRY_MATCH_TIMES.keySet());
+        Collections.sort(countries);
+        return countries;
+    }
+
     /**
      * Balanced round-robin template for 8 teams (0-indexed positions).
      * Verified constraints:

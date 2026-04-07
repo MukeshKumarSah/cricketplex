@@ -41,6 +41,7 @@ const activityIcon = (type) => {
     case 'ground': return '🏟️';
     case 'training': return '🏋️';
     case 'training-done': return '✅';
+    case 'finance': return '💰';
     case 'retired': return '👋';
     case 'released': return '🚪';
     case 'signup': return '🎉';
@@ -64,6 +65,7 @@ const activityTagColor = (type) => {
     case 'ground': return '#fb923c';
     case 'training': return '#818cf8';
     case 'training-done': return '#34d399';
+    case 'finance': return '#6366f1';
     case 'retired': return '#94a3b8';
     case 'released': return '#94a3b8';
     case 'signup': return '#22d3ee';
@@ -87,6 +89,7 @@ const activityTagLabel = (type) => {
     case 'ground': return 'Ground';
     case 'training': return 'Training';
     case 'training-done': return 'Trained';
+    case 'finance': return 'Finance';
     case 'retired': return 'Retired';
     case 'released': return 'Released';
     case 'signup': return 'Welcome';

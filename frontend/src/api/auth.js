@@ -5,6 +5,7 @@ export const login = (data) => API.post('/auth/login', data);
 export const getMe = () => API.get('/auth/me');
 export const setupTeam = (data) => API.post('/team/setup', data);
 export const checkCountryAvailability = (country) => API.get(`/team/check-availability?country=${encodeURIComponent(country)}`);
+export const getAllCountryAvailability = () => API.get('/team/all-country-availability');
 
 // Settings
 export const getSettings = () => API.get('/settings');

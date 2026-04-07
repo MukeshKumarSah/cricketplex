@@ -19,6 +19,11 @@ const TX_TYPES = [
   { value: 'GATE_MONEY', label: 'Gate Money' },
   { value: 'ACADEMY_UPGRADE', label: 'Academy Upgrade' },
   { value: 'ACADEMY_DOWNGRADE', label: 'Academy Downgrade' },
+  { value: 'SPONSORSHIP', label: 'Sponsorship' },
+  { value: 'INTEREST', label: 'Interest' },
+  { value: 'ACADEMY_MAINTENANCE', label: 'Academy Maintenance' },
+  { value: 'PLAYER_SALARY', label: 'Player Salary' },
+  { value: 'GROUND_MAINTENANCE', label: 'Ground Maintenance' },
 ];
 
 const TYPE_COLORS = {
@@ -29,6 +34,11 @@ const TYPE_COLORS = {
   GATE_MONEY: '#3b82f6',
   ACADEMY_UPGRADE: '#ef4444',
   ACADEMY_DOWNGRADE: '#22c55e',
+  SPONSORSHIP: '#10b981',
+  INTEREST: '#6366f1',
+  ACADEMY_MAINTENANCE: '#f97316',
+  PLAYER_SALARY: '#ec4899',
+  GROUND_MAINTENANCE: '#8b5cf6',
 };
 
 function formatMoney(val) {
@@ -117,7 +127,7 @@ export default function Finances() {
           <div className="fin-card-body">
             <span className="fin-card-label">Squad Wages</span>
             <span className="fin-card-value">
-              {formatMoney(data.totalWages)}<span className="fin-wage-period">/day</span>
+              {formatMoney(data.totalWages)}<span className="fin-wage-period">/week</span>
             </span>
             <span className="fin-card-sub">{data.squadSize} players</span>
           </div>
