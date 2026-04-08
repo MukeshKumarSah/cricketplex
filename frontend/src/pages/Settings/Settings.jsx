@@ -309,6 +309,23 @@ export default function Settings() {
             </button>
           </form>
         </section>
+
+        {/* Tutorial */}
+        <section className="settings-card">
+          <h2>Tutorial</h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.88rem', marginBottom: '12px' }}>
+            New to CricketPlex? Replay the guided tour to learn about each section of the game.
+          </p>
+          <button
+            type="button"
+            className="save-btn"
+            onClick={() => {
+              if (window.__restartTour) window.__restartTour();
+            }}
+          >
+            🎓 Restart Tutorial Tour
+          </button>
+        </section>
       </div>
     </div>
   );

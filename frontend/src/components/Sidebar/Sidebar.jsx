@@ -72,6 +72,7 @@ export default function Sidebar({ isOpen, toggle }) {
               `sidebar-link ${isActive ? 'active' : ''}`
             }
             title={item.label}
+            data-tour={item.path === '/' ? 'dashboard' : item.path.replace('/', '')}
           >
             <item.icon className="sidebar-icon" />
             {isOpen && <span className="sidebar-label">{item.label}</span>}

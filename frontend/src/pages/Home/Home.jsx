@@ -28,6 +28,7 @@ import Finances from '../Finances/Finances';
 import GameFormulas from '../Admin/GameFormulas';
 import AdminBots from '../Admin/AdminBots';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
+import TutorialTour from '../../components/TutorialTour/TutorialTour';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -283,6 +284,7 @@ export default function Home() {
         </main>
       </div>
       <ChatWidget />
+      <TutorialTour sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
     </div>
   );
 }
