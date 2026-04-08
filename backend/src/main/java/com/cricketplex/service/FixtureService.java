@@ -32,8 +32,9 @@ public class FixtureService {
      */
     private static final ConcurrentHashMap<UUID, Map<UUID, UUID>> pendingSwaps = new ConcurrentHashMap<>();
 
-    /** Season 1 starts on this Sunday. Each season roughly 14 weeks apart. */
+    /** Season 1 starts on this Sunday. Each season is 8 weeks (56 days). */
     private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
+    private static final int SEASON_DAYS = 56;
 
     /**
      * Country → UTC match start time (HH:mm).
@@ -92,12 +93,13 @@ public class FixtureService {
     };
 
     /**
-     * Generate the full 14-round fixture list for a league.
-     * Idempotent — does nothing if fixtures already exist.
+     * Generate the full fixture list for a league.
+     * T20/ODI: 14 rounds (56 matches). FC: 14 rounds spanning 2 seasons.
+     * Idempotent — skips if any non-completed fixtures still exist.
      */
     @Transactional
     public void generateFixtures(League league) {
-        if (fixtureRepository.countByLeagueId(league.getId()) > 0) return;
+        if (fixtureRepository.countByLeagueIdAndStatusNot(league.getId(), "COMPLETED") > 0) return;
 
         List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueId(league.getId());
         if (leagueTeams.size() != 8) {
@@ -156,13 +158,13 @@ public class FixtureService {
     /**
      * Compute the match date for a given format, round, and season.
      *
-     * Schedule per week (season start = Sunday):
+     * Schedule per week (season = 8 weeks, start = Sunday):
      *   T20: Sunday (odd rounds) + Thursday (even rounds)  → 7 weeks for 14 rounds
      *   ODI: Monday (odd rounds) + Friday (even rounds)   → 7 weeks for 14 rounds
-     *   FC:  Tuesday, 1 round per week                    → 14 weeks for 14 rounds
+     *   FC:  Tuesday, 1 round per week — R1-R7 in current season, R8-R14 in next season
      */
     private LocalDate computeMatchDate(String format, int round, int season) {
-        LocalDate seasonStart = SEASON_1_START.plusWeeks((long)(season - 1) * 14);
+        LocalDate seasonStart = SEASON_1_START.plusWeeks((long)(season - 1) * 8);
 
         switch (format) {
             case "T20": {
@@ -176,8 +178,13 @@ public class FixtureService {
                 return seasonStart.plusWeeks(week - 1).plusDays(first ? 1 : 5);
             }
             case "FC": {
-                // 1 round per week, Tuesday start (2-day match Tue-Wed)
-                return seasonStart.plusWeeks(round - 1).plusDays(2);
+                if (round <= 7) {
+                    // First half: weeks 1-7 of current season
+                    return seasonStart.plusWeeks(round - 1).plusDays(2);
+                } else {
+                    // Second half: weeks 1-7 of NEXT season (+ 56 days)
+                    return seasonStart.plusDays(SEASON_DAYS).plusWeeks(round - 8).plusDays(2);
+                }
             }
             default:
                 return seasonStart.plusWeeks(round - 1);
@@ -298,9 +305,16 @@ public class FixtureService {
 
     /**
      * Delete all fixtures for a league (used during league deletion).
+     * Deletes match results first to avoid FK constraint violations.
      */
     @Transactional
     public void deleteFixturesForLeague(UUID leagueId) {
+        List<Fixture> fixtures = fixtureRepository.findByLeagueId(leagueId);
+        for (Fixture f : fixtures) {
+            matchResultRepository.findByFixtureId(f.getId())
+                    .ifPresent(matchResultRepository::delete);
+        }
+        matchResultRepository.flush();
         fixtureRepository.deleteByLeagueId(leagueId);
     }
 

@@ -19,6 +19,7 @@ import {
   triggerAging,
   triggerFitness,
   triggerTraining,
+  triggerSeasonal,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminLeagues.css';
@@ -289,6 +290,33 @@ export default function AdminLeagues() {
           }}
         >
           🏋️ Force Training
+        </button>
+      </div>
+
+      {/* ── Seasonal Update ── */}
+      <div className="al-card">
+        <div className="al-card-head">
+          <h2>Seasonal Update</h2>
+          <span className="al-badge">Manual</span>
+        </div>
+        <p className="al-form-hint">
+          Triggers the seasonal catch-up: prize money, salary update, promotion/relegation,
+          season change, and fixture generation. Idempotent — only applies missed seasons.
+          Runs automatically every 56 days but can be forced here if it fails.
+        </p>
+        <button
+          className="al-btn-bot"
+          onClick={async () => {
+            try {
+              const res = await triggerSeasonal();
+              toast.success(res.data.message || 'Seasonal update complete');
+              await loadStats();
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Seasonal update failed');
+            }
+          }}
+        >
+          🏆 Force Seasonal Update
         </button>
       </div>
 

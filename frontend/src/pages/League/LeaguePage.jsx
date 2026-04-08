@@ -117,7 +117,7 @@ export default function LeaguePage() {
                   <th>L</th>
                   <th>T</th>
                   <th>Pts</th>
-                  <th>NRR</th>
+                  <th>{league.format === 'FC' ? 'Quo' : 'NRR'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +147,9 @@ export default function LeaguePage() {
                     <td>{row.tied}</td>
                     <td className="lp-td-pts">{row.points}</td>
                     <td className="lp-td-nrr">
-                      {row.nrr >= 0 ? '+' : ''}{row.nrr.toFixed(3)}
+                      {league.format === 'FC'
+                        ? row.nrr.toFixed(3)
+                        : `${row.nrr >= 0 ? '+' : ''}${row.nrr.toFixed(3)}`}
                     </td>
                   </tr>
                 ))}

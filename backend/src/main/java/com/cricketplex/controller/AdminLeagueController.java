@@ -4,6 +4,7 @@ import com.cricketplex.service.BotTeamService;
 import com.cricketplex.service.FitnessRecoveryService;
 import com.cricketplex.service.LeagueService;
 import com.cricketplex.service.PlayerAgingService;
+import com.cricketplex.service.SeasonalUpdateService;
 import com.cricketplex.service.TrainingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class AdminLeagueController {
     private final PlayerAgingService playerAgingService;
     private final FitnessRecoveryService fitnessRecoveryService;
     private final TrainingService trainingService;
+    private final SeasonalUpdateService seasonalUpdateService;
 
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {
@@ -81,5 +83,11 @@ public class AdminLeagueController {
     public ResponseEntity<?> triggerTraining() {
         trainingService.applyMissedDays();
         return ResponseEntity.ok(Map.of("message", "Training catch-up complete"));
+    }
+
+    @PostMapping("/trigger-seasonal")
+    public ResponseEntity<?> triggerSeasonal() {
+        seasonalUpdateService.applyMissedUpdates();
+        return ResponseEntity.ok(Map.of("message", "Seasonal update catch-up complete"));
     }
 }

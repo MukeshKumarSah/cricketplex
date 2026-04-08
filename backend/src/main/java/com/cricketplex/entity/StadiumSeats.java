@@ -27,19 +27,19 @@ public class StadiumSeats {
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer premium = 2000;
+    private Integer premium = 500;
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer standard = 8000;
+    private Integer standard = 1000;
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer economy = 12000;
+    private Integer economy = 1500;
 
     @Column(nullable = false)
     @Builder.Default
-    private Integer standing = 3000;
+    private Integer standing = 2000;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

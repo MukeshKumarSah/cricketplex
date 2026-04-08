@@ -1589,6 +1589,7 @@ public class MatchEngine {
         if (fixture.getLeague() != null) {
             updateMoraleAndFans(result, fixture, "FC");
             updatePlayerStats(result, "FC");
+            distributeGateMoney(result, fixture);
         }
         MatchResult saved = matchResultRepository.save(result);
         // Apply any deferred bot→human swaps that were queued while this match was in progress
@@ -1763,9 +1764,11 @@ public class MatchEngine {
                     if (delivery.isWicket) {
                         maidenPossible = false;
                         totalWickets++;
-                        bowlCard.setWickets(bowlCard.getWickets() + 1);
                         batCard.setDismissalType(delivery.dismissalType);
-                        if (!"RUN_OUT".equals(delivery.dismissalType)) batCard.setBowler(currentBowler);
+                        if (!"RUN_OUT".equals(delivery.dismissalType)) {
+                            bowlCard.setWickets(bowlCard.getWickets() + 1);
+                            batCard.setBowler(currentBowler);
+                        }
                         batCard.setFielder(delivery.fielder);
                         if (batCard.getBallsFaced() > 0) {
                             batCard.setStrikeRate(Math.round(batCard.getRunsScored() * 100.0 / batCard.getBallsFaced() * 100.0) / 100.0);
@@ -2153,7 +2156,7 @@ public class MatchEngine {
         // Fetch home team's stadium (match is played at home ground)
         StadiumSeats seats = stadiumSeatsRepository.findByTeam(home)
                 .orElse(StadiumSeats.builder().team(home)
-                        .standing(3000).economy(12000).standard(8000).premium(2000).build());
+                        .standing(2000).economy(1500).standard(1000).premium(500).build());
 
         int standingCap = seats.getStanding();
         int economyCap  = seats.getEconomy();

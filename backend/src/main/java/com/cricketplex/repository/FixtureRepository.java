@@ -32,4 +32,6 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     @Query("SELECT f FROM Fixture f LEFT JOIN FETCH f.league WHERE f.status = :status")
     List<Fixture> findByStatus(@Param("status") String status);
+
+    long countByLeagueIdAndStatusNot(UUID leagueId, String status);
 }

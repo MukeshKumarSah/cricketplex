@@ -838,107 +838,193 @@ export default function MatchCenter() {
         {/* ═══ COMPARISON ═══ */}
         {activeTab === 'comparison' && (
           <div className="mc-comparison">
-            {comparisonData.length >= 2 ? (
-              <>
-                <div className="mc-comp-header">
-                  <span className="mc-comp-team">{comparisonData[0].battingTeam}</span>
-                  <span className="mc-comp-vs">vs</span>
-                  <span className="mc-comp-team">{comparisonData[1].battingTeam}</span>
-                </div>
+            {(() => {
+              const isFC = result?.format === 'FC';
+              // For FC, aggregate by team across both innings
+              if (isFC && comparisonData.length >= 2) {
+                const teamMap = {};
+                comparisonData.forEach((inn) => {
+                  if (!teamMap[inn.battingTeam]) {
+                    teamMap[inn.battingTeam] = { battingTeam: inn.battingTeam, runs: 0, wkts: 0, fours: 0, sixes: 0, dots: 0, extras: 0, phaseStats: {}, innings: [] };
+                  }
+                  const agg = teamMap[inn.battingTeam];
+                  agg.runs += inn.runs;
+                  agg.wkts += inn.wkts;
+                  agg.fours += inn.fours;
+                  agg.sixes += inn.sixes;
+                  agg.dots += inn.dots;
+                  agg.extras += inn.extras;
+                  agg.innings.push(inn);
+                  for (const [phase, ps] of Object.entries(inn.phaseStats)) {
+                    if (!agg.phaseStats[phase]) agg.phaseStats[phase] = { runs: 0, wickets: 0 };
+                    agg.phaseStats[phase].runs += ps.runs;
+                    agg.phaseStats[phase].wickets += ps.wickets;
+                  }
+                });
+                const teams = Object.values(teamMap);
+                if (teams.length < 2) return <div className="mc-empty">Comparison available after both teams have batted.</div>;
+                const t0 = teams[0];
+                const t1 = teams[1];
+                return (
+                  <>
+                    <div className="mc-comp-header">
+                      <span className="mc-comp-team">{t0.battingTeam}</span>
+                      <span className="mc-comp-vs">vs</span>
+                      <span className="mc-comp-team">{t1.battingTeam}</span>
+                    </div>
 
-                {/* ═══ Over-by-Over Comparison ═══ */}
-                {graphData.length >= 2 && (() => {
-                  const totalOvers = result.format === 'T20' ? 20 : result.format === 'FC' ? 150 : 50;
-                  const target = graphData[0].cumulative.length > 0
-                    ? graphData[0].cumulative[graphData[0].cumulative.length - 1] + 1
-                    : null;
-                  const maxLen = Math.max(graphData[0].runsPerOver.length, graphData[1].runsPerOver.length);
-                  return (
-                    <>
-                      <h3 className="mc-section-title mc-phase-title">Over-by-Over Comparison</h3>
-                      <div className="mc-obo-wrap">
-                        <div className="mc-obo-table">
-                          <div className="mc-obo-head mc-obo-team-head">
-                            <span className="mc-obo-cell mc-obo-over"></span>
-                            <span className="mc-obo-cell mc-obo-team-span" style={{ gridColumn: 'span 3' }}>{graphData[0].battingTeam}</span>
-                            <span className="mc-obo-cell mc-obo-divider"></span>
-                            <span className="mc-obo-cell mc-obo-team-span" style={{ gridColumn: 'span 3' }}>{graphData[1].battingTeam}</span>
-                            <span className="mc-obo-cell"></span>
+                    {/* Per-innings breakdown */}
+                    <h3 className="mc-section-title mc-phase-title">Innings Breakdown</h3>
+                    {t0.innings.map((inn, idx) => {
+                      const otherInn = t1.innings[idx];
+                      if (!otherInn) return null;
+                      return (
+                        <div key={idx} className="mc-phase-block">
+                          <span className="mc-phase-label">Innings {idx * 2 + 1} vs {idx * 2 + 2}</span>
+                          <div className="mc-phase-row">
+                            <span className="mc-phase-val">{inn.runs}/{inn.wkts} ({inn.overs} ov)</span>
+                            <span className="mc-phase-val">{otherInn.runs}/{otherInn.wkts} ({otherInn.overs} ov)</span>
                           </div>
-                          <div className="mc-obo-head">
-                            <span className="mc-obo-cell mc-obo-over">Over</span>
-                            <span className="mc-obo-cell">Runs</span>
-                            <span className="mc-obo-cell mc-obo-cum">Cum</span>
-                            <span className="mc-obo-cell mc-obo-cum">RR</span>
-                            <span className="mc-obo-cell mc-obo-divider"></span>
-                            <span className="mc-obo-cell">Runs</span>
-                            <span className="mc-obo-cell mc-obo-cum">Cum</span>
-                            <span className="mc-obo-cell mc-obo-cum">RR</span>
-                            <span className="mc-obo-cell mc-obo-rrr">RRR</span>
-                          </div>
-                          {Array.from({ length: maxLen }, (_, i) => {
-                            const r0 = graphData[0].runsPerOver[i];
-                            const r1 = graphData[1].runsPerOver[i];
-                            const c0 = graphData[0].cumulative[i];
-                            const c1 = graphData[1].cumulative[i];
-                            const rr0 = graphData[0].runRatePerOver[i];
-                            const rr1 = graphData[1].runRatePerOver[i];
-                            const oversLeft = totalOvers - (i + 1);
-                            const rrr = (target != null && c1 != null && oversLeft > 0)
-                              ? ((target - c1) / oversLeft).toFixed(2)
-                              : (target != null && c1 != null && c1 >= target) ? '—' : '-';
-                            return (
-                              <div key={i} className="mc-obo-row">
-                                <span className="mc-obo-cell mc-obo-over">{i + 1}</span>
-                                <span className={`mc-obo-cell ${r0 != null && r1 != null && r0 > r1 ? 'mc-obo-lead' : ''}`}>{r0 ?? '-'}</span>
-                                <span className="mc-obo-cell mc-obo-cum">{c0 ?? '-'}</span>
-                                <span className="mc-obo-cell mc-obo-cum">{rr0 != null ? rr0.toFixed(2) : '-'}</span>
-                                <span className="mc-obo-cell mc-obo-divider"></span>
-                                <span className={`mc-obo-cell ${r0 != null && r1 != null && r1 > r0 ? 'mc-obo-lead' : ''}`}>{r1 ?? '-'}</span>
-                                <span className="mc-obo-cell mc-obo-cum">{c1 ?? '-'}</span>
-                                <span className="mc-obo-cell mc-obo-cum">{rr1 != null ? rr1.toFixed(2) : '-'}</span>
-                                <span className={`mc-obo-cell mc-obo-rrr ${rrr !== '-' && rrr !== '—' && parseFloat(rrr) > 12 ? 'mc-obo-danger' : ''}`}>{rrr}</span>
-                              </div>
-                            );
-                          })}
+                        </div>
+                      );
+                    })}
+
+                    <h3 className="mc-section-title mc-phase-title">Phase Breakdown (Aggregate)</h3>
+                    {Object.keys(t0.phaseStats).map((phase) => (
+                      <div key={phase} className="mc-phase-block">
+                        <span className="mc-phase-label">{phase.charAt(0).toUpperCase() + phase.slice(1)}</span>
+                        <div className="mc-phase-row">
+                          <span className="mc-phase-val">
+                            {t0.phaseStats[phase].runs}/{t0.phaseStats[phase].wickets}
+                          </span>
+                          <span className="mc-phase-val">
+                            {t1.phaseStats[phase]?.runs ?? 0}/{t1.phaseStats[phase]?.wickets ?? 0}
+                          </span>
                         </div>
                       </div>
-                    </>
-                  );
-                })()}
+                    ))}
 
-                <h3 className="mc-section-title mc-phase-title">Phase Breakdown</h3>
-                {Object.keys(comparisonData[0].phaseStats).map((phase) => (
-                  <div key={phase} className="mc-phase-block">
-                    <span className="mc-phase-label">{phase.charAt(0).toUpperCase() + phase.slice(1)}</span>
-                    <div className="mc-phase-row">
-                      <span className="mc-phase-val">
-                        {comparisonData[0].phaseStats[phase].runs}/{comparisonData[0].phaseStats[phase].wickets}
-                      </span>
-                      <span className="mc-phase-val">
-                        {comparisonData[1].phaseStats[phase].runs}/{comparisonData[1].phaseStats[phase].wickets}
-                      </span>
+                    <h3 className="mc-section-title mc-phase-title">Head to Head (Aggregate)</h3>
+                    {[
+                      { label: 'Total', k1: 'runs' },
+                      { label: 'Wickets', k1: 'wkts' },
+                      { label: 'Fours', k1: 'fours' },
+                      { label: 'Sixes', k1: 'sixes' },
+                      { label: 'Extras', k1: 'extras' },
+                      { label: 'Dots', k1: 'dots' },
+                    ].map(({ label, k1 }) => (
+                      <ComparisonRow key={label} label={label}
+                        val1={t0[k1]} val2={t1[k1]} />
+                    ))}
+                  </>
+                );
+              }
+
+              // T20/ODI: original 2-innings comparison
+              if (comparisonData.length >= 2) {
+                return (
+                  <>
+                    <div className="mc-comp-header">
+                      <span className="mc-comp-team">{comparisonData[0].battingTeam}</span>
+                      <span className="mc-comp-vs">vs</span>
+                      <span className="mc-comp-team">{comparisonData[1].battingTeam}</span>
                     </div>
-                  </div>
-                ))}
 
-                <h3 className="mc-section-title mc-phase-title">Head to Head</h3>
-                {[
-                  { label: 'Total', k1: 'runs' },
-                  { label: 'Wickets', k1: 'wkts' },
-                  { label: 'Run Rate', k1: 'runRate' },
-                  { label: 'Fours', k1: 'fours' },
-                  { label: 'Sixes', k1: 'sixes' },
-                  { label: 'Extras', k1: 'extras' },
-                  { label: 'Dots', k1: 'dots' },
-                ].map(({ label, k1 }) => (
-                  <ComparisonRow key={label} label={label}
-                    val1={comparisonData[0][k1]} val2={comparisonData[1][k1]} />
-                ))}
-              </>
-            ) : (
-              <div className="mc-empty">Comparison available after both innings.</div>
-            )}
+                    {/* ═══ Over-by-Over Comparison ═══ */}
+                    {graphData.length >= 2 && (() => {
+                      const totalOvers = result.format === 'T20' ? 20 : 50;
+                      const target = graphData[0].cumulative.length > 0
+                        ? graphData[0].cumulative[graphData[0].cumulative.length - 1] + 1
+                        : null;
+                      const maxLen = Math.max(graphData[0].runsPerOver.length, graphData[1].runsPerOver.length);
+                      return (
+                        <>
+                          <h3 className="mc-section-title mc-phase-title">Over-by-Over Comparison</h3>
+                          <div className="mc-obo-wrap">
+                            <div className="mc-obo-table">
+                              <div className="mc-obo-head mc-obo-team-head">
+                                <span className="mc-obo-cell mc-obo-over"></span>
+                                <span className="mc-obo-cell mc-obo-team-span" style={{ gridColumn: 'span 3' }}>{graphData[0].battingTeam}</span>
+                                <span className="mc-obo-cell mc-obo-divider"></span>
+                                <span className="mc-obo-cell mc-obo-team-span" style={{ gridColumn: 'span 3' }}>{graphData[1].battingTeam}</span>
+                                <span className="mc-obo-cell"></span>
+                              </div>
+                              <div className="mc-obo-head">
+                                <span className="mc-obo-cell mc-obo-over">Over</span>
+                                <span className="mc-obo-cell">Runs</span>
+                                <span className="mc-obo-cell mc-obo-cum">Cum</span>
+                                <span className="mc-obo-cell mc-obo-cum">RR</span>
+                                <span className="mc-obo-cell mc-obo-divider"></span>
+                                <span className="mc-obo-cell">Runs</span>
+                                <span className="mc-obo-cell mc-obo-cum">Cum</span>
+                                <span className="mc-obo-cell mc-obo-cum">RR</span>
+                                <span className="mc-obo-cell mc-obo-rrr">RRR</span>
+                              </div>
+                              {Array.from({ length: maxLen }, (_, i) => {
+                                const r0 = graphData[0].runsPerOver[i];
+                                const r1 = graphData[1].runsPerOver[i];
+                                const c0 = graphData[0].cumulative[i];
+                                const c1 = graphData[1].cumulative[i];
+                                const rr0 = graphData[0].runRatePerOver[i];
+                                const rr1 = graphData[1].runRatePerOver[i];
+                                const oversLeft = totalOvers - (i + 1);
+                                const rrr = (target != null && c1 != null && oversLeft > 0)
+                                  ? ((target - c1) / oversLeft).toFixed(2)
+                                  : (target != null && c1 != null && c1 >= target) ? '—' : '-';
+                                return (
+                                  <div key={i} className="mc-obo-row">
+                                    <span className="mc-obo-cell mc-obo-over">{i + 1}</span>
+                                    <span className={`mc-obo-cell ${r0 != null && r1 != null && r0 > r1 ? 'mc-obo-lead' : ''}`}>{r0 ?? '-'}</span>
+                                    <span className="mc-obo-cell mc-obo-cum">{c0 ?? '-'}</span>
+                                    <span className="mc-obo-cell mc-obo-cum">{rr0 != null ? rr0.toFixed(2) : '-'}</span>
+                                    <span className="mc-obo-cell mc-obo-divider"></span>
+                                    <span className={`mc-obo-cell ${r0 != null && r1 != null && r1 > r0 ? 'mc-obo-lead' : ''}`}>{r1 ?? '-'}</span>
+                                    <span className="mc-obo-cell mc-obo-cum">{c1 ?? '-'}</span>
+                                    <span className="mc-obo-cell mc-obo-cum">{rr1 != null ? rr1.toFixed(2) : '-'}</span>
+                                    <span className={`mc-obo-cell mc-obo-rrr ${rrr !== '-' && rrr !== '—' && parseFloat(rrr) > 12 ? 'mc-obo-danger' : ''}`}>{rrr}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+
+                    <h3 className="mc-section-title mc-phase-title">Phase Breakdown</h3>
+                    {Object.keys(comparisonData[0].phaseStats).map((phase) => (
+                      <div key={phase} className="mc-phase-block">
+                        <span className="mc-phase-label">{phase.charAt(0).toUpperCase() + phase.slice(1)}</span>
+                        <div className="mc-phase-row">
+                          <span className="mc-phase-val">
+                            {comparisonData[0].phaseStats[phase].runs}/{comparisonData[0].phaseStats[phase].wickets}
+                          </span>
+                          <span className="mc-phase-val">
+                            {comparisonData[1].phaseStats[phase].runs}/{comparisonData[1].phaseStats[phase].wickets}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    <h3 className="mc-section-title mc-phase-title">Head to Head</h3>
+                    {[
+                      { label: 'Total', k1: 'runs' },
+                      { label: 'Wickets', k1: 'wkts' },
+                      { label: 'Run Rate', k1: 'runRate' },
+                      { label: 'Fours', k1: 'fours' },
+                      { label: 'Sixes', k1: 'sixes' },
+                      { label: 'Extras', k1: 'extras' },
+                      { label: 'Dots', k1: 'dots' },
+                    ].map(({ label, k1 }) => (
+                      <ComparisonRow key={label} label={label}
+                        val1={comparisonData[0][k1]} val2={comparisonData[1][k1]} />
+                    ))}
+                  </>
+                );
+              }
+
+              return <div className="mc-empty">Comparison available after both innings.</div>;
+            })()}
           </div>
         )}
 

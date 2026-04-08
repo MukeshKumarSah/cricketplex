@@ -41,10 +41,10 @@ public class GroundService {
             result.put("economy", seats.getEconomy());
             result.put("standing", seats.getStanding());
         } else {
-            result.put("premium", 2000);
-            result.put("standard", 8000);
-            result.put("economy", 12000);
-            result.put("standing", 3000);
+            result.put("premium", 500);
+            result.put("standard", 1000);
+            result.put("economy", 1500);
+            result.put("standing", 2000);
         }
         int total = ((Number) result.get("premium")).intValue()
                 + ((Number) result.get("standard")).intValue()

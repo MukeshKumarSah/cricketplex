@@ -1,11 +1,14 @@
 package com.cricketplex.service;
 
+import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.LeagueTeam;
 import com.cricketplex.entity.Team;
+import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,13 +17,17 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class LeagueService {
 
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
+    private final FixtureRepository fixtureRepository;
     @Lazy
     private final BotTeamService botTeamService;
     private final FixtureService fixtureService;
+    @Lazy
+    private final MatchEngine matchEngine;
 
     /**
      * Get all leagues grouped by country, then by division.
@@ -165,6 +172,12 @@ public class LeagueService {
             fixtureService.generateFixtures(league);
         }
 
+        // Auto-simulate rounds that have already been played in Div 1 of the same country
+        int matchesSimulated = 0;
+        for (League league : createdLeagues) {
+            matchesSimulated += catchUpRounds(league);
+        }
+
         return Map.of(
                 "created", "All formats " + division + "." + nextNum,
                 "country", country,
@@ -173,8 +186,66 @@ public class LeagueService {
                 "leagueNumber", nextNum,
                 "maxForDivision", maxAllowed,
                 "leaguesCreated", createdLeagues.size(),
-                "teamsFilled", createdLeagues.size() * 8
+                "teamsFilled", createdLeagues.size() * 8,
+                "matchesSimulated", matchesSimulated
         );
+    }
+
+    /**
+     * Auto-simulate rounds in a newly created league to match Div 1 progress.
+     * Finds the Div 1 league for the same country/format, counts how many rounds
+     * are completed there, then simulates those same rounds in the new league.
+     *
+     * @return number of matches simulated
+     */
+    private int catchUpRounds(League newLeague) {
+        // Find Div 1 league for this country/format
+        List<League> sameCountryFormat = leagueRepository
+                .findByCountryIgnoreCaseAndFormatOrderByDivisionAscLeagueNumberAsc(
+                        newLeague.getCountry(), newLeague.getFormat());
+        League div1 = sameCountryFormat.stream()
+                .filter(l -> l.getDivision() == 1)
+                .findFirst().orElse(null);
+        if (div1 == null) return 0;
+
+        // Count completed rounds in Div 1
+        List<Fixture> div1Fixtures = fixtureRepository
+                .findByLeagueIdOrderByRoundAscMatchNumberAsc(div1.getId());
+        int completedRounds = 0;
+        for (int r = 1; r <= 14; r++) {
+            final int round = r;
+            boolean allDone = div1Fixtures.stream()
+                    .filter(f -> f.getRound() == round)
+                    .allMatch(f -> "COMPLETED".equals(f.getStatus()));
+            if (allDone && div1Fixtures.stream().anyMatch(f -> f.getRound() == round)) {
+                completedRounds = round;
+            } else {
+                break;
+            }
+        }
+
+        if (completedRounds == 0) return 0;
+
+        // Simulate those rounds in the new league
+        List<Fixture> newFixtures = fixtureRepository
+                .findByLeagueIdOrderByRoundAscMatchNumberAsc(newLeague.getId());
+        int simulated = 0;
+        for (Fixture f : newFixtures) {
+            if (f.getRound() > completedRounds) break;
+            if (!"SCHEDULED".equals(f.getStatus())) continue;
+            try {
+                matchEngine.simulateMatch(f.getId());
+                simulated++;
+            } catch (Exception e) {
+                log.warn("Failed to auto-simulate fixture {} in league {}.{}: {}",
+                        f.getId(), newLeague.getDivision(), newLeague.getLeagueNumber(), e.getMessage());
+            }
+        }
+
+        log.info("Auto-simulated {} matches ({} rounds) for new {} {} {}.{} season {}",
+                simulated, completedRounds, newLeague.getCountry(), newLeague.getFormat(),
+                newLeague.getDivision(), newLeague.getLeagueNumber(), newLeague.getSeason());
+        return simulated;
     }
 
     /**

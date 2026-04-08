@@ -110,6 +110,7 @@ C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\c
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\ActivityLog.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\ChatMessage.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\TransactionLogRepository.java
+C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\service\SeasonalUpdateService.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\exception\GlobalExceptionHandler.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\TrainingAssignment.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\TrainingLogRepository.java

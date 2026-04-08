@@ -39,7 +39,10 @@ public class LeagueController {
         // Build standings from completed match results
         List<Fixture> fixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
         Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
-        Map<UUID, double[]> nrrData = new LinkedHashMap<>(); // [runsScored, oversPlayed, runsConceded, oversBowled]
+        // For FC: [runsScored, wicketsLost, runsConceded, wicketsTaken]
+        // For T20/ODI: [runsScored, oversPlayed, runsConceded, oversBowled]
+        Map<UUID, double[]> nrrData = new LinkedHashMap<>();
+        boolean isFC = "FC".equals(league.getFormat());
 
         for (LeagueTeam lt : leagueTeams) {
             stats.put(lt.getTeam().getId(), new int[5]);
@@ -66,29 +69,30 @@ public class LeagueController {
             homeStats[0]++;
             awayStats[0]++;
 
-            // Accumulate NRR data from innings
+            // Accumulate data from innings
             for (Innings inn : mr.getInningsList()) {
                 UUID batTeamId = inn.getBattingTeam().getId();
                 UUID bowlTeamId = inn.getBowlingTeam().getId();
                 int runs = inn.getTotalRuns() != null ? inn.getTotalRuns() : 0;
-
-                // ICC NRR rule: if a team is all out, use full allocation of overs
-                double overs;
-                if (Boolean.TRUE.equals(inn.getAllOut())) {
-                    overs = getMaxOvers(league.getFormat());
-                } else {
-                    overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
-                }
+                int wickets = inn.getTotalWickets() != null ? inn.getTotalWickets() : 0;
 
                 double[] batNrr = nrrData.get(batTeamId);
                 double[] bowlNrr = nrrData.get(bowlTeamId);
-                if (batNrr != null) {
-                    batNrr[0] += runs;
-                    batNrr[1] += overs;
-                }
-                if (bowlNrr != null) {
-                    bowlNrr[2] += runs;
-                    bowlNrr[3] += overs;
+
+                if (isFC) {
+                    // FC quotient: batting avg / bowling avg
+                    if (batNrr != null) { batNrr[0] += runs; batNrr[1] += wickets; }
+                    if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += wickets; }
+                } else {
+                    // T20/ODI NRR: runs per over scored - runs per over conceded
+                    double overs;
+                    if (Boolean.TRUE.equals(inn.getAllOut())) {
+                        overs = getMaxOvers(league.getFormat());
+                    } else {
+                        overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
+                    }
+                    if (batNrr != null) { batNrr[0] += runs; batNrr[1] += overs; }
+                    if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += overs; }
                 }
             }
 
@@ -116,9 +120,16 @@ public class LeagueController {
             Team team = lt.getTeam();
             int[] s = stats.get(team.getId());
             double[] n = nrrData.get(team.getId());
-            double nrr = 0.0;
-            if (n[1] > 0 && n[3] > 0) {
-                nrr = (n[0] / n[1]) - (n[2] / n[3]);
+            double tiebreaker = 0.0;
+            if (isFC) {
+                // Quotient = batting average / bowling average
+                double batAvg = n[1] > 0 ? n[0] / n[1] : 0.0;
+                double bowlAvg = n[3] > 0 ? n[2] / n[3] : 0.0;
+                tiebreaker = bowlAvg > 0 ? batAvg / bowlAvg : 0.0;
+            } else {
+                if (n[1] > 0 && n[3] > 0) {
+                    tiebreaker = (n[0] / n[1]) - (n[2] / n[3]);
+                }
             }
 
             Map<String, Object> row = new LinkedHashMap<>();
@@ -131,11 +142,11 @@ public class LeagueController {
             row.put("lost", s[2]);
             row.put("tied", s[3]);
             row.put("points", s[4]);
-            row.put("nrr", Math.round(nrr * 1000.0) / 1000.0);
+            row.put("nrr", Math.round(tiebreaker * 1000.0) / 1000.0);
             standings.add(row);
         }
 
-        // Sort by points DESC, then NRR DESC, then wins DESC
+        // Sort by points DESC, then tiebreaker DESC, then wins DESC
         standings.sort((a, b) -> {
             int cmp = Integer.compare((int) b.get("points"), (int) a.get("points"));
             if (cmp != 0) return cmp;

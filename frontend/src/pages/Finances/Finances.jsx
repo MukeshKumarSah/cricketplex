@@ -24,6 +24,7 @@ const TX_TYPES = [
   { value: 'ACADEMY_MAINTENANCE', label: 'Academy Maintenance' },
   { value: 'PLAYER_SALARY', label: 'Player Salary' },
   { value: 'GROUND_MAINTENANCE', label: 'Ground Maintenance' },
+  { value: 'PRIZE_MONEY', label: 'Prize Money' },
 ];
 
 const TYPE_COLORS = {
@@ -39,6 +40,7 @@ const TYPE_COLORS = {
   ACADEMY_MAINTENANCE: '#f97316',
   PLAYER_SALARY: '#ec4899',
   GROUND_MAINTENANCE: '#8b5cf6',
+  PRIZE_MONEY: '#f59e0b',
 };
 
 function formatMoney(val) {

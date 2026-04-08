@@ -248,10 +248,10 @@ public class TeamListController {
         result.put("groundName", team.getGroundName());
         result.put("country", team.getCountry());
 
-        int premium = seats != null ? seats.getPremium() : 2000;
-        int standard = seats != null ? seats.getStandard() : 8000;
-        int economy = seats != null ? seats.getEconomy() : 12000;
-        int standing = seats != null ? seats.getStanding() : 3000;
+        int premium = seats != null ? seats.getPremium() : 500;
+        int standard = seats != null ? seats.getStandard() : 1000;
+        int economy = seats != null ? seats.getEconomy() : 1500;
+        int standing = seats != null ? seats.getStanding() : 2000;
         result.put("premium", premium);
         result.put("standard", standard);
         result.put("economy", economy);

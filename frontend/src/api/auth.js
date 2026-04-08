@@ -92,6 +92,7 @@ export const deleteLeague = (id) => API.delete(`/admin/leagues/${id}`);
 export const triggerAging = () => API.post('/admin/leagues/trigger-aging');
 export const triggerFitness = () => API.post('/admin/leagues/trigger-fitness');
 export const triggerTraining = () => API.post('/admin/leagues/trigger-training');
+export const triggerSeasonal = () => API.post('/admin/leagues/trigger-seasonal');
 
 // Lineup
 export const getLineupData = (fixtureId) => API.get(`/match/${fixtureId}/lineup`);

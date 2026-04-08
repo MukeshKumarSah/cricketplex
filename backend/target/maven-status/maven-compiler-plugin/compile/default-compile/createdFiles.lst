@@ -90,6 +90,7 @@ com\cricketplex\entity\MatchLineup$MatchLineupBuilder.class
 com\cricketplex\entity\MatchLineup.class
 com\cricketplex\entity\TransactionLog.class
 com\cricketplex\dto\ChangePasswordRequest.class
+com\cricketplex\service\SeasonalUpdateService.class
 com\cricketplex\service\WeatherService.class
 com\cricketplex\entity\AcademyPull.class
 com\cricketplex\controller\TeamListController.class

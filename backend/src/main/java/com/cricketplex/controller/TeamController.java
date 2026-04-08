@@ -143,7 +143,10 @@ public class TeamController {
 
             // Compute standings from completed fixtures
             Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
-            Map<UUID, double[]> nrrData = new LinkedHashMap<>(); // [runsScored, oversPlayed, runsConceded, oversBowled]
+            // For FC: [runsScored, wicketsLost, runsConceded, wicketsTaken]
+            // For T20/ODI: [runsScored, oversPlayed, runsConceded, oversBowled]
+            Map<UUID, double[]> nrrData = new LinkedHashMap<>();
+            boolean isFC = "FC".equals(league.getFormat());
             for (LeagueTeam entry : allInLeague) {
                 stats.put(entry.getTeam().getId(), new int[5]);
                 nrrData.put(entry.getTeam().getId(), new double[4]);
@@ -169,24 +172,29 @@ public class TeamController {
                 hs[0]++;
                 as[0]++;
 
-                // Accumulate NRR data from innings
+                // Accumulate data from innings
                 for (Innings inn : mr.getInningsList()) {
                     UUID batTeamId = inn.getBattingTeam().getId();
                     UUID bowlTeamId = inn.getBowlingTeam().getId();
                     int runs = inn.getTotalRuns() != null ? inn.getTotalRuns() : 0;
-
-                    // ICC NRR rule: if a team is all out, use full allocation of overs
-                    double overs;
-                    if (Boolean.TRUE.equals(inn.getAllOut())) {
-                        overs = getMaxOvers(league.getFormat());
-                    } else {
-                        overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
-                    }
+                    int wickets = inn.getTotalWickets() != null ? inn.getTotalWickets() : 0;
 
                     double[] batNrr = nrrData.get(batTeamId);
                     double[] bowlNrr = nrrData.get(bowlTeamId);
-                    if (batNrr != null) { batNrr[0] += runs; batNrr[1] += overs; }
-                    if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += overs; }
+
+                    if (isFC) {
+                        if (batNrr != null) { batNrr[0] += runs; batNrr[1] += wickets; }
+                        if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += wickets; }
+                    } else {
+                        double overs;
+                        if (Boolean.TRUE.equals(inn.getAllOut())) {
+                            overs = getMaxOvers(league.getFormat());
+                        } else {
+                            overs = oversToDecimal(inn.getTotalOvers() != null ? inn.getTotalOvers() : 0.0);
+                        }
+                        if (batNrr != null) { batNrr[0] += runs; batNrr[1] += overs; }
+                        if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += overs; }
+                    }
                 }
 
                 if ("TIE".equals(mr.getResultType())) {
@@ -202,16 +210,26 @@ public class TeamController {
                 }
             }
 
-            // Sort teams by points DESC, then NRR DESC, then wins DESC (matches LeagueController)
+            // Sort teams by points DESC, then tiebreaker DESC, then wins DESC
             List<UUID> sorted = new ArrayList<>(stats.keySet());
             sorted.sort((a, b) -> {
                 int cmp = Integer.compare(stats.get(b)[4], stats.get(a)[4]);
                 if (cmp != 0) return cmp;
                 double[] na = nrrData.get(a);
                 double[] nb = nrrData.get(b);
-                double nrrA = (na[1] > 0 && na[3] > 0) ? (na[0] / na[1]) - (na[2] / na[3]) : 0.0;
-                double nrrB = (nb[1] > 0 && nb[3] > 0) ? (nb[0] / nb[1]) - (nb[2] / nb[3]) : 0.0;
-                cmp = Double.compare(nrrB, nrrA);
+                double valA, valB;
+                if (isFC) {
+                    double batAvgA = na[1] > 0 ? na[0] / na[1] : 0.0;
+                    double bowlAvgA = na[3] > 0 ? na[2] / na[3] : 0.0;
+                    valA = bowlAvgA > 0 ? batAvgA / bowlAvgA : 0.0;
+                    double batAvgB = nb[1] > 0 ? nb[0] / nb[1] : 0.0;
+                    double bowlAvgB = nb[3] > 0 ? nb[2] / nb[3] : 0.0;
+                    valB = bowlAvgB > 0 ? batAvgB / bowlAvgB : 0.0;
+                } else {
+                    valA = (na[1] > 0 && na[3] > 0) ? (na[0] / na[1]) - (na[2] / na[3]) : 0.0;
+                    valB = (nb[1] > 0 && nb[3] > 0) ? (nb[0] / nb[1]) - (nb[2] / nb[3]) : 0.0;
+                }
+                cmp = Double.compare(valB, valA);
                 if (cmp != 0) return cmp;
                 return Integer.compare(stats.get(b)[1], stats.get(a)[1]);
             });
