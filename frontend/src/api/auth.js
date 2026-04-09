@@ -26,6 +26,8 @@ export const uploadTeamPic = (file) => {
 export const updateTeam = (data) => API.put('/settings/team', data);
 export const changePassword = (data) => API.put('/settings/password', data);
 export const getDashboardStats = () => API.get('/settings/dashboard-stats');
+export const getMyTrophies = () => API.get('/settings/trophies');
+export const getTeamTrophies = (teamId) => API.get(`/settings/trophies/${teamId}`);
 
 // Ground Management
 export const getStadiumSeats = () => API.get('/ground/seats');

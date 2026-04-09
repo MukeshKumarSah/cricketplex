@@ -64,6 +64,7 @@ public class SeasonalUpdateService {
     private final ActivityLogService activityLogService;
     private final FixtureService fixtureService;
     private final TransactionTemplate txTemplate;
+    private final TrophyRepository trophyRepository;
 
     /* ═══════════════ scheduling + resilience ═══════════════ */
 
@@ -142,6 +143,25 @@ public class SeasonalUpdateService {
                                 league.getDivision(), league.getLeagueNumber(),
                                 ordinal(i + 1)),
                         balance);
+
+                // Award trophy to 1st place
+                if (i == 0) {
+                    trophyRepository.save(Trophy.builder()
+                            .team(team)
+                            .format(league.getFormat())
+                            .country(league.getCountry())
+                            .division(league.getDivision())
+                            .leagueNumber(league.getLeagueNumber())
+                            .season(season)
+                            .build());
+                    activityLogService.log(team, "season",
+                            String.format("Won %s %s Division %d.%d trophy — Season %d",
+                                    league.getCountry(), league.getFormat(),
+                                    league.getDivision(), league.getLeagueNumber(), season));
+                    log.info("Trophy awarded to team {} for {} {} {}.{} season {}",
+                            team.getTeamName(), league.getCountry(), league.getFormat(),
+                            league.getDivision(), league.getLeagueNumber(), season);
+                }
             }
         }
 

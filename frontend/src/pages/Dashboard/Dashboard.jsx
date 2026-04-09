@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches, getAttendanceHistory } from '../../api/auth';
+import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches, getAttendanceHistory, getMyTrophies } from '../../api/auth';
 import {
   HiOutlineTrophy,
   HiOutlineGlobeAlt,
@@ -20,11 +20,6 @@ import './Dashboard.css';
 const mockData = {
   lastActive: 'Currently Active',
   isActive: true,
-  trophies: [
-    { name: 'T20 Cup 2025', icon: '🏆', year: 2025 },
-    { name: 'OD Shield Runner-up', icon: '🥈', year: 2025 },
-    { name: 'FC League Winner', icon: '🏆', year: 2024 },
-  ],
 };
 
 const activityIcon = (type) => {
@@ -148,6 +143,7 @@ export default function Dashboard() {
   const [dashStats, setDashStats] = useState(null);
   const [dashMatches, setDashMatches] = useState([]);
   const [attendanceHistory, setAttendanceHistory] = useState([]);
+  const [trophies, setTrophies] = useState([]);
 
   useEffect(() => {
     getSettings()
@@ -175,6 +171,9 @@ export default function Dashboard() {
       .catch(() => {});
     getAttendanceHistory()
       .then((res) => setAttendanceHistory(res.data || []))
+      .catch(() => {});
+    getMyTrophies()
+      .then((res) => setTrophies(res.data.trophies || []))
       .catch(() => {});
     getMyMatches()
       .then((res) => {
@@ -268,7 +267,7 @@ export default function Dashboard() {
             <span className="dash-quick-stat-label">Total Fans</span>
           </div>
           <div className="dash-quick-stat">
-            <span className="dash-quick-stat-value">{d.trophies.length}</span>
+            <span className="dash-quick-stat-value">{trophies.length}</span>
             <span className="dash-quick-stat-label">Trophies</span>
           </div>
         </div>
@@ -518,14 +517,14 @@ export default function Dashboard() {
           <HiOutlineTrophy className="dash-card-icon gold" />
           <h2>Trophy Cabinet</h2>
         </div>
-        {d.trophies.length > 0 ? (
+        {trophies.length > 0 ? (
           <div className="dash-trophies-grid">
-            {d.trophies.map((t, i) => (
-              <div className="dash-trophy-item" key={i}>
-                <div className="dash-trophy-icon">{t.icon}</div>
+            {trophies.map((t) => (
+              <div className="dash-trophy-item" key={t.id}>
+                <div className="dash-trophy-icon">🏆</div>
                 <div className="dash-trophy-info">
-                  <span className="dash-trophy-name">{t.name}</span>
-                  <span className="dash-trophy-year">{t.year}</span>
+                  <span className="dash-trophy-name">{t.country} {t.format} Div {t.division}.{t.leagueNumber}</span>
+                  <span className="dash-trophy-year">Season {t.season}</span>
                 </div>
               </div>
             ))}

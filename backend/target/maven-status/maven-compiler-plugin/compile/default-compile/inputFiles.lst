@@ -12,6 +12,8 @@ C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\c
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\config\MinioConfig.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\ChatMember.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\PlayerFirstName.java
+C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\entity\Trophy.java
+C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\repository\TrophyRepository.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\controller\StatsController.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\service\AdminPlayerService.java
 C:\Users\mukes\Documents\Important\Testing\Final app\backend\src\main\java\com\cricketplex\controller\LineupController.java

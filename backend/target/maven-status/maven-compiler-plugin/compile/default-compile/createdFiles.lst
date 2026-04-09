@@ -1,4 +1,5 @@
 com\cricketplex\entity\StadiumSeats.class
+com\cricketplex\repository\TrophyRepository.class
 com\cricketplex\dto\UpdateTeamRequest.class
 com\cricketplex\repository\MatchLineupRepository.class
 com\cricketplex\service\MatchScheduler.class
@@ -154,6 +155,7 @@ com\cricketplex\entity\ChatMember$ChatMemberBuilder.class
 com\cricketplex\service\MatchEngine$DeliveryResult.class
 com\cricketplex\controller\SquadController.class
 com\cricketplex\entity\BattingScorecard.class
+com\cricketplex\entity\Trophy$TrophyBuilder.class
 com\cricketplex\repository\TrainingAssignmentRepository.class
 com\cricketplex\controller\SettingsController.class
 com\cricketplex\entity\TrainingLog.class
@@ -162,6 +164,7 @@ com\cricketplex\entity\Role.class
 com\cricketplex\controller\PlayerController.class
 com\cricketplex\entity\BallEvent.class
 com\cricketplex\entity\PlayerFirstName.class
+com\cricketplex\entity\Trophy.class
 com\cricketplex\repository\TransferListingRepository.class
 com\cricketplex\entity\BowlingScorecard.class
 com\cricketplex\controller\ChatController.class

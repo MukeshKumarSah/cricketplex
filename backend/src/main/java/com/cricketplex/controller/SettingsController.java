@@ -4,7 +4,10 @@ import com.cricketplex.dto.ApiResponse;
 import com.cricketplex.dto.ChangePasswordRequest;
 import com.cricketplex.dto.UpdateTeamRequest;
 import com.cricketplex.entity.Team;
+import com.cricketplex.entity.Trophy;
 import com.cricketplex.entity.User;
+import com.cricketplex.repository.TeamRepository;
+import com.cricketplex.repository.TrophyRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.SettingsService;
@@ -17,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/settings")
@@ -25,6 +31,8 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final UserRepository userRepository;
+    private final TrophyRepository trophyRepository;
+    private final TeamRepository teamRepository;
 
     @GetMapping
     public ResponseEntity<?> getSettings(@AuthenticationPrincipal UserPrincipal principal) {
@@ -78,6 +86,34 @@ public class SettingsController {
     public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal UserPrincipal principal) {
         User user = getUser(principal);
         return ResponseEntity.ok(settingsService.getDashboardStats(user));
+    }
+
+    @GetMapping("/trophies")
+    public ResponseEntity<?> getMyTrophies(@AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
+        Team team = teamRepository.findByOwner(user)
+                .orElseThrow(() -> new IllegalArgumentException("No team found"));
+        return ResponseEntity.ok(buildTrophyResponse(team.getId()));
+    }
+
+    @GetMapping("/trophies/{teamId}")
+    public ResponseEntity<?> getTeamTrophies(@PathVariable UUID teamId) {
+        return ResponseEntity.ok(buildTrophyResponse(teamId));
+    }
+
+    private Map<String, Object> buildTrophyResponse(UUID teamId) {
+        List<Trophy> trophies = trophyRepository.findByTeamIdOrderBySeasonDesc(teamId);
+        List<Map<String, Object>> list = trophies.stream().map(t -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("format", t.getFormat());
+            m.put("country", t.getCountry());
+            m.put("division", t.getDivision());
+            m.put("leagueNumber", t.getLeagueNumber());
+            m.put("season", t.getSeason());
+            return m;
+        }).toList();
+        return Map.of("trophies", list, "count", trophies.size());
     }
 
     private User getUser(UserPrincipal principal) {
