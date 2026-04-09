@@ -95,6 +95,113 @@ public class MatchSimController {
     }
 
     /**
+     * Set or update FC match strategy (declaration targets, follow-on choice).
+     * Can be called before Day 1 or between Day 1 and Day 2.
+     */
+    @PostMapping("/fc-strategy/{fixtureId}")
+    public ResponseEntity<?> setFCStrategy(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId,
+            @RequestBody Map<String, Object> request) {
+
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Team myTeam = teamRepository.findByOwner(user).orElse(null);
+        if (myTeam == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "No team found"));
+        }
+
+        Fixture fixture = fixtureRepository.findById(fixtureId).orElse(null);
+        if (fixture == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Fixture not found"));
+        }
+
+        // Validate ownership
+        boolean isHome = fixture.getHomeTeam().getId().equals(myTeam.getId());
+        boolean isAway = fixture.getAwayTeam().getId().equals(myTeam.getId());
+        if (!isHome && !isAway) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Not your match"));
+        }
+
+        // Allow updates when SCHEDULED or FC_DAY1_COMPLETE
+        String status = fixture.getStatus();
+        if (!"SCHEDULED".equals(status) && !"FC_DAY1_COMPLETE".equals(status)) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Cannot update strategy now"));
+        }
+
+        if (request.containsKey("declareInn1")) {
+            Object val = request.get("declareInn1");
+            fixture.setFcDeclareInn1(val != null ? ((Number) val).intValue() : null);
+        }
+        if (request.containsKey("declareInn2Lead")) {
+            Object val = request.get("declareInn2Lead");
+            fixture.setFcDeclareInn2Lead(val != null ? ((Number) val).intValue() : null);
+        }
+        if (request.containsKey("followOn")) {
+            Object val = request.get("followOn");
+            fixture.setFcFollowOn(val != null ? (Boolean) val : null);
+        }
+        if (request.containsKey("declareInn3Lead")) {
+            Object val = request.get("declareInn3Lead");
+            fixture.setFcDeclareInn3Lead(val != null ? ((Number) val).intValue() : null);
+        }
+
+        fixtureRepository.save(fixture);
+        return ResponseEntity.ok(Map.of("success", true,
+                "declareInn1", fixture.getFcDeclareInn1(),
+                "declareInn2Lead", fixture.getFcDeclareInn2Lead(),
+                "followOn", fixture.getFcFollowOn(),
+                "declareInn3Lead", fixture.getFcDeclareInn3Lead()));
+    }
+
+    /**
+     * Get FC match state (for between-days strategy updates).
+     */
+    @GetMapping("/fc-state/{fixtureId}")
+    public ResponseEntity<?> getFCState(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID fixtureId) {
+
+        Fixture fixture = fixtureRepository.findById(fixtureId).orElse(null);
+        if (fixture == null) {
+            return ResponseEntity.ok(Map.of("found", false));
+        }
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("found", true);
+        resp.put("fixtureId", fixtureId);
+        resp.put("status", fixture.getStatus());
+        resp.put("fcDay", fixture.getFcDay());
+        resp.put("declareInn1", fixture.getFcDeclareInn1());
+        resp.put("declareInn2Lead", fixture.getFcDeclareInn2Lead());
+        resp.put("followOn", fixture.getFcFollowOn());
+        resp.put("declareInn3Lead", fixture.getFcDeclareInn3Lead());
+
+        // Include Day 1 innings summary if available
+        Optional<MatchResult> opt = matchResultRepository.findByFixtureId(fixtureId);
+        if (opt.isPresent()) {
+            MatchResult mr = opt.get();
+            List<Map<String, Object>> innSummaries = new ArrayList<>();
+            for (Innings inn : mr.getInningsList()) {
+                Map<String, Object> s = new LinkedHashMap<>();
+                s.put("inningsNumber", inn.getInningsNumber());
+                s.put("battingTeamId", inn.getBattingTeam().getId());
+                s.put("battingTeamName", inn.getBattingTeam().getTeamName());
+                s.put("totalRuns", inn.getTotalRuns());
+                s.put("totalWickets", inn.getTotalWickets());
+                s.put("totalOvers", inn.getTotalOvers());
+                s.put("allOut", inn.getAllOut());
+                s.put("declared", inn.getDeclared());
+                s.put("interrupted", inn.getResumeState() != null);
+                innSummaries.add(s);
+            }
+            resp.put("innings", innSummaries);
+        }
+
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
      * Get match result for a fixture.
      */
     @GetMapping("/result/{fixtureId}")
@@ -136,6 +243,7 @@ public class MatchSimController {
         resp.put("pitchType", fixture.getPitchType());
         resp.put("matchType", fixture.getMatchType());
         resp.put("fixtureStatus", fixture.getStatus());
+        resp.put("fcDay", fixture.getFcDay());
         resp.put("attendance", result.getAttendance());
         // Parse attendance breakdown: "standAtt,standCap,ecoAtt,ecoCap,stdAtt,stdCap,premAtt,premCap"
         if (result.getAttendanceBreakdown() != null) {

@@ -98,6 +98,10 @@ export const triggerSeasonal = () => API.post('/admin/leagues/trigger-seasonal')
 export const getLineupData = (fixtureId) => API.get(`/match/${fixtureId}/lineup`);
 export const saveLineup = (fixtureId, data) => API.post(`/match/${fixtureId}/lineup`, data);
 
+// FC Strategy
+export const getFCState = (fixtureId) => API.get(`/match/fc-state/${fixtureId}`);
+export const saveFCStrategy = (fixtureId, data) => API.post(`/match/fc-strategy/${fixtureId}`, data);
+
 // Friendly Challenges
 export const getChallenges = () => API.get('/challenges');
 export const getChallengeableTeams = () => API.get('/challenges/teams');

@@ -394,3 +394,48 @@
 }
 .cm-send:hover { background: #d97706; }
 .cm-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Time slot selector ─────────── */
+.cm-time-slots {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.cm-time-btn {
+  padding: 0.45rem 0.9rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cm-time-btn:hover {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+.cm-time-btn.active {
+  background: #f59e0b22;
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+.cm-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* ── Expired / Starts-at messages ── */
+.challenge-expired-msg {
+  font-size: 0.78rem;
+  color: #ef4444;
+  font-weight: 500;
+  font-style: italic;
+}
+.challenge-starts-at {
+  font-size: 0.78rem;
+  color: #22d3ee;
+  font-weight: 500;
+}

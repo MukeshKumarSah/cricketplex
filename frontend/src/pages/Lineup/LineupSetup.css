@@ -841,6 +841,92 @@
   }
 }
 
+/* ═══ FC Strategy Section ═══ */
+.lu-fc-strategy {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.lu-fc-strat-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.lu-fc-strat-label {
+  min-width: 200px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  padding-top: 0.5rem;
+}
+
+.lu-fc-strat-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.lu-fc-strat-input input {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  width: 200px;
+}
+
+.lu-fc-strat-input input:focus {
+  outline: none;
+  border-color: #34d399;
+}
+
+.lu-fc-strat-hint {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.lu-fc-strat-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.lu-fc-strat-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lu-fc-strat-btn.active {
+  background: #065f46;
+  border-color: #34d399;
+  color: #34d399;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .lu-fc-strat-row {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .lu-fc-strat-label {
+    min-width: auto;
+  }
+  .lu-fc-strat-input input {
+    width: 100%;
+  }
+}
+
 /* ═══ Squad Player Pool ═══ */
 .lu-pool-table {
   overflow-x: auto;

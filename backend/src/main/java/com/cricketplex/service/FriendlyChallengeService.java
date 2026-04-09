@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 @Service
@@ -21,11 +24,13 @@ public class FriendlyChallengeService {
     private final UserRepository userRepository;
     private final MatchEngine matchEngine;
 
+    private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "12:00", "17:00", "21:00");
+
     // ─── Send a challenge ────────────────────────────────────────
 
     @Transactional
     public FriendlyChallenge sendChallenge(User user, UUID opponentTeamId, String format,
-                                           String pitchType, LocalDate matchDate, String message) {
+                                           String pitchType, LocalDate matchDate, String matchTime, String message) {
         Team myTeam = teamRepository.findByOwner(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
@@ -41,8 +46,24 @@ public class FriendlyChallengeService {
         if (!"T20".equalsIgnoreCase(format) && !"ODI".equalsIgnoreCase(format) && !"FC".equalsIgnoreCase(format)) {
             throw new IllegalArgumentException("Format must be T20, ODI, or FC");
         }
-        if (matchDate.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Match date must be today or later");
+        if (matchTime == null || !ALLOWED_TIMES.contains(matchTime)) {
+            throw new IllegalArgumentException("Match time must be one of: 02:00, 07:00, 12:00, 17:00, 21:00");
+        }
+
+        LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDate today = nowUtc.toLocalDate();
+
+        if (matchDate.isBefore(today)) {
+            throw new IllegalArgumentException("Match date cannot be in the past");
+        }
+        if (matchDate.isAfter(today.plusDays(10))) {
+            throw new IllegalArgumentException("Match date cannot be more than 10 days from now");
+        }
+
+        // Can't challenge for a time that's already passed today
+        LocalDateTime challengeDateTime = LocalDateTime.of(matchDate, LocalTime.parse(matchTime));
+        if (!challengeDateTime.isAfter(nowUtc)) {
+            throw new IllegalArgumentException("Cannot challenge for a time that has already passed");
         }
 
         // Limit pending challenges per team
@@ -57,6 +78,7 @@ public class FriendlyChallengeService {
                 .format(format.toUpperCase())
                 .pitchType(pitchType != null ? pitchType : "STANDARD")
                 .matchDate(matchDate)
+                .matchTime(matchTime)
                 .message(message)
                 .status("PENDING")
                 .build();
@@ -79,6 +101,14 @@ public class FriendlyChallengeService {
         }
         if (!"PENDING".equals(challenge.getStatus())) {
             throw new IllegalArgumentException("Challenge is no longer pending");
+        }
+
+        // Can't accept if the scheduled time has passed
+        if (challenge.getMatchTime() != null) {
+            LocalDateTime matchDateTime = LocalDateTime.of(challenge.getMatchDate(), LocalTime.parse(challenge.getMatchTime()));
+            if (!matchDateTime.isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
+                throw new IllegalArgumentException("This challenge has expired — the match time has passed");
+            }
         }
 
         // Create a friendly fixture
@@ -204,11 +234,20 @@ public class FriendlyChallengeService {
             dto.put("format", c.getFormat());
             dto.put("pitchType", c.getPitchType());
             dto.put("matchDate", c.getMatchDate());
+            dto.put("matchTime", c.getMatchTime());
             dto.put("status", c.getStatus());
             dto.put("message", c.getMessage());
             dto.put("createdAt", c.getCreatedAt());
             dto.put("isSender", c.getChallengerTeam().getId().equals(myTeam.getId()));
             dto.put("isReceiver", c.getChallengedTeam().getId().equals(myTeam.getId()));
+
+            // Compute whether this challenge's scheduled time has passed
+            boolean expired = false;
+            if (c.getMatchTime() != null) {
+                LocalDateTime matchDateTime = LocalDateTime.of(c.getMatchDate(), LocalTime.parse(c.getMatchTime()));
+                expired = !matchDateTime.isAfter(LocalDateTime.now(ZoneOffset.UTC));
+            }
+            dto.put("expired", expired);
 
             if (c.getFixture() != null) {
                 dto.put("fixtureId", c.getFixture().getId());

@@ -59,6 +59,29 @@ public class Fixture {
     @Builder.Default
     private String pitchType = "STANDARD";
 
+    // ─── FC day-based simulation fields ───
+
+    /** FC match day: 0 = not started, 1 = day 1 complete, 2 = match done */
+    @Column(name = "fc_day")
+    @Builder.Default
+    private Integer fcDay = 0;
+
+    /** 1st innings: declare when total score reaches this value (null = no declaration) */
+    @Column(name = "fc_declare_inn1")
+    private Integer fcDeclareInn1;
+
+    /** 2nd innings: declare when leading by this many runs (null = no declaration) */
+    @Column(name = "fc_declare_inn2_lead")
+    private Integer fcDeclareInn2Lead;
+
+    /** Follow-on choice: true = enforce, false = don't, null = not yet applicable */
+    @Column(name = "fc_follow_on")
+    private Boolean fcFollowOn;
+
+    /** 3rd innings: declare when leading by this many runs (null = no declaration) */
+    @Column(name = "fc_declare_inn3_lead")
+    private Integer fcDeclareInn3Lead;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

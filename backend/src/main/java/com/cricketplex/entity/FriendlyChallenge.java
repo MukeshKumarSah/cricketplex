@@ -44,6 +44,9 @@ public class FriendlyChallenge {
     @Column(name = "match_date", nullable = false)
     private LocalDate matchDate;
 
+    @Column(name = "match_time", length = 5)
+    private String matchTime;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "PENDING";

@@ -22,4 +22,6 @@ public interface FriendlyChallengeRepository extends JpaRepository<FriendlyChall
     long countByChallengerTeamIdAndStatus(UUID teamId, String status);
 
     long countByChallengedTeamIdAndStatus(UUID teamId, String status);
+
+    List<FriendlyChallenge> findByStatus(String status);
 }

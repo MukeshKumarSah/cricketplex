@@ -89,7 +89,7 @@ export default function FixturePreview() {
           <div className="fp-vs-block">
             <span className="fp-vs">VS</span>
             <span className="fp-status-tag" data-status={data.status}>
-              {data.status === 'COMPLETED' ? 'Completed' : data.status === 'IN_PROGRESS' ? 'LIVE' : 'Upcoming'}
+              {data.status === 'COMPLETED' ? 'Completed' : data.status === 'IN_PROGRESS' ? 'LIVE' : data.status === 'FC_DAY1_COMPLETE' ? 'Day 1 Done' : 'Upcoming'}
             </span>
           </div>
 
@@ -197,6 +197,18 @@ export default function FixturePreview() {
           <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}/live`)}>
             Watch Live
           </button>
+        )}
+        {data.status === 'FC_DAY1_COMPLETE' && (
+          <>
+            <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}/scorecard`)}>
+              View Day 1 Scorecard
+            </button>
+            {data.isUserInvolved && (
+              <button className="fp-btn fp-btn-accent" onClick={() => navigate(`/match/${fixtureId}/fc-strategy`)}>
+                Update Day 2 Strategy
+              </button>
+            )}
+          </>
         )}
         {data.isUserInvolved && data.status === 'SCHEDULED' && (
           <button className="fp-btn fp-btn-accent" onClick={() => navigate(`/match/${fixtureId}/lineup`)}>

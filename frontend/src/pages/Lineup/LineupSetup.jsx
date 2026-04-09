@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLineupData, saveLineup as saveLineupApi } from '../../api/auth';
+import { getLineupData, saveLineup as saveLineupApi, saveFCStrategy } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
   HiOutlineTrophy,
@@ -74,6 +74,12 @@ export default function LineupSetup() {
   // FC-specific: per-bowler aggression (default brush) and active brush
   const [bowlerAggression, setBowlerAggression] = useState(Array(5).fill('N'));
   const [activeBrush, setActiveBrush] = useState(0); // 0-N = bowler slot, -1 = eraser
+
+  // FC Strategy
+  const [fcDeclareInn1, setFcDeclareInn1] = useState('');
+  const [fcDeclareInn2Lead, setFcDeclareInn2Lead] = useState('');
+  const [fcFollowOn, setFcFollowOn] = useState(true);
+  const [fcDeclareInn3Lead, setFcDeclareInn3Lead] = useState('');
 
   // Sorting for player pool
   const [sortKey, setSortKey] = useState('rating');
@@ -289,6 +295,17 @@ export default function LineupSetup() {
     setSaving(true);
     try {
       await saveLineupApi(fixtureId, payload);
+
+      // Save FC strategy if FC format
+      if (format === 'FC') {
+        await saveFCStrategy(fixtureId, {
+          declareInn1: fcDeclareInn1 ? parseInt(fcDeclareInn1, 10) : null,
+          declareInn2Lead: fcDeclareInn2Lead ? parseInt(fcDeclareInn2Lead, 10) : null,
+          followOn: fcFollowOn,
+          declareInn3Lead: fcDeclareInn3Lead ? parseInt(fcDeclareInn3Lead, 10) : null,
+        });
+      }
+
       toast.success('Lineup saved!');
     } catch {
       toast.error('Failed to save lineup');
@@ -509,6 +526,73 @@ export default function LineupSetup() {
           </div>
         </div>
       </div>
+
+      {/* ═══ Section 3.5: FC Strategy (FC only) ═══ */}
+      {format === 'FC' && (
+        <div className="lu-section">
+          <h2 className="lu-section-title">FC Match Strategy</h2>
+          <p className="lu-template-note">
+            Set declaration targets and follow-on preference. You can update these between Day 1 and Day 2.
+          </p>
+          <div className="lu-fc-strategy">
+            <div className="lu-fc-strat-row">
+              <label className="lu-fc-strat-label">1st Innings Declaration</label>
+              <div className="lu-fc-strat-input">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Score total (e.g. 350)"
+                  value={fcDeclareInn1}
+                  onChange={e => setFcDeclareInn1(e.target.value)}
+                />
+                <span className="lu-fc-strat-hint">Declare when your team reaches this total. Leave empty for no declaration.</span>
+              </div>
+            </div>
+            <div className="lu-fc-strat-row">
+              <label className="lu-fc-strat-label">2nd Innings Declaration (Lead)</label>
+              <div className="lu-fc-strat-input">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Lead runs (e.g. 150)"
+                  value={fcDeclareInn2Lead}
+                  onChange={e => setFcDeclareInn2Lead(e.target.value)}
+                />
+                <span className="lu-fc-strat-hint">Declare when your team leads by this many runs. Leave empty for no declaration.</span>
+              </div>
+            </div>
+            <div className="lu-fc-strat-row">
+              <label className="lu-fc-strat-label">Follow-on (if leading by 200+)</label>
+              <div className="lu-fc-strat-input">
+                <div className="lu-fc-strat-toggle">
+                  <button
+                    className={`lu-fc-strat-btn ${fcFollowOn ? 'active' : ''}`}
+                    onClick={() => setFcFollowOn(true)}
+                  >Yes — Enforce</button>
+                  <button
+                    className={`lu-fc-strat-btn ${!fcFollowOn ? 'active' : ''}`}
+                    onClick={() => setFcFollowOn(false)}
+                  >No — Bat Again</button>
+                </div>
+                <span className="lu-fc-strat-hint">If your team leads by 200+, enforce follow-on or bat again.</span>
+              </div>
+            </div>
+            <div className="lu-fc-strat-row">
+              <label className="lu-fc-strat-label">3rd Innings Declaration (Lead)</label>
+              <div className="lu-fc-strat-input">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Lead runs (e.g. 250)"
+                  value={fcDeclareInn3Lead}
+                  onChange={e => setFcDeclareInn3Lead(e.target.value)}
+                />
+                <span className="lu-fc-strat-hint">Declare when your team&apos;s overall lead reaches this. Leave empty for no declaration.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ Section 4: Bowling Plan ═══ */}
       <div className="lu-section">

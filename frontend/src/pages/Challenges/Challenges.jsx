@@ -29,6 +29,18 @@ const STATUS_COLORS = {
   DECLINED: '#ef4444',
   CANCELLED: '#6b7280',
   COMPLETED: '#10b981',
+  EXPIRED: '#6b7280',
+};
+
+const TIME_SLOTS = ['02:00', '07:00', '12:00', '17:00', '21:00'];
+
+const formatTimeSlot = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hr = parseInt(h, 10);
+  const suffix = hr >= 12 ? 'PM' : 'AM';
+  const hr12 = hr === 0 ? 12 : hr > 12 ? hr - 12 : hr;
+  return `${hr12}:${m} ${suffix}`;
 };
 
 
@@ -47,6 +59,7 @@ export default function Challenges() {
   const [format, setFormat] = useState('T20');
   const [pitchType, setPitchType] = useState('STANDARD');
   const [matchDate, setMatchDate] = useState('');
+  const [matchTime, setMatchTime] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -81,6 +94,7 @@ export default function Challenges() {
     setFormat('T20');
     setPitchType('STANDARD');
     setMatchDate('');
+    setMatchTime('');
     setMessage('');
     setShowNewModal(true);
   };
@@ -88,6 +102,7 @@ export default function Challenges() {
   const handleSend = async () => {
     if (!selectedTeam) return toast.error('Select a team');
     if (!matchDate) return toast.error('Select a match date');
+    if (!matchTime) return toast.error('Select a match time');
     setSending(true);
     try {
       await sendChallenge({
@@ -95,6 +110,7 @@ export default function Challenges() {
         format,
         pitchType,
         matchDate,
+        matchTime,
         message: message || null,
       });
       toast.success('Challenge sent!');
@@ -159,6 +175,24 @@ export default function Challenges() {
   const displayed = activeTab === 'received' ? received : sent;
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Generate next 10 days as date options
+  const dateOptions = Array.from({ length: 11 }, (_, i) => {
+    const d = new Date(Date.now() + i * 86400000);
+    return {
+      value: d.toISOString().split('T')[0],
+      label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+    };
+  });
+
+  // Filter time slots: if selected date is today, only show future times
+  const nowUtcHours = new Date().getUTCHours();
+  const nowUtcMinutes = new Date().getUTCMinutes();
+  const availableTimeSlots = TIME_SLOTS.filter((t) => {
+    if (matchDate !== today) return true;
+    const [h, m] = t.split(':').map(Number);
+    return h > nowUtcHours || (h === nowUtcHours && m > nowUtcMinutes);
+  });
 
   return (
     <div className="challenges-page">
@@ -253,6 +287,7 @@ export default function Challenges() {
                       month: 'short',
                       day: 'numeric',
                     })}
+                    {c.matchTime && ` · ${formatTimeSlot(c.matchTime)} UTC`}
                   </span>
                   <span className="challenge-pitch">{c.pitchType}</span>
                   <span
@@ -280,8 +315,8 @@ export default function Challenges() {
 
               {/* Actions */}
               <div className="challenge-actions">
-                {/* Received + Pending → Accept / Decline */}
-                {c.isReceiver && c.status === 'PENDING' && (
+                {/* Received + Pending (not expired) → Accept / Decline */}
+                {c.isReceiver && c.status === 'PENDING' && !c.expired && (
                   <>
                     <button className="ch-btn ch-accept" onClick={() => handleAccept(c.id)}>
                       <HiOutlineCheck /> Accept
@@ -292,8 +327,22 @@ export default function Challenges() {
                   </>
                 )}
 
-                {/* Sent + Pending → Cancel */}
-                {c.isSender && c.status === 'PENDING' && (
+                {/* Expired PENDING → message */}
+                {c.status === 'PENDING' && c.expired && (
+                  <span className="challenge-expired-msg">
+                    {c.isSender ? 'Opponent didn\'t accept' : 'You missed to accept this challenge'}
+                  </span>
+                )}
+
+                {/* EXPIRED status (set by scheduler) → message */}
+                {c.status === 'EXPIRED' && (
+                  <span className="challenge-expired-msg">
+                    {c.isSender ? 'Opponent didn\'t accept' : 'You missed to accept this challenge'}
+                  </span>
+                )}
+
+                {/* Sent + Pending (not expired) → Cancel */}
+                {c.isSender && c.status === 'PENDING' && !c.expired && (
                   <button className="ch-btn ch-cancel" onClick={() => handleCancel(c.id)}>
                     <HiOutlineXMark /> Cancel
                   </button>
@@ -309,16 +358,11 @@ export default function Challenges() {
                   </button>
                 )}
 
-                {/* Both lineups set → Simulate */}
+                {/* Both lineups set, not yet started → show "Starts at" info */}
                 {c.status === 'ACCEPTED' && c.bothLineupsSet && !c.resultExists && (
-                  <button
-                    className="ch-btn ch-simulate"
-                    onClick={() => handleSimulate(c.id)}
-                    disabled={simulating === c.id}
-                  >
-                    <HiOutlinePlayCircle />
-                    {simulating === c.id ? 'Simulating...' : 'Play Match'}
-                  </button>
+                  <span className="challenge-starts-at">
+                    Match starts at {formatTimeSlot(c.matchTime)} UTC
+                  </span>
                 )}
 
                 {/* Completed → View Scorecard / Continue Watching */}
@@ -398,9 +442,25 @@ export default function Challenges() {
               </div>
             </div>
 
-            <div className="cm-field">
-              <label>Match Date</label>
-              <input type="date" min={today} value={matchDate} onChange={(e) => setMatchDate(e.target.value)} />
+            <div className="cm-row">
+              <div className="cm-field">
+                <label>Match Date</label>
+                <select value={matchDate} onChange={(e) => { setMatchDate(e.target.value); setMatchTime(''); }}>
+                  <option value="">Select a date...</option>
+                  {dateOptions.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="cm-field">
+                <label>Match Time (UTC)</label>
+                <select value={matchTime} onChange={(e) => setMatchTime(e.target.value)} disabled={!matchDate}>
+                  <option value="">Select a time...</option>
+                  {availableTimeSlots.map((t) => (
+                    <option key={t} value={t}>{formatTimeSlot(t)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="cm-field">

@@ -53,11 +53,12 @@ public class FriendlyChallengeController {
         String format = (String) body.get("format");
         String pitchType = (String) body.getOrDefault("pitchType", "STANDARD");
         LocalDate matchDate = LocalDate.parse((String) body.get("matchDate"));
+        String matchTime = (String) body.get("matchTime");
         String message = (String) body.get("message");
 
         try {
             FriendlyChallenge challenge = challengeService.sendChallenge(
-                    user, opponentTeamId, format, pitchType, matchDate, message);
+                    user, opponentTeamId, format, pitchType, matchDate, matchTime, message);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "challengeId", challenge.getId(),

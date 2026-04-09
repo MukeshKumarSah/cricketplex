@@ -181,6 +181,7 @@ export default function Dashboard() {
         const all = res.data || [];
         const completed = all.filter((m) => m.status === 'COMPLETED');
         const live = all.filter((m) => m.status === 'IN_PROGRESS' || m.status === 'LIVE');
+        const day1Done = all.filter((m) => m.status === 'FC_DAY1_COMPLETE');
         const upcoming = all.filter((m) => m.status === 'SCHEDULED');
         // Smart pick: 2 completed + 1 live + 2 upcoming (adjust based on availability)
         let picked = [];
@@ -188,15 +189,17 @@ export default function Dashboard() {
           const c = completed.slice(-2);
           const l = live.slice(0, 1);
           const need = 5 - c.length - l.length;
-          const u = upcoming.slice(0, Math.max(need, 0));
-          picked = [...c, ...l, ...u];
+          const d = day1Done.slice(0, Math.max(need, 0));
+          const u = upcoming.slice(0, Math.max(need - d.length, 0));
+          picked = [...c, ...l, ...d, ...u];
         } else if (completed.length > 0) {
           const c = completed.slice(-2);
           const need = 5 - c.length;
-          const u = upcoming.slice(0, Math.max(need, 0));
-          picked = [...c, ...u];
+          const d = day1Done.slice(0, Math.max(need, 0));
+          const u = upcoming.slice(0, Math.max(need - d.length, 0));
+          picked = [...c, ...d, ...u];
         } else {
-          picked = upcoming.slice(0, 5);
+          picked = [...day1Done, ...upcoming].slice(0, 5);
         }
         setDashMatches(picked.slice(0, 5));
       })
@@ -347,14 +350,15 @@ export default function Dashboard() {
           {dashMatches.length > 0 ? dashMatches.map((m) => {
             const isLive = m.status === 'IN_PROGRESS' || m.status === 'LIVE';
             const isDone = m.status === 'COMPLETED';
-            const statusClass = isLive ? 'live' : isDone ? 'completed' : 'upcoming';
-            const statusLabel = isLive ? 'LIVE' : isDone ? 'Completed' : 'Upcoming';
+            const isDay1 = m.status === 'FC_DAY1_COMPLETE';
+            const statusClass = isLive ? 'live' : isDone ? 'completed' : isDay1 ? 'day1done' : 'upcoming';
+            const statusLabel = isLive ? 'LIVE' : isDone ? 'Completed' : isDay1 ? 'Day 1 Done' : 'Upcoming';
             const formatColors = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
             return (
               <div
                 key={m.id}
                 className={`dash-match-row dash-match-${statusClass}`}
-                onClick={() => navigate(isLive ? `/match/${m.id}/live` : isDone ? `/match/${m.id}/scorecard` : `/match/${m.id}/preview`)}
+                onClick={() => navigate(isLive ? `/match/${m.id}/live` : isDone ? `/match/${m.id}/scorecard` : isDay1 ? `/match/${m.id}/preview` : `/match/${m.id}/preview`)}
               >
                 <div className="dash-match-date">
                   {m.matchDate ? new Date(m.matchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}

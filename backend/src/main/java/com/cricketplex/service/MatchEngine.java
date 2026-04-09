@@ -49,10 +49,13 @@ public class MatchEngine {
         Fixture fixture = fixtureRepository.findById(fixtureId)
                 .orElseThrow(() -> new IllegalArgumentException("Fixture not found"));
 
-        if (!"SCHEDULED".equals(fixture.getStatus())) {
+        String fixtureStatus = fixture.getStatus();
+        boolean isFcDay2 = "FC_DAY1_COMPLETE".equals(fixtureStatus);
+
+        if (!"SCHEDULED".equals(fixtureStatus) && !isFcDay2) {
             throw new IllegalStateException("Match already played or in progress");
         }
-        if (matchResultRepository.existsByFixtureId(fixtureId)) {
+        if ("SCHEDULED".equals(fixtureStatus) && matchResultRepository.existsByFixtureId(fixtureId)) {
             throw new IllegalStateException("Match result already exists");
         }
 
@@ -69,7 +72,10 @@ public class MatchEngine {
 
         // Route to FC match engine if First-Class format
         if ("FC".equalsIgnoreCase(format)) {
-            return simulateFCMatch(fixture, format, fixture.getHomeTeam(), fixture.getAwayTeam());
+            if (isFcDay2) {
+                return simulateFCDay2(fixture, format);
+            }
+            return simulateFCDay1(fixture, format, fixture.getHomeTeam(), fixture.getAwayTeam());
         }
 
         // Limited-overs formats only below
@@ -1388,15 +1394,142 @@ public class MatchEngine {
         return batScore >= 0 ? "BAT" : "BOWL";
     }
 
-    // ─── FC (First-Class) Match Simulation ────────────────────
+    // ─── FC (First-Class) Day-Based Match Simulation ──────────
+
+    /** Resume state for mid-innings day breaks. */
+    private static class FCResumeState {
+        UUID strikerId;
+        UUID nonStrikerId;
+        int nextBatIdx;
+        UUID previousBowlerId;
+        Map<UUID, Integer> bowlerBallCounts = new HashMap<>();
+    }
+
+    private String buildResumeState(BatsmanState striker, BatsmanState nonStriker,
+                                    int nextBatIdx, Map<UUID, Integer> bowlerBallCounts,
+                                    Player previousBowler) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(striker.player.getId()).append('|');
+        sb.append(nonStriker.player.getId()).append('|');
+        sb.append(nextBatIdx).append('|');
+        sb.append(previousBowler != null ? previousBowler.getId().toString() : "null").append('|');
+        boolean first = true;
+        for (Map.Entry<UUID, Integer> e : bowlerBallCounts.entrySet()) {
+            if (!first) sb.append(',');
+            sb.append(e.getKey()).append('=').append(e.getValue());
+            first = false;
+        }
+        return sb.toString();
+    }
+
+    private FCResumeState parseResumeState(String state) {
+        String[] parts = state.split("\\|", -1);
+        FCResumeState r = new FCResumeState();
+        r.strikerId = UUID.fromString(parts[0]);
+        r.nonStrikerId = UUID.fromString(parts[1]);
+        r.nextBatIdx = Integer.parseInt(parts[2]);
+        r.previousBowlerId = "null".equals(parts[3]) ? null : UUID.fromString(parts[3]);
+        if (parts.length > 4 && !parts[4].isEmpty()) {
+            for (String entry : parts[4].split(",")) {
+                String[] kv = entry.split("=");
+                r.bowlerBallCounts.put(UUID.fromString(kv[0]), Integer.parseInt(kv[1]));
+            }
+        }
+        return r;
+    }
+
+    private int computeBallsBowled(Double totalOvers) {
+        if (totalOvers == null || totalOvers <= 0) return 0;
+        int full = (int) Math.floor(totalOvers);
+        int partial = (int) Math.round((totalOvers - full) * 10);
+        return full * 6 + partial;
+    }
+
+    private boolean isHumanTeam(Team team) {
+        return team.getOwner() != null;
+    }
+
+    private MatchResult saveFCDay1Complete(Fixture fixture, MatchResult result) {
+        result.setResultType("PENDING");
+        fixture.setFcDay(1);
+        fixture.setStatus("FC_DAY1_COMPLETE");
+        fixtureRepository.save(fixture);
+        return matchResultRepository.save(result);
+    }
+
+    private MatchResult finalizeFCMatch(Fixture fixture, MatchResult result, Random rng) {
+        result.setManOfMatch(pickManOfMatch(result, rng));
+        fixture.setFcDay(2);
+        fixture.setStatus("COMPLETED");
+        fixtureRepository.save(fixture);
+        logMatchActivity(result, fixture);
+        if (fixture.getLeague() != null) {
+            updateMoraleAndFans(result, fixture, "FC");
+            updatePlayerStats(result, "FC");
+            distributeGateMoney(result, fixture);
+        }
+        MatchResult saved = matchResultRepository.save(result);
+        fixtureService.applyPendingSwap(fixture.getId(), saved);
+        return saved;
+    }
+
+    /** Compute 3rd-innings declaration target. Returns {canDeclare ? 1 : 0, declareAtRuns}. */
+    private long[] computeInn3Declaration(Fixture fixture, List<Innings> inningsList,
+                                          Team battingTeam, Team battingFirst, Team battingSecond) {
+        int i1 = inningsList.get(0).getTotalRuns();
+        int i2 = inningsList.get(1).getTotalRuns();
+        boolean fo = battingTeam.getId().equals(battingSecond.getId());
+        boolean human = isHumanTeam(battingTeam);
+        if (human && fixture.getFcDeclareInn3Lead() != null && fixture.getFcDeclareInn3Lead() > 0) {
+            int da = fo ? (i1 - i2 + fixture.getFcDeclareInn3Lead())
+                        : (i2 - i1 + fixture.getFcDeclareInn3Lead());
+            return new long[]{1, Math.max(1, da)};
+        }
+        if (!human) {
+            int aiLead = 250;
+            int da = fo ? (i1 - i2 + aiLead) : (i2 - i1 + aiLead);
+            return new long[]{1, Math.max(1, da)};
+        }
+        return new long[]{0, 0};
+    }
+
+    /** Compute chase target for 4th innings. */
+    private int computeFCChaseTarget(List<Innings> inningsList, Team battingSecond) {
+        int i1 = inningsList.get(0).getTotalRuns();
+        int i2 = inningsList.get(1).getTotalRuns();
+        int i3 = inningsList.get(2).getTotalRuns();
+        boolean fo = inningsList.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+        return fo ? (i2 + i3) - i1 + 1 : (i1 + i3) - i2 + 1;
+    }
+
+    /** Determine FC result from completed innings and finalize the match. */
+    private MatchResult determineFCResultAndFinalize(Fixture fixture, MatchResult result,
+                                                      Team battingFirst, Team battingSecond, Random rng) {
+        List<Innings> inns = result.getInningsList();
+        if (inns.size() >= 4) {
+            boolean fo = inns.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+            determineFCResult(result, inns.get(0).getTotalRuns(), inns.get(1).getTotalRuns(),
+                    inns.get(2).getTotalRuns(), inns.get(3).getTotalRuns(),
+                    battingFirst, battingSecond, fo, false);
+        } else if (inns.size() == 3) {
+            boolean fo = inns.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+            int i1 = inns.get(0).getTotalRuns(), i2 = inns.get(1).getTotalRuns(), i3 = inns.get(2).getTotalRuns();
+            int overallLead = fo ? i1 - (i2 + i3) : (i1 + i3) - i2;
+            if ((fo && overallLead > 0) || (!fo && overallLead < 0)) {
+                determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, true);
+            } else {
+                result.setResultType("DRAW");
+            }
+        } else {
+            result.setResultType("DRAW");
+        }
+        return finalizeFCMatch(fixture, result, rng);
+    }
 
     /**
-     * FC match: 2 days × 3 sessions × 50 overs = 300 overs max.
-     * Each team bats twice (4 innings).
-     * Results: Win by runs/wickets/innings, Draw.
-     * Includes follow-on enforcement and declarations.
+     * FC Day 1: Fresh match, simulate up to 150 overs (3 sessions).
      */
-    private MatchResult simulateFCMatch(Fixture fixture, String format, Team homeTeam, Team awayTeam) {
+    private MatchResult simulateFCDay1(Fixture fixture, String format, Team homeTeam, Team awayTeam) {
         MatchLineup homeLineup = getOrGenerateLineup(fixture, homeTeam, format);
         MatchLineup awayLineup = getOrGenerateLineup(fixture, awayTeam, format);
 
@@ -1411,7 +1544,6 @@ public class MatchEngine {
         MatchLineup tossLineup = homeToss ? homeLineup : awayLineup;
         String tossDecision = decideToss(tossLineup, pitchType, condition, rng);
 
-        // Determine batting order for first innings
         Team battingFirst, battingSecond;
         MatchLineup bat1Lineup, bat2Lineup;
         if ("BAT".equals(tossDecision)) {
@@ -1432,196 +1564,217 @@ public class MatchEngine {
                 .tossDecision(tossDecision)
                 .build();
 
-        int maxOversPerInnings = 50; // each session 50 overs, max 3 sessions for an innings
-        int maxPerBowler = 50;       // no formal per-bowler limit per innings (fatigue handles it)
+        return runFCInningsLoop(fixture, result, battingFirst, battingSecond,
+                bat1Lineup, bat2Lineup, 150, rng, pitchType, condition, temperature, format);
+    }
 
-        // Track total overs used across match (max 300)
-        int totalMatchOversUsed = 0;
+    /**
+     * FC Day 2: Resume from Day 1 state, simulate remaining overs.
+     */
+    private MatchResult simulateFCDay2(Fixture fixture, String format) {
+        MatchResult result = matchResultRepository.findByFixtureIdWithInnings(fixture.getId())
+                .orElseThrow(() -> new IllegalStateException("No Day 1 result found"));
+
+        Team homeTeam = fixture.getHomeTeam();
+        Team awayTeam = fixture.getAwayTeam();
+        MatchLineup homeLineup = getOrGenerateLineup(fixture, homeTeam, format);
+        MatchLineup awayLineup = getOrGenerateLineup(fixture, awayTeam, format);
+
+        List<Innings> inns = result.getInningsList();
+        if (inns.isEmpty()) throw new IllegalStateException("No innings from Day 1");
+
+        Team battingFirst = inns.get(0).getBattingTeam();
+        Team battingSecond = inns.get(0).getBowlingTeam();
+        MatchLineup bat1Lineup = battingFirst.getId().equals(homeTeam.getId()) ? homeLineup : awayLineup;
+        MatchLineup bat2Lineup = battingSecond.getId().equals(homeTeam.getId()) ? homeLineup : awayLineup;
+
+        Random rng = new Random((fixture.getId().toString() + fixture.getMatchDate() + "D2").hashCode());
+        String pitchType = fixture.getPitchType();
+        Map<String, Object> weather = weatherService.getWeather(homeTeam.getCountry(), fixture.getMatchDate());
+        String condition = (String) weather.get("condition");
+        int temperature = (int) weather.get("temperature");
+
+        int totalUsed = inns.stream().mapToInt(this::getOversUsed).sum();
+        int dayLimit = Math.min(150, 300 - totalUsed);
+
+        return runFCInningsLoop(fixture, result, battingFirst, battingSecond,
+                bat1Lineup, bat2Lineup, dayLimit, rng, pitchType, condition, temperature, format);
+    }
+
+    /**
+     * Core FC innings loop: resumes any interrupted innings, then plays remaining.
+     * Shared between Day 1 and Day 2.
+     */
+    private MatchResult runFCInningsLoop(Fixture fixture, MatchResult result,
+                                          Team battingFirst, Team battingSecond,
+                                          MatchLineup bat1Lineup, MatchLineup bat2Lineup,
+                                          int dayOversLimit, Random rng, String pitchType,
+                                          String condition, int temperature, String format) {
+        List<Innings> inningsList = result.getInningsList();
+        int totalMatchOvers = inningsList.stream().mapToInt(this::getOversUsed).sum();
+        int dayOversUsed = 0;
         int matchOversLimit = 300;
+        int maxOversPerInnings = 150;
+        int maxPerBowler = 50;
 
-        // ─── 1st Innings: Team A bats ───
-        int inn1MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed); // up to 150
-        Innings inn1 = Innings.builder()
-                .matchResult(result).inningsNumber(1)
-                .battingTeam(battingFirst).bowlingTeam(battingSecond).build();
+        // ── Resume interrupted innings from previous day ──
+        if (!inningsList.isEmpty()) {
+            Innings last = inningsList.get(inningsList.size() - 1);
+            if (last.getResumeState() != null) {
+                int oversBefore = getOversUsed(last);
+                int inningsOversPlayed = computeBallsBowled(last.getTotalOvers()) / 6;
+                int maxForResume = Math.min(maxOversPerInnings,
+                        inningsOversPlayed + Math.min(matchOversLimit - totalMatchOvers, dayOversLimit));
 
-        SimContext ctx1 = new SimContext(rng, pitchType, condition, temperature,
-                inn1MaxOvers, maxPerBowler, format, false, 0, bat1Lineup, bat2Lineup);
-        simulateFCInnings(inn1, ctx1, rng, false, 0, matchOversLimit);
-        result.getInningsList().add(inn1);
-        totalMatchOversUsed += getOversUsed(inn1);
+                int inningsNum = last.getInningsNumber();
+                boolean canDeclare = false;
+                int declareAt = 0;
+                boolean isChasing = false;
+                int chaseTarget = 0;
 
-        // ─── 2nd Innings: Team B bats ───
-        int inn1Runs = inn1.getTotalRuns();
-        int inn2MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
-        Innings inn2 = Innings.builder()
-                .matchResult(result).inningsNumber(2)
-                .battingTeam(battingSecond).bowlingTeam(battingFirst).build();
-
-        SimContext ctx2 = new SimContext(rng, pitchType, condition, temperature,
-                inn2MaxOvers, maxPerBowler, format, false, 0, bat2Lineup, bat1Lineup);
-        simulateFCInnings(inn2, ctx2, rng, false, 0, matchOversLimit - totalMatchOversUsed);
-        result.getInningsList().add(inn2);
-        totalMatchOversUsed += getOversUsed(inn2);
-
-        int inn2Runs = inn2.getTotalRuns();
-        int lead = inn1Runs - inn2Runs; // positive = team A leads
-
-        // ─── Follow-on check ───
-        // If team A leads by 200+, team B must bat again (follow-on)
-        boolean followOn = lead >= 200;
-
-        Team inn3Batter, inn4Batter;
-        MatchLineup inn3BatLineup, inn3BowlLineup, inn4BatLineup, inn4BowlLineup;
-
-        if (followOn) {
-            // Follow-on: Team B bats again (3rd), then Team A might bat (4th)
-            inn3Batter = battingSecond;
-            inn4Batter = battingFirst;
-            inn3BatLineup = bat2Lineup;
-            inn3BowlLineup = bat1Lineup;
-            inn4BatLineup = bat1Lineup;
-            inn4BowlLineup = bat2Lineup;
-        } else {
-            // Normal: Team A bats (3rd), Team B bats (4th chase)
-            inn3Batter = battingFirst;
-            inn4Batter = battingSecond;
-            inn3BatLineup = bat1Lineup;
-            inn3BowlLineup = bat2Lineup;
-            inn4BatLineup = bat2Lineup;
-            inn4BowlLineup = bat1Lineup;
-        }
-
-        // ─── 3rd Innings ───
-        if (totalMatchOversUsed < matchOversLimit) {
-            int inn3MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
-            Innings inn3 = Innings.builder()
-                    .matchResult(result).inningsNumber(3)
-                    .battingTeam(inn3Batter).bowlingTeam(followOn ? battingFirst : battingSecond).build();
-
-            // In 3rd innings, team might declare to set a target
-            int inn3Target = 0; // not chasing
-            SimContext ctx3 = new SimContext(rng, pitchType, condition, temperature,
-                    inn3MaxOvers, maxPerBowler, format, false, inn3Target, inn3BatLineup, inn3BowlLineup);
-
-            // Declaration logic for 3rd innings
-            int declareLead;
-            if (followOn) {
-                // Team B (follow-on): they'd want to wipe out the deficit + set a target
-                // They declare when they're ahead overall by 250+
-                declareLead = -lead + 250; // e.g., if lead was 200, they need 200+250 = 450 runs total
-            } else {
-                // Team A: declare when overall lead is 250+
-                declareLead = 250;
-            }
-
-            simulateFCInnings(inn3, ctx3, rng, true, estimateDeclarationTarget(followOn, lead, declareLead),
-                    matchOversLimit - totalMatchOversUsed);
-            result.getInningsList().add(inn3);
-            totalMatchOversUsed += getOversUsed(inn3);
-
-            // Recalculate overall lead
-            int inn3Runs = inn3.getTotalRuns();
-            int overallLead;
-            if (followOn) {
-                // Team B scored inn2Runs + inn3Runs, Team A scored inn1Runs
-                overallLead = inn1Runs - (inn2Runs + inn3Runs); // positive = Team A still leads
-            } else {
-                // Team A scored inn1Runs + inn3Runs, Team B scored inn2Runs
-                overallLead = (inn1Runs + inn3Runs) - inn2Runs; // positive = Team A leads
-            }
-
-            // Check for innings defeat
-            if (followOn && overallLead > 0) {
-                // Team B still behind after follow-on innings → innings defeat
-                determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
-                        battingFirst, battingSecond, followOn, true);
-            } else if (!followOn && overallLead < 0) {
-                // Team A collapsed and still behind → innings defeat for team A
-                determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
-                        battingFirst, battingSecond, followOn, true);
-            } else {
-                // ─── 4th Innings (chase) ───
-                if (totalMatchOversUsed < matchOversLimit) {
-                    int chaseTarget;
-                    if (followOn) {
-                        chaseTarget = (inn2Runs + inn3Runs) - inn1Runs + 1;
-                    } else {
-                        chaseTarget = (inn1Runs + inn3Runs) - inn2Runs + 1;
+                if (inningsNum == 1) {
+                    if (isHumanTeam(last.getBattingTeam()) && fixture.getFcDeclareInn1() != null && fixture.getFcDeclareInn1() > 0) {
+                        canDeclare = true; declareAt = fixture.getFcDeclareInn1();
                     }
-
-                    if (chaseTarget <= 0) {
-                        // Chase target is 0 or negative — chasing team already ahead
-                        determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, 0,
-                                battingFirst, battingSecond, followOn, false);
-                    } else {
-                        int inn4MaxOvers = Math.min(maxOversPerInnings * 3, matchOversLimit - totalMatchOversUsed);
-                        Innings inn4 = Innings.builder()
-                                .matchResult(result).inningsNumber(4)
-                                .battingTeam(inn4Batter).bowlingTeam(followOn ? battingSecond : battingFirst).build();
-
-                        SimContext ctx4 = new SimContext(rng, pitchType, condition, temperature,
-                                inn4MaxOvers, maxPerBowler, format, true, chaseTarget,
-                                inn4BatLineup, inn4BowlLineup);
-                        simulateFCInnings(inn4, ctx4, rng, false, 0, matchOversLimit - totalMatchOversUsed);
-                        result.getInningsList().add(inn4);
-                        totalMatchOversUsed += getOversUsed(inn4);
-
-                        int inn4Runs = inn4.getTotalRuns();
-                        determineFCResult(result, inn1Runs, inn2Runs, inn3Runs, inn4Runs,
-                                battingFirst, battingSecond, followOn, false);
+                } else if (inningsNum == 2) {
+                    int i1r = inningsList.get(0).getTotalRuns();
+                    if (isHumanTeam(last.getBattingTeam()) && fixture.getFcDeclareInn2Lead() != null && fixture.getFcDeclareInn2Lead() > 0) {
+                        canDeclare = true; declareAt = i1r + fixture.getFcDeclareInn2Lead();
                     }
-                } else {
-                    // No overs left for 4th innings → DRAW
-                    result.setResultType("DRAW");
+                } else if (inningsNum == 3) {
+                    long[] dc = computeInn3Declaration(fixture, inningsList, last.getBattingTeam(), battingFirst, battingSecond);
+                    canDeclare = dc[0] > 0; declareAt = (int) dc[1];
+                } else if (inningsNum == 4) {
+                    isChasing = true;
+                    chaseTarget = computeFCChaseTarget(inningsList, battingSecond);
+                }
+
+                MatchLineup batL = last.getBattingTeam().getId().equals(battingFirst.getId()) ? bat1Lineup : bat2Lineup;
+                MatchLineup bowlL = last.getBowlingTeam().getId().equals(battingFirst.getId()) ? bat1Lineup : bat2Lineup;
+
+                SimContext ctx = new SimContext(rng, pitchType, condition, temperature,
+                        maxForResume, maxPerBowler, format, isChasing, chaseTarget, batL, bowlL);
+                simulateInningsWithDeclaration(last, ctx, canDeclare, declareAt, true);
+
+                int newOvers = getOversUsed(last) - oversBefore;
+                dayOversUsed += newOvers;
+                totalMatchOvers += newOvers;
+
+                if (dayOversUsed >= dayOversLimit || last.getResumeState() != null) {
+                    return saveFCDay1Complete(fixture, result);
+                }
+                if (inningsNum == 4) {
+                    return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng);
                 }
             }
-        } else {
-            // No overs left after 2nd innings → DRAW
-            result.setResultType("DRAW");
         }
 
-        result.setManOfMatch(pickManOfMatch(result, rng));
-        fixture.setStatus("COMPLETED");
-        fixtureRepository.save(fixture);
-        logMatchActivity(result, fixture);
-        // Only update team/player stats for league matches — friendlies have no consequences
-        if (fixture.getLeague() != null) {
-            updateMoraleAndFans(result, fixture, "FC");
-            updatePlayerStats(result, "FC");
-            distributeGateMoney(result, fixture);
+        // ── Play new innings ──
+        while (inningsList.size() < 4 && dayOversUsed < dayOversLimit && totalMatchOvers < matchOversLimit) {
+            int next = inningsList.size() + 1;
+            Team bat = null, bowl = null;
+            MatchLineup batL = null, bowlL = null;
+            boolean canDeclare = false;
+            int declareAt = 0;
+            boolean isChasing = false;
+            int chaseTarget = 0;
+
+            switch (next) {
+                case 1:
+                    bat = battingFirst; bowl = battingSecond;
+                    batL = bat1Lineup; bowlL = bat2Lineup;
+                    if (isHumanTeam(bat) && fixture.getFcDeclareInn1() != null && fixture.getFcDeclareInn1() > 0) {
+                        canDeclare = true; declareAt = fixture.getFcDeclareInn1();
+                    }
+                    break;
+                case 2:
+                    bat = battingSecond; bowl = battingFirst;
+                    batL = bat2Lineup; bowlL = bat1Lineup;
+                    if (isHumanTeam(bat) && fixture.getFcDeclareInn2Lead() != null && fixture.getFcDeclareInn2Lead() > 0) {
+                        canDeclare = true;
+                        declareAt = inningsList.get(0).getTotalRuns() + fixture.getFcDeclareInn2Lead();
+                    }
+                    break;
+                case 3: {
+                    int i1 = inningsList.get(0).getTotalRuns();
+                    int i2 = inningsList.get(1).getTotalRuns();
+                    int lead = i1 - i2;
+                    boolean followOn = lead >= 200
+                            && (fixture.getFcFollowOn() != null ? fixture.getFcFollowOn() : true);
+                    if (followOn) {
+                        bat = battingSecond; bowl = battingFirst;
+                        batL = bat2Lineup; bowlL = bat1Lineup;
+                    } else {
+                        bat = battingFirst; bowl = battingSecond;
+                        batL = bat1Lineup; bowlL = bat2Lineup;
+                    }
+                    long[] dc = computeInn3Declaration(fixture, inningsList, bat, battingFirst, battingSecond);
+                    canDeclare = dc[0] > 0; declareAt = (int) dc[1];
+                    break;
+                }
+                case 4: {
+                    int i1 = inningsList.get(0).getTotalRuns();
+                    int i2 = inningsList.get(1).getTotalRuns();
+                    int i3 = inningsList.get(2).getTotalRuns();
+                    boolean fo = inningsList.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+                    int overallLead = fo ? i1 - (i2 + i3) : (i1 + i3) - i2;
+
+                    if ((fo && overallLead > 0) || (!fo && overallLead < 0)) {
+                        determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, true);
+                        return finalizeFCMatch(fixture, result, rng);
+                    }
+
+                    chaseTarget = computeFCChaseTarget(inningsList, battingSecond);
+                    if (chaseTarget <= 0) {
+                        determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, false);
+                        return finalizeFCMatch(fixture, result, rng);
+                    }
+
+                    if (fo) {
+                        bat = battingFirst; bowl = battingSecond;
+                        batL = bat1Lineup; bowlL = bat2Lineup;
+                    } else {
+                        bat = battingSecond; bowl = battingFirst;
+                        batL = bat2Lineup; bowlL = bat1Lineup;
+                    }
+                    isChasing = true;
+                    break;
+                }
+                default: break;
+            }
+
+            int maxForInnings = Math.min(maxOversPerInnings,
+                    Math.min(matchOversLimit - totalMatchOvers, dayOversLimit - dayOversUsed));
+            if (maxForInnings <= 0) break;
+
+            Innings inn = Innings.builder()
+                    .matchResult(result).inningsNumber(next)
+                    .battingTeam(bat).bowlingTeam(bowl).build();
+
+            SimContext ctx = new SimContext(rng, pitchType, condition, temperature,
+                    maxForInnings, maxPerBowler, format, isChasing, chaseTarget, batL, bowlL);
+            simulateInningsWithDeclaration(inn, ctx, canDeclare, declareAt, true);
+            inningsList.add(inn);
+
+            int oversUsed = getOversUsed(inn);
+            totalMatchOvers += oversUsed;
+            dayOversUsed += oversUsed;
+
+            if (dayOversUsed >= dayOversLimit || inn.getResumeState() != null) {
+                return saveFCDay1Complete(fixture, result);
+            }
         }
-        MatchResult saved = matchResultRepository.save(result);
-        // Apply any deferred bot→human swaps that were queued while this match was in progress
-        fixtureService.applyPendingSwap(fixture.getId(), saved);
-        return saved;
+
+        return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng);
     }
 
     /**
-     * Simulate one FC innings with session structure (50 overs per session).
-     * Handles declarations based on score targets.
-     */
-    private void simulateFCInnings(Innings innings, SimContext ctx, Random rng,
-                                   boolean canDeclare, int declareAtRuns, int oversRemaining) {
-        int maxOvers = Math.min(ctx.maxOvers, oversRemaining);
-        if (maxOvers <= 0) return;
-
-        // Use the standard innings simulation but with FC format settings
-        // Override maxOvers in context for the actual simulation
-        SimContext fcCtx = new SimContext(rng, ctx.pitchType, ctx.condition, ctx.temperature,
-                maxOvers, ctx.maxPerBowler, ctx.format, ctx.isChasing, ctx.target,
-                ctx.battingLineup, ctx.bowlingLineup);
-
-        // Run the standard simulateInnings with FC-specific post-processing for declarations
-        simulateInningsWithDeclaration(innings, fcCtx, canDeclare, declareAtRuns);
-    }
-
-    /**
-     * A variant of simulateInnings that supports mid-innings declarations.
-     * When canDeclare = true and score >= declareAtRuns, the innings ends early.
+     * FC innings simulation with declaration support and day-break resume.
+     * When fcDayMode=true, saves resume state if innings is interrupted by max overs.
      */
     private void simulateInningsWithDeclaration(Innings innings, SimContext ctx,
-                                                 boolean canDeclare, int declareAtRuns) {
+                                                 boolean canDeclare, int declareAtRuns,
+                                                 boolean fcDayMode) {
         List<LineupPlayer> battingOrder = new ArrayList<>(ctx.battingLineup.getPlayers());
         battingOrder.sort(Comparator.comparingInt(LineupPlayer::getBattingPosition));
 
@@ -1638,29 +1791,85 @@ public class MatchEngine {
 
         if (battingOrder.size() < 2) return;
 
-        int nextBatIdx = 2;
-        BatsmanState striker = new BatsmanState(battingOrder.get(0));
-        BatsmanState nonStriker = new BatsmanState(battingOrder.get(1));
+        // ── Resume-aware initialization ──
+        int nextBatIdx;
+        BatsmanState striker, nonStriker;
+        Map<UUID, BattingScorecard> batCards;
+        Map<UUID, BowlingScorecard> bowlCards;
+        int totalRuns, totalWickets, totalExtras, ballsBowled;
+        Map<UUID, Integer> bowlerBallCounts;
+        Player previousBowler;
+        int startOver;
+        Set<UUID> existingBatCardIds;
+        Set<UUID> existingBowlCardIds;
 
-        Map<UUID, BattingScorecard> batCards = new LinkedHashMap<>();
-        batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, 1));
-        batCards.put(nonStriker.player.getId(), createBatCard(innings, nonStriker.lineupPlayer, 2));
+        String resumeJson = innings.getResumeState();
+        if (resumeJson != null) {
+            // ── RESUME from day break ──
+            FCResumeState resume = parseResumeState(resumeJson);
+            totalRuns = innings.getTotalRuns();
+            totalWickets = innings.getTotalWickets();
+            totalExtras = innings.getExtras();
+            ballsBowled = computeBallsBowled(innings.getTotalOvers());
+            startOver = ballsBowled / 6;
 
-        Map<UUID, BowlingScorecard> bowlCards = new LinkedHashMap<>();
+            batCards = new LinkedHashMap<>();
+            for (BattingScorecard bc : innings.getBattingCards()) {
+                batCards.put(bc.getPlayer().getId(), bc);
+            }
+            bowlCards = new LinkedHashMap<>();
+            for (BowlingScorecard bc : innings.getBowlingCards()) {
+                bowlCards.put(bc.getPlayer().getId(), bc);
+            }
+            existingBatCardIds = new HashSet<>(batCards.keySet());
+            existingBowlCardIds = new HashSet<>(bowlCards.keySet());
 
-        int totalRuns = 0, totalWickets = 0, totalExtras = 0, ballsBowled = 0, overNumber = 0;
+            LineupPlayer strikerLP = battingOrder.stream()
+                    .filter(lp -> lp.getPlayer().getId().equals(resume.strikerId)).findFirst().orElse(null);
+            LineupPlayer nonStrikerLP = battingOrder.stream()
+                    .filter(lp -> lp.getPlayer().getId().equals(resume.nonStrikerId)).findFirst().orElse(null);
+            if (strikerLP == null || nonStrikerLP == null) return;
+            striker = new BatsmanState(strikerLP);
+            nonStriker = new BatsmanState(nonStrikerLP);
+            nextBatIdx = resume.nextBatIdx;
+            bowlerBallCounts = new HashMap<>(resume.bowlerBallCounts);
+            previousBowler = resume.previousBowlerId != null
+                    ? ctx.bowlingLineup.getPlayers().stream()
+                        .map(LineupPlayer::getPlayer)
+                        .filter(p -> p.getId().equals(resume.previousBowlerId))
+                        .findFirst().orElse(null)
+                    : null;
+
+            innings.setResumeState(null);
+        } else {
+            // ── FRESH start ──
+            startOver = 0;
+            nextBatIdx = 2;
+            striker = new BatsmanState(battingOrder.get(0));
+            nonStriker = new BatsmanState(battingOrder.get(1));
+            batCards = new LinkedHashMap<>();
+            batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, 1));
+            batCards.put(nonStriker.player.getId(), createBatCard(innings, nonStriker.lineupPlayer, 2));
+            bowlCards = new LinkedHashMap<>();
+            totalRuns = 0; totalWickets = 0; totalExtras = 0; ballsBowled = 0;
+            bowlerBallCounts = new HashMap<>();
+            previousBowler = null;
+            existingBatCardIds = Collections.emptySet();
+            existingBowlCardIds = Collections.emptySet();
+        }
+
         Player currentBowler = null;
         String currentBowlerAggression = "N";
-        Map<UUID, Integer> bowlerBallCounts = new HashMap<>();
-        Player previousBowler = null;
+        int overNumber = startOver;
+        boolean allOut = false;
+        boolean declared = false;
+        boolean chaseWon = false;
 
         outerLoop:
-        for (int over = 0; over < ctx.maxOvers; over++) {
+        for (int over = startOver; over < ctx.maxOvers; over++) {
             overNumber = over + 1;
 
-            // For FC: use bowling plan rotation. If the plan only covers N overs,
-            // cycle through. If wrap-around causes consecutive (over 100→1 same bowler),
-            // shift forward in the plan to find a non-consecutive bowler.
+            // Bowler selection: plan rotation with wrap-around and fallback
             int planSize = Math.max(1, bowlerPlan.size());
             int basePlanOver = bowlerPlan.isEmpty() ? overNumber :
                     ((overNumber - 1) % planSize) + 1;
@@ -1675,7 +1884,6 @@ public class MatchEngine {
                     currentBowlerAggression = planned.getAggression();
                     foundPlanned = true;
                 } else if (sameAsPrevious && !bowlerPlan.isEmpty()) {
-                    // Wrap-around consecutive: shift forward in plan to find next available
                     for (int shift = 1; shift < planSize; shift++) {
                         int shiftedOver = ((basePlanOver - 1 + shift) % planSize) + 1;
                         BowlingOrder alt = bowlerPlan.get(shiftedOver);
@@ -1775,6 +1983,7 @@ public class MatchEngine {
                         }
                         if (totalWickets >= 10 || nextBatIdx >= battingOrder.size()) {
                             innings.setAllOut(true);
+                            allOut = true;
                             break outerLoop;
                         }
                         striker = new BatsmanState(battingOrder.get(nextBatIdx));
@@ -1788,7 +1997,10 @@ public class MatchEngine {
                 }
 
                 // Chase target check
-                if (ctx.isChasing && totalRuns >= ctx.target) break outerLoop;
+                if (ctx.isChasing && totalRuns >= ctx.target) {
+                    chaseWon = true;
+                    break outerLoop;
+                }
             }
 
             // End of over
@@ -1799,11 +2011,21 @@ public class MatchEngine {
             // Declaration check at end of each over
             if (canDeclare && declareAtRuns > 0 && totalRuns >= declareAtRuns) {
                 innings.setDeclared(true);
+                declared = true;
                 break;
             }
         }
 
-        // Finalize innings
+        // ── Save resume state if innings interrupted by day overs limit ──
+        if (fcDayMode && !allOut && !declared && !chaseWon && totalWickets < 10) {
+            int completedOversNow = ballsBowled / 6;
+            if (completedOversNow >= ctx.maxOvers) {
+                innings.setResumeState(
+                        buildResumeState(striker, nonStriker, nextBatIdx, bowlerBallCounts, previousBowler));
+            }
+        }
+
+        // ── Finalize innings ──
         innings.setTotalRuns(totalRuns);
         innings.setTotalWickets(totalWickets);
         innings.setExtras(totalExtras);
@@ -1815,7 +2037,9 @@ public class MatchEngine {
             if (card.getBallsFaced() > 0) {
                 card.setStrikeRate(Math.round(card.getRunsScored() * 100.0 / card.getBallsFaced() * 100.0) / 100.0);
             }
-            innings.getBattingCards().add(card);
+            if (!existingBatCardIds.contains(card.getPlayer().getId())) {
+                innings.getBattingCards().add(card);
+            }
         }
         for (BowlingScorecard card : bowlCards.values()) {
             int bowledBalls = bowlerBallCounts.getOrDefault(card.getPlayer().getId(), 0);
@@ -1825,17 +2049,9 @@ public class MatchEngine {
             if (bowledBalls > 0) {
                 card.setEconomy(Math.round(card.getRunsConceded() / (bowledBalls / 6.0) * 100.0) / 100.0);
             }
-            innings.getBowlingCards().add(card);
-        }
-    }
-
-    private int estimateDeclarationTarget(boolean followOn, int lead, int declareLead) {
-        if (followOn) {
-            // Team following on needs to surpass lead + buffer
-            return Math.max(0, lead + declareLead);
-        } else {
-            // Team batting 3rd (originally batted first) — declare at total lead of declareLead
-            return declareLead;
+            if (!existingBowlCardIds.contains(card.getPlayer().getId())) {
+                innings.getBowlingCards().add(card);
+            }
         }
     }
 

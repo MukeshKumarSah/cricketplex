@@ -125,6 +125,7 @@ com\cricketplex\entity\BattingScorecard$BattingScorecardBuilder.class
 com\cricketplex\repository\TransferBidRepository.class
 com\cricketplex\repository\PlayerLastNameRepository.class
 com\cricketplex\entity\HomeMatch.class
+com\cricketplex\service\MatchEngine$FCResumeState.class
 com\cricketplex\entity\MatchResult$MatchResultBuilder.class
 com\cricketplex\repository\ChatConversationRepository.class
 com\cricketplex\security\UserPrincipal.class

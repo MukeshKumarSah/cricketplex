@@ -17,6 +17,7 @@ import Search from '../Search/Search';
 import LeaguePage from '../League/LeaguePage';
 import Matches from '../Matches/Matches';
 import LineupSetup from '../Lineup/LineupSetup';
+import FCStrategy from '../Lineup/FCStrategy';
 import Challenges from '../Challenges/Challenges';
 import MatchCenter from '../MatchCenter/MatchCenter';
 import TeamProfile from '../TeamProfile/TeamProfile';
@@ -231,6 +232,10 @@ export default function Home() {
             <Route
               path="match/:fixtureId/lineup"
               element={<LineupSetup />}
+            />
+            <Route
+              path="match/:fixtureId/fc-strategy"
+              element={<FCStrategy />}
             />
             <Route
               path="match/:fixtureId/preview"

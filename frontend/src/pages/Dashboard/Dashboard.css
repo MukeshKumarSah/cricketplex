@@ -1168,6 +1168,12 @@
   border: 1px solid rgba(100, 116, 139, 0.25);
 }
 
+.dash-match-status.day1done {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .dashboard {

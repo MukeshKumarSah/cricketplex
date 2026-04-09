@@ -1,13 +1,17 @@
 package com.cricketplex.service;
 
 import com.cricketplex.entity.Fixture;
+import com.cricketplex.entity.FriendlyChallenge;
 import com.cricketplex.entity.Innings;
 import com.cricketplex.entity.League;
+import com.cricketplex.entity.MatchLineup;
 import com.cricketplex.entity.MatchResult;
 import com.cricketplex.repository.BallEventRepository;
 import com.cricketplex.repository.FixtureRepository;
+import com.cricketplex.repository.FriendlyChallengeRepository;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
+import com.cricketplex.repository.MatchLineupRepository;
 import com.cricketplex.repository.MatchResultRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +48,8 @@ public class MatchScheduler {
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final FixtureService fixtureService;
+    private final FriendlyChallengeRepository friendlyChallengeRepository;
+    private final MatchLineupRepository matchLineupRepository;
 
     /**
      * On startup, generate fixtures for any league that has 8 teams but no fixtures.
@@ -138,9 +144,10 @@ public class MatchScheduler {
                     matchEngine.simulateMatch(f.getId());
 
                     // Override COMPLETED → IN_PROGRESS for live ball-by-ball viewing
+                    // For FC Day 1, leave as FC_DAY1_COMPLETE (don't override)
                     txTemplate.executeWithoutResult(status -> {
                         Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
-                        if (fresh != null) {
+                        if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
                             fresh.setStatus("IN_PROGRESS");
                             fixtureRepository.save(fresh);
                             log.info("Set fixture {} to IN_PROGRESS for live viewing", f.getId());
@@ -151,7 +158,7 @@ public class MatchScheduler {
                 }
             }
 
-            // ── Pass 2: Auto-complete IN_PROGRESS league fixtures ──
+            // ── Pass 2: Auto-complete IN_PROGRESS fixtures (league + friendly) ──
             List<Fixture> inProgress = txTemplate.execute(status ->
                 fixtureRepository.findByStatus("IN_PROGRESS")
             );
@@ -159,8 +166,6 @@ public class MatchScheduler {
             if (inProgress != null) {
                 for (Fixture f : inProgress) {
                     try {
-                        if (f.getLeague() == null) continue;
-
                         txTemplate.executeWithoutResult(status -> {
                             matchResultRepository.findByFixtureIdWithInnings(f.getId()).ifPresent(mr -> {
                                 if (isMatchTimeElapsed(mr)) {
@@ -178,6 +183,140 @@ public class MatchScheduler {
                     }
                 }
             }
+
+            // ── Pass 3: FC Day 2 — simulate remaining overs for FC_DAY1_COMPLETE fixtures ──
+            List<Fixture> fcDay1Done = txTemplate.execute(status ->
+                fixtureRepository.findByStatus("FC_DAY1_COMPLETE")
+            );
+
+            if (fcDay1Done != null) {
+                for (Fixture f : fcDay1Done) {
+                    try {
+                        // Day 2 starts the day AFTER matchDate
+                        LocalDate day2Date = f.getMatchDate().plusDays(1);
+                        if (today.isBefore(day2Date)) continue;
+
+                        String startTimeStr;
+                        if (f.getLeague() != null) {
+                            startTimeStr = f.getLeague().getMatchStartTime();
+                            if (startTimeStr == null) startTimeStr = "14:00";
+                        } else {
+                            // Friendly FC — look up challenge for matchTime
+                            FriendlyChallenge fc = friendlyChallengeRepository.findByFixtureId(f.getId()).orElse(null);
+                            startTimeStr = (fc != null && fc.getMatchTime() != null) ? fc.getMatchTime() : "14:00";
+                        }
+                        LocalTime matchTime = LocalTime.parse(startTimeStr);
+                        LocalDateTime day2Start = LocalDateTime.of(day2Date, matchTime);
+
+                        if (nowUtc.isBefore(day2Start)) {
+                            log.info("Skipping FC Day 2 for fixture {} — not yet start time (now={}, start={})",
+                                    f.getId(), nowUtc, day2Start);
+                            continue;
+                        }
+
+                        log.info("Auto-simulating FC Day 2 for fixture {} (day2Date={})",
+                                f.getId(), day2Date);
+
+                        matchEngine.simulateMatch(f.getId());
+
+                        // Override COMPLETED → IN_PROGRESS for live ball-by-ball viewing of Day 2
+                        txTemplate.executeWithoutResult(status -> {
+                            Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
+                            if (fresh != null && "COMPLETED".equals(fresh.getStatus())) {
+                                fresh.setStatus("IN_PROGRESS");
+                                fixtureRepository.save(fresh);
+                                log.info("Set fixture {} to IN_PROGRESS for Day 2 live viewing", f.getId());
+                            }
+                        });
+                    } catch (Exception e) {
+                        log.error("Failed to auto-simulate FC Day 2 for fixture {}: {}", f.getId(), e.getMessage());
+                    }
+                }
+            }
+
+            // ── Pass 4: Expire PENDING challenges whose scheduled time has passed ──
+            try {
+                List<FriendlyChallenge> pending = txTemplate.execute(status ->
+                    friendlyChallengeRepository.findByStatus("PENDING")
+                );
+                if (pending != null) {
+                    for (FriendlyChallenge fc : pending) {
+                        try {
+                            if (fc.getMatchTime() == null) continue;
+                            LocalDateTime matchDateTime = LocalDateTime.of(fc.getMatchDate(), LocalTime.parse(fc.getMatchTime()));
+                            if (!nowUtc.isAfter(matchDateTime)) continue;
+
+                            txTemplate.executeWithoutResult(status -> {
+                                FriendlyChallenge fresh = friendlyChallengeRepository.findById(fc.getId()).orElse(null);
+                                if (fresh != null && "PENDING".equals(fresh.getStatus())) {
+                                    fresh.setStatus("EXPIRED");
+                                    friendlyChallengeRepository.save(fresh);
+                                    log.info("Expired PENDING challenge {} (time {} passed)", fc.getId(), fc.getMatchTime());
+                                }
+                            });
+                        } catch (Exception e) {
+                            log.error("Failed to expire challenge {}: {}", fc.getId(), e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Pass 4 (expire challenges) error: {}", e.getMessage());
+            }
+
+            // ── Pass 5: Auto-start ACCEPTED friendly matches at their scheduled time ──
+            try {
+                List<FriendlyChallenge> accepted = txTemplate.execute(status ->
+                    friendlyChallengeRepository.findByStatus("ACCEPTED")
+                );
+                if (accepted != null) {
+                    for (FriendlyChallenge fc : accepted) {
+                        try {
+                            if (fc.getMatchTime() == null || fc.getFixture() == null) continue;
+                            LocalDateTime matchDateTime = LocalDateTime.of(fc.getMatchDate(), LocalTime.parse(fc.getMatchTime()));
+                            if (nowUtc.isBefore(matchDateTime)) continue;
+
+                            // Check both lineups are set
+                            UUID fixtureId = fc.getFixture().getId();
+                            Boolean bothLineupsSet = txTemplate.execute(status -> {
+                                List<MatchLineup> lineups = matchLineupRepository.findByFixtureId(fixtureId);
+                                return lineups.size() >= 2;
+                            });
+                            if (!Boolean.TRUE.equals(bothLineupsSet)) continue;
+
+                            // Check result doesn't already exist
+                            Boolean hasResult = txTemplate.execute(status ->
+                                matchResultRepository.existsByFixtureId(fixtureId)
+                            );
+                            if (Boolean.TRUE.equals(hasResult)) continue;
+
+                            log.info("Auto-starting friendly match {} (challenge {}, time={})",
+                                    fixtureId, fc.getId(), fc.getMatchTime());
+
+                            matchEngine.simulateMatch(fixtureId);
+
+                            // Set fixture to IN_PROGRESS for live viewing, challenge to COMPLETED
+                            txTemplate.executeWithoutResult(status -> {
+                                Fixture fresh = fixtureRepository.findById(fixtureId).orElse(null);
+                                if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                                    fresh.setStatus("IN_PROGRESS");
+                                    fixtureRepository.save(fresh);
+                                }
+                                FriendlyChallenge fcFresh = friendlyChallengeRepository.findById(fc.getId()).orElse(null);
+                                if (fcFresh != null) {
+                                    fcFresh.setStatus("COMPLETED");
+                                    friendlyChallengeRepository.save(fcFresh);
+                                }
+                                log.info("Friendly match {} auto-started, challenge {} completed", fixtureId, fc.getId());
+                            });
+                        } catch (Exception e) {
+                            log.error("Failed to auto-start friendly challenge {}: {}", fc.getId(), e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Pass 5 (auto-start friendlies) error: {}", e.getMessage());
+            }
+
         } catch (Exception e) {
             log.error("MatchScheduler top-level error: {}", e.getMessage(), e);
         }

@@ -55,6 +55,10 @@ public class Innings {
     @Builder.Default
     private Boolean declared = false;
 
+    /** JSON state for resuming a mid-innings day break (null = innings not interrupted) */
+    @Column(name = "resume_state", columnDefinition = "TEXT")
+    private String resumeState;
+
     @OneToMany(mappedBy = "innings", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BattingScorecard> battingCards = new ArrayList<>();
