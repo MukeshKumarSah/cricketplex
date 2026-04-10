@@ -347,7 +347,7 @@ public class TeamController {
             boolean isFriendly = league == null;
             String fFormat = isFriendly ? f.getFormat() : league.getFormat();
 
-            if (season != null && (isFriendly || !league.getSeason().equals(season))) continue;
+            if (season != null && !isFriendly && !league.getSeason().equals(season)) continue;
             if (format != null && (fFormat == null || !fFormat.equalsIgnoreCase(format))) continue;
 
             boolean isHome = f.getHomeTeam().getId().equals(myTeam.getId());

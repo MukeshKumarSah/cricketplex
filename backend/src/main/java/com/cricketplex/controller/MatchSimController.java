@@ -147,11 +147,13 @@ public class MatchSimController {
         }
 
         fixtureRepository.save(fixture);
-        return ResponseEntity.ok(Map.of("success", true,
-                "declareInn1", fixture.getFcDeclareInn1(),
-                "declareInn2Lead", fixture.getFcDeclareInn2Lead(),
-                "followOn", fixture.getFcFollowOn(),
-                "declareInn3Lead", fixture.getFcDeclareInn3Lead()));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", true);
+        resp.put("declareInn1", fixture.getFcDeclareInn1());
+        resp.put("declareInn2Lead", fixture.getFcDeclareInn2Lead());
+        resp.put("followOn", fixture.getFcFollowOn());
+        resp.put("declareInn3Lead", fixture.getFcDeclareInn3Lead());
+        return ResponseEntity.ok(resp);
     }
 
     /**

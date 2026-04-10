@@ -78,11 +78,11 @@ export default function FCStrategy() {
           <div className="fcs-innings-list">
             {state.innings.map((inn, idx) => (
               <div key={idx} className="fcs-innings-card">
-                <div className="fcs-inn-num">Innings {inn.number}</div>
-                <div className="fcs-inn-team">{inn.battingTeam}</div>
+                <div className="fcs-inn-num">Innings {inn.inningsNumber}</div>
+                <div className="fcs-inn-team">{inn.battingTeamName}</div>
                 <div className="fcs-inn-score">
-                  {inn.runs}/{inn.wickets}
-                  <span className="fcs-inn-overs">({inn.overs} ov)</span>
+                  {inn.totalRuns}/{inn.totalWickets}
+                  <span className="fcs-inn-overs">({inn.totalOvers} ov)</span>
                 </div>
                 <div className="fcs-inn-tags">
                   {inn.allOut && <span className="fcs-tag fcs-tag-red">All Out</span>}

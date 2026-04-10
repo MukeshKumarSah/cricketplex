@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getAcademyOverview, pullPlayer, getPullHistory,
+  getAcademyOverview, pullPlayer, getPullHistory, getPullStatus,
   assignTraining, removeTraining, getTrainingHistory,
   upgradeAcademy, downgradeAcademy,
 } from '../../api/auth';
@@ -45,6 +45,8 @@ export default function Academy() {
   const [assigningId, setAssigningId] = useState(null);
   const [upgrading, setUpgrading] = useState(false);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [canPull, setCanPull] = useState(true);
+  const [nextWindow, setNextWindow] = useState(null);
 
   const loadOverview = () => {
     getAcademyOverview()
@@ -53,13 +55,24 @@ export default function Academy() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadOverview(); }, []);
+  const loadPullStatus = () => {
+    getPullStatus()
+      .then(res => {
+        setCanPull(res.data.canPull);
+        setNextWindow(res.data.nextWindow);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => { loadOverview(); loadPullStatus(); }, []);
 
   const handlePull = async () => {
     setPulling(true);
     try {
       const res = await pullPlayer(pullRole);
       setLastPull(res.data);
+      setCanPull(false);
+      loadPullStatus();
       toast.success(`Pulled ${res.data.player.name} from ${res.data.pulledFrom}!`);
       loadOverview();
     } catch (e) {
@@ -202,6 +215,7 @@ export default function Academy() {
         <PullsSection
           pullRole={pullRole} setPullRole={setPullRole}
           pulling={pulling} handlePull={handlePull} lastPull={lastPull}
+          canPull={canPull} nextWindow={nextWindow}
           navigate={navigate}
         />
       )}
@@ -255,24 +269,39 @@ export default function Academy() {
 }
 
 /* ════════════ Pulls Tab ════════════ */
-function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, navigate }) {
+function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, canPull, nextWindow, navigate }) {
+  const formatNextWindow = () => {
+    if (!nextWindow) return '';
+    const d = new Date(nextWindow + 'Z');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' 1:00 AM UTC';
+  };
+
   return (
     <div className="ac-section">
       <div className="ac-pull-card">
         <h3 className="ac-section-title">Player Pull</h3>
-        <p className="ac-pull-desc">
-          Pull a 17-year-old youth player. 15% chance from your home nation, 5% from each other country.
-        </p>
-        <div className="ac-pull-controls">
-          <select className="ac-select" value={pullRole} onChange={e => setPullRole(e.target.value)}>
-            {ROLE_OPTIONS.map(r => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
-          <button className="ac-pull-btn" onClick={handlePull} disabled={pulling}>
-            {pulling ? 'Pulling…' : 'Pull Player'}
-          </button>
-        </div>
+        {!canPull ? (
+          <div className="ac-pull-cooldown">
+            Weekly pull used. Next pull available: <strong>{formatNextWindow()}</strong>
+          </div>
+        ) : (
+          <>
+            <p className="ac-pull-desc">
+              Pull a 17-year-old youth player. 15% chance from your home nation, 5% from each other country.
+              <br />One pull per week. Resets every Sunday at 1:00 AM UTC.
+            </p>
+            <div className="ac-pull-controls">
+              <select className="ac-select" value={pullRole} onChange={e => setPullRole(e.target.value)}>
+                {ROLE_OPTIONS.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+              <button className="ac-pull-btn" onClick={handlePull} disabled={pulling}>
+                {pulling ? 'Pulling…' : 'Pull Player'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {lastPull && (

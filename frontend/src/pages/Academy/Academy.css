@@ -125,6 +125,15 @@
   margin: 0;
   line-height: 1.5;
 }
+.ac-pull-cooldown {
+  background: #1e293b;
+  border: 1px solid #f59e0b40;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  color: #f59e0b;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
 .ac-pull-controls {
   display: flex;
   gap: 0.6rem;

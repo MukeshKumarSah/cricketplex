@@ -170,8 +170,10 @@ export default function Challenges() {
     }
   };
 
-  const received = challenges.filter((c) => c.isReceiver);
-  const sent = challenges.filter((c) => c.isSender);
+  // Accepted/completed challenges show on the Matches page, not here
+  const activeChallenges = challenges.filter((c) => c.status !== 'ACCEPTED' && c.status !== 'COMPLETED');
+  const received = activeChallenges.filter((c) => c.isReceiver);
+  const sent = activeChallenges.filter((c) => c.isSender);
   const displayed = activeTab === 'received' ? received : sent;
 
   const today = new Date().toISOString().split('T')[0];

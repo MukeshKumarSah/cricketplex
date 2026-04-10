@@ -132,6 +132,7 @@ export const getAcademyOverview = () => API.get('/academy');
 export const upgradeAcademy = () => API.post('/academy/upgrade');
 export const downgradeAcademy = () => API.post('/academy/downgrade');
 export const pullPlayer = (role) => API.post('/academy/pull', { role });
+export const getPullStatus = () => API.get('/academy/pull-status');
 export const getPullHistory = () => API.get('/academy/pull-history');
 export const assignTraining = (playerId, trainingType) => API.post('/academy/training', { playerId, trainingType });
 export const removeTraining = (playerId) => API.delete(`/academy/training/${playerId}`);

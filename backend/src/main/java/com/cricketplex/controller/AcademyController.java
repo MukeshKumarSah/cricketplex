@@ -10,6 +10,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 @RestController
@@ -184,6 +186,22 @@ public class AcademyController {
     }
 
     // ════════════════════════════════════════════
+    //  GET /api/academy/pull-status — weekly pull availability
+    // ════════════════════════════════════════════
+    @GetMapping("/pull-status")
+    public ResponseEntity<?> getPullStatus(@AuthenticationPrincipal UserPrincipal principal) {
+        Team team = getTeam(principal);
+        LocalDateTime windowStart = getWeeklyPullWindowStart();
+        boolean alreadyPulled = academyPullRepository.existsByTeamIdAndPulledAtAfter(team.getId(), windowStart);
+        LocalDateTime nextWindow = getNextPullWindowStart();
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("canPull", !alreadyPulled);
+        resp.put("windowStart", windowStart.toString());
+        resp.put("nextWindow", nextWindow.toString());
+        return ResponseEntity.ok(resp);
+    }
+
+    // ════════════════════════════════════════════
     //  POST /api/academy/pull — pull a new player
     // ════════════════════════════════════════════
     @PostMapping("/pull")
@@ -198,6 +216,16 @@ public class AcademyController {
         }
 
         Team team = getTeam(principal);
+
+        // Weekly pull limit: 1 pull per week, resets Sunday 1:00 AM UTC
+        LocalDateTime windowStart = getWeeklyPullWindowStart();
+        if (academyPullRepository.existsByTeamIdAndPulledAtAfter(team.getId(), windowStart)) {
+            LocalDateTime nextWindow = getNextPullWindowStart();
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "You have already used your weekly pull. Next pull available on Sunday 1:00 AM UTC.",
+                    "nextWindow", nextWindow.toString()));
+        }
+
         Random rng = new Random();
 
         // Pick country: 15% home, 5% each other
@@ -342,6 +370,34 @@ public class AcademyController {
     // ════════════════════════════════════════════
     //  Private helpers
     // ════════════════════════════════════════════
+
+    /** Returns the most recent Sunday 1:00 AM UTC (start of current pull window). */
+    private LocalDateTime getWeeklyPullWindowStart() {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDate today = now.toLocalDate();
+        // Find the most recent Sunday
+        LocalDate lastSunday = today.getDayOfWeek() == DayOfWeek.SUNDAY
+                ? today : today.with(TemporalAdjusters.previous(DayOfWeek.SUNDAY));
+        LocalDateTime windowStart = lastSunday.atTime(1, 0);
+        // If it's Sunday but before 1:00 AM, use previous Sunday
+        if (now.isBefore(windowStart)) {
+            windowStart = windowStart.minusWeeks(1);
+        }
+        return windowStart;
+    }
+
+    /** Returns the next Sunday 1:00 AM UTC (start of next pull window). */
+    private LocalDateTime getNextPullWindowStart() {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDate today = now.toLocalDate();
+        LocalDate nextSunday = today.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+        LocalDateTime next = nextSunday.atTime(1, 0);
+        // Edge case: it's Sunday before 1:00 AM — next window is today at 1:00 AM
+        if (today.getDayOfWeek() == DayOfWeek.SUNDAY && now.isBefore(today.atTime(1, 0))) {
+            next = today.atTime(1, 0);
+        }
+        return next;
+    }
 
     private Team getTeam(UserPrincipal principal) {
         User user = userRepository.findById(principal.getId())

@@ -10,7 +10,8 @@ import {
 import './Matches.css';
 
 const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
-const FORMAT_LABELS = { T20: 'T20', ODI: 'One Day', FC: 'First Class' };
+const FORMAT_LABELS = { T20: 'T20', ODI: 'OD', FC: 'FC' };
+const FRIENDLY_FORMAT_LABELS = { T20: 'T20 F', ODI: 'OD F', FC: 'FC F' };
 
 export default function Matches() {
   const navigate = useNavigate();
@@ -43,11 +44,11 @@ export default function Matches() {
   const today = new Date().toISOString().split('T')[0];
 
   const upcoming = matches.filter(
-    (m) => m.status === 'IN_PROGRESS' || (m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE'))
+    (m) => m.status === 'IN_PROGRESS' || m.status === 'FC_DAY1_COMPLETE' || (m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE'))
   );
   const past = matches.filter(
     (m) => m.status === 'COMPLETED'
-  );
+  ).slice().reverse();
 
   const displayed = activeTab === 'upcoming' ? upcoming : past;
 
@@ -141,7 +142,9 @@ export default function Matches() {
             {displayed.map((m) => {
               const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
               const rowClick = () => {
-                if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') {
+                if (m.status === 'FC_DAY1_COMPLETE') {
+                  navigate(`/match/${m.id}/fc-strategy`);
+                } else if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') {
                   navigate(`/match/${m.id}/live`);
                 } else if (m.status === 'COMPLETED') {
                   navigate(`/match/${m.id}/scorecard`);
@@ -154,7 +157,9 @@ export default function Matches() {
                   {/* Date */}
                   <div className="mt-col-date">
                     <span className="matches-date">{formatDate(m.matchDate)}</span>
-                    <span className="matches-round">R{m.round} · Div {m.leagueLabel}</span>
+                    <span className="matches-round">
+                      {m.matchType === 'FRIENDLY' ? 'Friendly' : `R${m.round} · Div ${m.leagueLabel}`}
+                    </span>
                     {m.matchStartTimeUtc && <span className="matches-time">{m.matchStartTimeUtc} UTC</span>}
                   </div>
 
@@ -168,7 +173,9 @@ export default function Matches() {
                         borderColor: fmtColor + '40',
                       }}
                     >
-                      {FORMAT_LABELS[m.format] || m.format}
+                      {m.matchType === 'FRIENDLY'
+                        ? (FRIENDLY_FORMAT_LABELS[m.format] || m.format + ' Friendly')
+                        : (FORMAT_LABELS[m.format] || m.format)}
                     </span>
                   </div>
 
@@ -227,7 +234,12 @@ export default function Matches() {
                   {/* Action / Result */}
                   <div className="mt-col-action">
                     {activeTab === 'upcoming' ? (
-                      (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
+                      m.status === 'FC_DAY1_COMPLETE' ? (
+                        <button className="matches-action-btn matches-live-btn"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/fc-strategy`); }}>
+                          Day 2 Strategy
+                        </button>
+                      ) : (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
                         <button className="matches-action-btn matches-live-btn"
                           onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/live`); }}>
                           View Live
