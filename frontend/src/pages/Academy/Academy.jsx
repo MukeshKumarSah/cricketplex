@@ -34,7 +34,10 @@ const LEVEL_SPOTS = { 1: 3, 2: 5, 3: 7, 4: 10 };
 
 export default function Academy() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('pulls');
+  const [tab, setTab] = useState(() => sessionStorage.getItem('academy_tab') || 'pulls');
+    useEffect(() => {
+      sessionStorage.setItem('academy_tab', tab);
+    }, [tab]);
   const [overview, setOverview] = useState(null);
   const [pullHistory, setPullHistory] = useState(null);
   const [trainingHistory, setTrainingHistory] = useState(null);

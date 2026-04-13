@@ -66,7 +66,10 @@ function typeLabel(type) {
 export default function Finances() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(() => sessionStorage.getItem('finances_filter') || '');
+  useEffect(() => {
+    sessionStorage.setItem('finances_filter', filter);
+  }, [filter]);
 
   const load = (type) => {
     setLoading(true);

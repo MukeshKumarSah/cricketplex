@@ -27,12 +27,12 @@ export default function LeaguePage() {
   const navigate = useNavigate();
   const [league, setLeague] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('standings');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('league_tab') || 'standings');
   const [fixtureData, setFixtureData] = useState(null);
   const [fixturesLoading, setFixturesLoading] = useState(false);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
-  const [activeStatTab, setActiveStatTab] = useState('batting');
+  const [activeStatTab, setActiveStatTab] = useState(() => sessionStorage.getItem('league_stat_tab') || 'batting');
 
   useEffect(() => {
     setLoading(true);
@@ -41,6 +41,13 @@ export default function LeaguePage() {
       .catch(() => toast.error('Failed to load league'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    sessionStorage.setItem('league_tab', activeTab);
+  }, [activeTab]);
+  useEffect(() => {
+    sessionStorage.setItem('league_stat_tab', activeStatTab);
+  }, [activeStatTab]);
 
   useEffect(() => {
     if (activeTab === 'fixtures' && !fixtureData) {

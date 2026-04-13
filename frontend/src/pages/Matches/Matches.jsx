@@ -19,18 +19,23 @@ export default function Matches() {
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState(null);
   const [maxSeason, setMaxSeason] = useState(1);
-  const [filterFormat, setFilterFormat] = useState('');
-  const [activeTab, setActiveTab] = useState('upcoming');
+  const [filterFormat, setFilterFormat] = useState(() => sessionStorage.getItem('matches_format') || '');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('matches_tab') || 'upcoming');
 
   useEffect(() => {
     getCurrentSeason()
       .then((res) => {
         const s = res.data.season;
-        setSeason(s);
+        const saved = sessionStorage.getItem('matches_season');
+        setSeason(saved != null ? Number(saved) : s);
         setMaxSeason(s);
       })
       .catch(() => setSeason(1));
   }, []);
+
+  useEffect(() => { if (season != null) sessionStorage.setItem('matches_season', season); }, [season]);
+  useEffect(() => { sessionStorage.setItem('matches_format', filterFormat); }, [filterFormat]);
+  useEffect(() => { sessionStorage.setItem('matches_tab', activeTab); }, [activeTab]);
 
   useEffect(() => {
     if (season == null) return;

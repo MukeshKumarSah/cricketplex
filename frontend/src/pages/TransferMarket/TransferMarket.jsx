@@ -36,7 +36,10 @@ function useCountdown(endStr) {
 
 export default function TransferMarket() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState('browse');
+  const [tab, setTab] = useState(() => sessionStorage.getItem('tm_tab') || 'browse');
+    useEffect(() => {
+      sessionStorage.setItem('tm_tab', tab);
+    }, [tab]);
   const [listings, setListings] = useState([]);
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,18 +229,26 @@ function AuctionTimer({ endStr }) {
 
 function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, handleBid, navigate }) {
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
+  const defaultFilters = {
     name: '', country: '', role: '', batHand: '', bowlType: '',
     minAge: '', maxAge: '', minRating: '', maxRating: '',
     minBat: '', maxBat: '', minBowl: '', maxBowl: '',
+  };
+  const [filters, setFilters] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('tm_filters');
+      return saved ? { ...defaultFilters, ...JSON.parse(saved) } : defaultFilters;
+    } catch {
+      return defaultFilters;
+    }
   });
 
+  useEffect(() => {
+    sessionStorage.setItem('tm_filters', JSON.stringify(filters));
+  }, [filters]);
+
   const setF = (key, val) => setFilters(prev => ({ ...prev, [key]: val }));
-  const clearFilters = () => setFilters({
-    name: '', country: '', role: '', batHand: '', bowlType: '',
-    minAge: '', maxAge: '', minRating: '', maxRating: '',
-    minBat: '', maxBat: '', minBowl: '', maxBowl: '',
-  });
+  const clearFilters = () => setFilters(defaultFilters);
   const hasFilters = Object.values(filters).some(v => v !== '');
 
   const filtered = listings.filter(l => {

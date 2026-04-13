@@ -13,11 +13,11 @@ const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 
 
 export default function Stats() {
   const navigate = useNavigate();
-  const [format, setFormat] = useState('T20');
-  const [matchType, setMatchType] = useState('LEAGUE');
+  const [format, setFormat] = useState(() => sessionStorage.getItem('stats_format') || 'T20');
+  const [matchType, setMatchType] = useState(() => sessionStorage.getItem('stats_matchType') || 'LEAGUE');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('batting');
+  const [tab, setTab] = useState(() => sessionStorage.getItem('stats_tab') || 'batting');
 
   useEffect(() => {
     setLoading(true);
@@ -26,6 +26,16 @@ export default function Stats() {
       .catch(() => toast.error('Failed to load stats'))
       .finally(() => setLoading(false));
   }, [format, matchType]);
+
+  useEffect(() => {
+    sessionStorage.setItem('stats_format', format);
+  }, [format]);
+  useEffect(() => {
+    sessionStorage.setItem('stats_matchType', matchType);
+  }, [matchType]);
+  useEffect(() => {
+    sessionStorage.setItem('stats_tab', tab);
+  }, [tab]);
 
   if (loading) return <div className="st-loading">Loading stats…</div>;
   if (!data) return <div className="st-loading">No data available</div>;

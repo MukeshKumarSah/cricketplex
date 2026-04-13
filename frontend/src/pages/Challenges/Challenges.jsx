@@ -50,9 +50,12 @@ export default function Challenges() {
   const [challenges, setChallenges] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('received');
+  const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('challenges_tab') || 'received');
   const [showNewModal, setShowNewModal] = useState(false);
   const [simulating, setSimulating] = useState(null);
+  useEffect(() => {
+    sessionStorage.setItem('challenges_tab', activeTab);
+  }, [activeTab]);
 
   // New challenge form
   const [selectedTeam, setSelectedTeam] = useState(null);
