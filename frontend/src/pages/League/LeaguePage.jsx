@@ -200,7 +200,9 @@ export default function LeaguePage() {
                           key={m.id}
                           className="lp-match-card lp-match-clickable"
                           onClick={() => {
-                            if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') {
+                            if (m.status === 'FC_DAY1_COMPLETE') {
+                              navigate(`/match/${m.id}/fc-strategy`);
+                            } else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') {
                               navigate(`/match/${m.id}/scorecard`);
                             } else {
                               navigate(`/match/${m.id}/preview`);
@@ -228,6 +230,7 @@ export default function LeaguePage() {
                             <span className="lp-match-vs">vs</span>
                             {m.status === 'COMPLETED' && <span className="lp-match-status lp-status-completed">Completed</span>}
                             {m.status === 'IN_PROGRESS' && <span className="lp-match-status lp-status-live">LIVE</span>}
+                            {m.status === 'FC_DAY1_COMPLETE' && <span className="lp-match-status lp-status-live">Day 1 Done</span>}
                             {m.status === 'SCHEDULED' && <span className="lp-match-status lp-status-scheduled">Scheduled</span>}
                           </div>
                           <div className="lp-match-team lp-match-away">

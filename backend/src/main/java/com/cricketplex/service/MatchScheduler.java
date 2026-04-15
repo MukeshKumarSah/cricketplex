@@ -171,9 +171,18 @@ public class MatchScheduler {
                                 if (isMatchTimeElapsed(mr)) {
                                     Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
                                     if (fresh != null) {
-                                        fresh.setStatus("COMPLETED");
+                                        String format = fresh.getLeague() != null ? fresh.getLeague().getFormat() : fresh.getFormat();
+                                        boolean isFcDay1Partial = "FC".equalsIgnoreCase(format)
+                                                && "PENDING".equals(mr.getResultType());
+                                        if (isFcDay1Partial) {
+                                            fresh.setFcDay(1);
+                                            fresh.setStatus("FC_DAY1_COMPLETE");
+                                        } else {
+                                            fresh.setStatus("COMPLETED");
+                                        }
                                         fixtureRepository.save(fresh);
-                                        log.info("Auto-completed fixture {} after live duration elapsed", f.getId());
+                                        log.info("Updated fixture {} after live duration elapsed to {}",
+                                                f.getId(), fresh.getStatus());
                                     }
                                 }
                             });

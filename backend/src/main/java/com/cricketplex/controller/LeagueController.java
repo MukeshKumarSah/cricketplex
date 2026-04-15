@@ -188,14 +188,26 @@ public class LeagueController {
         LocalTime matchTime = LocalTime.parse(startTimeStr);
         List<Fixture> leagueFixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
         for (Fixture f : leagueFixtures) {
+            if ("FC".equalsIgnoreCase(league.getFormat()) && !"FC_DAY1_COMPLETE".equals(f.getStatus())) {
+                Optional<MatchResult> mrOpt = matchResultRepository.findByFixtureId(f.getId());
+                if (mrOpt.isPresent() && "PENDING".equals(mrOpt.get().getResultType())) {
+                    f.setFcDay(1);
+                    f.setStatus("FC_DAY1_COMPLETE");
+                    fixtureRepository.save(f);
+                    continue;
+                }
+            }
             if (!"SCHEDULED".equals(f.getStatus())) continue;
             LocalDateTime matchStart = LocalDateTime.of(f.getMatchDate(), matchTime);
             if (nowUtc.isBefore(matchStart)) continue;
             if (matchResultRepository.existsByFixtureId(f.getId())) continue;
             try {
                 matchEngine.simulateMatch(f.getId());
-                f.setStatus("IN_PROGRESS");
-                fixtureRepository.save(f);
+                Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
+                if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                    fresh.setStatus("IN_PROGRESS");
+                    fixtureRepository.save(fresh);
+                }
             } catch (Exception ignored) { }
         }
 

@@ -490,7 +490,14 @@ public class MatchSimController {
         long elapsed = ChronoUnit.SECONDS.between(result.getCreatedAt(), LocalDateTime.now());
 
         if (elapsed >= totalSeconds) {
-            fixture.setStatus("COMPLETED");
+            boolean isFcDay1Partial = "FC".equalsIgnoreCase(fmt)
+                    && "PENDING".equals(result.getResultType());
+            if (isFcDay1Partial) {
+                fixture.setFcDay(1);
+                fixture.setStatus("FC_DAY1_COMPLETE");
+            } else {
+                fixture.setStatus("COMPLETED");
+            }
             fixtureRepository.save(fixture);
         }
     }

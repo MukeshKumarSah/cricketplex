@@ -321,6 +321,16 @@ public class TeamController {
         // Eagerly simulate any overdue SCHEDULED league fixtures so they show as live
         LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
         for (Fixture f : all) {
+            if ("FC".equalsIgnoreCase(f.getLeague() != null ? f.getLeague().getFormat() : f.getFormat())
+                    && !"FC_DAY1_COMPLETE".equals(f.getStatus())) {
+                Optional<MatchResult> mrOpt = matchResultRepository.findByFixtureId(f.getId());
+                if (mrOpt.isPresent() && "PENDING".equals(mrOpt.get().getResultType())) {
+                    f.setFcDay(1);
+                    f.setStatus("FC_DAY1_COMPLETE");
+                    fixtureRepository.save(f);
+                    continue;
+                }
+            }
             if (!"SCHEDULED".equals(f.getStatus())) continue;
             if (f.getLeague() == null) continue;
             String startTimeStr = f.getLeague().getMatchStartTime();
@@ -331,8 +341,11 @@ public class TeamController {
             if (matchResultRepository.existsByFixtureId(f.getId())) continue;
             try {
                 matchEngine.simulateMatch(f.getId());
-                f.setStatus("IN_PROGRESS");
-                fixtureRepository.save(f);
+                Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
+                if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                    fresh.setStatus("IN_PROGRESS");
+                    fixtureRepository.save(fresh);
+                }
             } catch (Exception ignored) { }
         }
 
