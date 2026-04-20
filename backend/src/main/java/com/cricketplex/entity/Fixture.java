@@ -59,6 +59,10 @@ public class Fixture {
     @Column(name = "match_time", length = 5)
     private String matchTime;
 
+    /** Non-null when this fixture belongs to an admin simulation session */
+    @Column(name = "sim_session_id")
+    private UUID simSessionId;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "SCHEDULED";

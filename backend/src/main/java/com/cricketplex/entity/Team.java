@@ -51,6 +51,9 @@ public class Team {
     @Builder.Default
     private Integer morale = 50;
 
+    @Column(name = "sim_session_id")
+    private UUID simSessionId;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean isBot = false;

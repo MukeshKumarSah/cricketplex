@@ -28,6 +28,7 @@ import TransferMarket from '../TransferMarket/TransferMarket';
 import Finances from '../Finances/Finances';
 import GameFormulas from '../Admin/GameFormulas';
 import AdminBots from '../Admin/AdminBots';
+import AdminSims from '../Admin/AdminSims';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
 import './Home.css';
@@ -279,6 +280,12 @@ export default function Home() {
               <Route
                 path="admin/bots"
                 element={<AdminBots />}
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <Route
+                path="admin/sim"
+                element={<AdminSims />}
               />
             )}
             <Route

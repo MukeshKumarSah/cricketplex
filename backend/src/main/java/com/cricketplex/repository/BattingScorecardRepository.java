@@ -2,6 +2,7 @@ package com.cricketplex.repository;
 
 import com.cricketplex.entity.BattingScorecard;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -10,6 +11,12 @@ import java.util.UUID;
 
 public interface BattingScorecardRepository extends JpaRepository<BattingScorecard, UUID> {
     List<BattingScorecard> findByInningsIdOrderByBattingPositionAsc(UUID inningsId);
+
+    @Modifying
+    @Query("DELETE FROM BattingScorecard bs WHERE bs.innings.id IN " +
+           "(SELECT i.id FROM Innings i WHERE i.matchResult.id IN " +
+           "(SELECT mr.id FROM MatchResult mr WHERE mr.fixture.simSessionId = :simId))")
+    void deleteBySimSessionId(@Param("simId") UUID simId);
 
     @Query("SELECT bs FROM BattingScorecard bs " +
            "JOIN bs.innings i JOIN i.matchResult mr JOIN mr.fixture f " +

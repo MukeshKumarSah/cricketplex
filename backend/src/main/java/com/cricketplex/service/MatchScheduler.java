@@ -179,6 +179,10 @@ public class MatchScheduler {
                                             fresh.setStatus("FC_DAY1_COMPLETE");
                                         } else {
                                             fresh.setStatus("COMPLETED");
+                                            // Log match activity now that the live window has ended
+                                            if (fresh.getSimSessionId() == null) {
+                                                matchEngine.logMatchActivity(mr, fresh);
+                                            }
                                         }
                                         fixtureRepository.save(fresh);
                                         log.info("Updated fixture {} after live duration elapsed to {}",

@@ -17,6 +17,8 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
 
     List<Player> findByTeamId(UUID teamId);
 
+    List<Player> findBySimSessionId(UUID simSessionId);
+
     boolean existsByFirstNameIgnoreCaseAndLastNameIgnoreCase(String firstName, String lastName);
 
     @Query("SELECT LOWER(p.firstName) || '|' || LOWER(p.lastName) FROM Player p")

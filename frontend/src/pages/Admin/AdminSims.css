@@ -1,0 +1,286 @@
+/* ── Page ── */
+.sim-page {
+  padding: 1.5rem 2rem 3rem;
+  color: #e2e8f0;
+  max-width: 1800px;
+}
+
+/* ── Header ── */
+.sim-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.sim-header-icon {
+  font-size: 2rem;
+  color: #38bdf8;
+}
+.sim-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+/* ── Tabs ── */
+.sim-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #1e2a3a;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.sim-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -2px;
+  border-radius: 4px 4px 0 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.sim-tab:hover { color: #e2e8f0; }
+.sim-tab-active { color: #38bdf8; border-bottom-color: #38bdf8; }
+
+/* ── Status badge ── */
+.sim-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.sim-badge-done    { background: rgba(34,197,94,0.15); color: #22c55e; }
+.sim-badge-running { background: rgba(56,189,248,0.15); color: #38bdf8; }
+.sim-badge-pending { background: rgba(250,204,21,0.15); color: #facc15; }
+.sim-badge-error   { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+/* ── Buttons ── */
+.sim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.sim-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sim-btn:not(:disabled):hover { opacity: 0.88; }
+.sim-btn-sm { font-size: 0.8rem; padding: 0.35rem 0.7rem; }
+.sim-btn-view   { background: #0e4166; color: #7dd3fc; }
+.sim-btn-delete { background: rgba(239,68,68,0.15); color: #f87171; }
+.sim-btn-primary { background: #0284c7; color: #fff; padding: 0.6rem 1.4rem; font-size: 0.95rem; }
+
+/* ── Sessions ── */
+.sim-sessions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.sim-sessions-count { font-size: 0.85rem; color: #64748b; }
+.sim-loading, .sim-empty { color: #64748b; font-style: italic; }
+.sim-actions { display: flex; gap: 0.5rem; }
+
+/* ── Table ── */
+.sim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+.sim-table th {
+  background: #0f1c2e;
+  color: #7ea8c4;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid #1e2d3d;
+  white-space: nowrap;
+}
+.sim-table td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid #1a2536;
+  vertical-align: middle;
+  color: #cbd5e1;
+}
+.sim-table tr:hover td { background: rgba(14,65,102,0.15); }
+.sim-td-bold { font-weight: 600; color: #e2e8f0; }
+.sim-table-scroll { overflow-x: auto; }
+
+/* ── Form ── */
+.sim-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.sim-form-global {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.sim-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.sim-form-field label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+.sim-teams-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.sim-team-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 200px;
+}
+.sim-team-name-field label { font-size: 0.8rem; color: #64748b; font-weight: 500; }
+
+/* ── Inputs / selects ── */
+.sim-input {
+  background: #0c1823;
+  border: 1px solid #1e2d3d;
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sim-input:focus { border-color: #38bdf8; }
+.sim-input-name { width: 110px; }
+.sim-input-num  { width: 56px; text-align: center; }
+.sim-select {
+  background: #0c1823;
+  border: 1px solid #1e2d3d;
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 0.38rem 0.5rem;
+  font-size: 0.82rem;
+  outline: none;
+  cursor: pointer;
+}
+.sim-select:focus { border-color: #38bdf8; }
+
+/* ── Team editor ── */
+.sim-team-editor {
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sim-team-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0f1c2e;
+  padding: 0.6rem 1rem;
+}
+.sim-team-editor-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #7dd3fc;
+}
+.sim-overs-total { font-size: 0.8rem; color: #64748b; }
+.sim-overs-ok   { color: #22c55e; }
+.sim-overs-warn { color: #f59e0b; }
+.sim-player-table td, .sim-player-table th { white-space: nowrap; }
+
+/* ── Hint ── */
+.sim-hint {
+  font-size: 0.8rem;
+  color: #4b6587;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Results ── */
+.sim-results-tab {}
+.sim-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+.sim-result-meta strong { color: #e2e8f0; }
+.sim-error-box {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  color: #f87171;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.sim-results { display: flex; flex-direction: column; gap: 1.5rem; }
+.sim-result-section {
+  background: #0a1520;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+.sim-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0 0 0.85rem;
+}
+.sim-summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.sim-summary-card {
+  background: #0f1c2e;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  min-width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.sim-summary-card span {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.sim-summary-card label {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: center;
+}
+.sim-team-block { margin-top: 0.75rem; }
+.sim-team-sub {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #7dd3fc;
+  margin: 0 0 0.5rem;
+}
+.sim-no-result { color: #64748b; font-style: italic; }
+
+/* ── Spin animation ── */
+@keyframes sim-spin { to { transform: rotate(360deg); } }
+.sim-spin { animation: sim-spin 0.8s linear infinite; display: inline-block; }

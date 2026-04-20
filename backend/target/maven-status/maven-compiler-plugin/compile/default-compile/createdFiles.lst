@@ -8,6 +8,7 @@ com\cricketplex\entity\Fixture$FixtureBuilder.class
 com\cricketplex\controller\ActivityController.class
 com\cricketplex\entity\TrainingLog$TrainingLogBuilder.class
 com\cricketplex\entity\TransferBid$TransferBidBuilder.class
+com\cricketplex\entity\SimSession$SimSessionBuilder.class
 com\cricketplex\controller\WeatherController.class
 com\cricketplex\entity\MatchResult.class
 com\cricketplex\repository\ChatMemberRepository.class
@@ -36,6 +37,7 @@ com\cricketplex\repository\LeagueTeamRepository.class
 com\cricketplex\repository\FriendlyChallengeRepository.class
 com\cricketplex\repository\StadiumSeatsRepository.class
 com\cricketplex\service\AdminPlayerService.class
+com\cricketplex\entity\SimSession.class
 com\cricketplex\entity\ActivityLog.class
 com\cricketplex\service\WeatherService$ClimateProfile.class
 com\cricketplex\service\FixtureService.class
@@ -59,6 +61,7 @@ com\cricketplex\entity\DefaultLineup.class
 com\cricketplex\service\TransferAuctionService.class
 com\cricketplex\service\MatchEngine$BatsmanState.class
 com\cricketplex\CricketPlexApplication.class
+com\cricketplex\service\SimulationService.class
 com\cricketplex\entity\TrainingAssignment.class
 com\cricketplex\service\ActivityLogService.class
 com\cricketplex\entity\TransactionLog$TransactionLogBuilder.class
@@ -110,6 +113,7 @@ com\cricketplex\service\FitnessRecoveryService.class
 com\cricketplex\entity\BowlingOrder.class
 com\cricketplex\repository\PlayerFirstNameRepository.class
 com\cricketplex\entity\League$LeagueBuilder.class
+com\cricketplex\service\SimulationService$FldStats.class
 com\cricketplex\controller\LeagueController.class
 com\cricketplex\controller\AdminLeagueController.class
 com\cricketplex\controller\AuthController.class
@@ -118,15 +122,19 @@ com\cricketplex\security\JwtTokenProvider.class
 com\cricketplex\entity\PlayerLastName.class
 com\cricketplex\controller\LineupController.class
 com\cricketplex\entity\TransferListing.class
+com\cricketplex\service\SimulationService$BatStats.class
 com\cricketplex\service\BotTeamService.class
+com\cricketplex\controller\SimSessionController.class
 com\cricketplex\repository\MatchResultRepository.class
 com\cricketplex\entity\ActivityLog$ActivityLogBuilder.class
 com\cricketplex\controller\MatchSimController.class
 com\cricketplex\entity\BattingScorecard$BattingScorecardBuilder.class
+com\cricketplex\service\SimulationService$BowlStats.class
 com\cricketplex\repository\TransferBidRepository.class
 com\cricketplex\repository\PlayerLastNameRepository.class
 com\cricketplex\entity\HomeMatch.class
 com\cricketplex\service\MatchEngine$FCResumeState.class
+com\cricketplex\service\SimulationService$MatchReadResult.class
 com\cricketplex\entity\MatchResult$MatchResultBuilder.class
 com\cricketplex\repository\ChatConversationRepository.class
 com\cricketplex\security\UserPrincipal.class
@@ -142,6 +150,7 @@ com\cricketplex\entity\TransferBid.class
 com\cricketplex\service\WeeklyFinanceService.class
 com\cricketplex\dto\ApiResponse$ApiResponseBuilder.class
 com\cricketplex\entity\LineupPlayer$LineupPlayerBuilder.class
+com\cricketplex\config\AsyncConfig.class
 com\cricketplex\dto\AuthResponse.class
 com\cricketplex\entity\AcademyPull$AcademyPullBuilder.class
 com\cricketplex\exception\GlobalExceptionHandler.class
@@ -154,6 +163,7 @@ com\cricketplex\dto\AuthResponse$UserInfo.class
 com\cricketplex\entity\ChatMember$ChatMemberBuilder.class
 com\cricketplex\service\MatchEngine$DeliveryResult.class
 com\cricketplex\controller\SquadController.class
+com\cricketplex\repository\SimSessionRepository.class
 com\cricketplex\entity\BattingScorecard.class
 com\cricketplex\entity\Trophy$TrophyBuilder.class
 com\cricketplex\repository\TrainingAssignmentRepository.class

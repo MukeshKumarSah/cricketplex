@@ -652,6 +652,7 @@ public class MatchSimController {
             }
             if (recentMatches.size() < 5) {
                 Map<String, Object> rm = new LinkedHashMap<>();
+                rm.put("fixtureId", mr.getFixture().getId());
                 rm.put("date", mr.getFixture().getMatchDate() != null ? mr.getFixture().getMatchDate().toString() : null);
                 rm.put("format", mr.getFixture().getLeague() != null ? mr.getFixture().getLeague().getFormat() : mr.getFixture().getFormat());
                 rm.put("summary", buildSummaryLine(mr));

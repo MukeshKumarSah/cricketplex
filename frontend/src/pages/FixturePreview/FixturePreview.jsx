@@ -174,7 +174,12 @@ export default function FixturePreview() {
               <div className="fp-recent">
                 <h4 className="fp-recent-title">Recent Results</h4>
                 {rivalry.recentMatches.map((m, i) => (
-                  <div key={i} className="fp-recent-row">
+                  <div
+                    key={i}
+                    className="fp-recent-row fp-recent-row-clickable"
+                    onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}
+                    title="View scorecard"
+                  >
                     <span className="fp-recent-date">{m.date}</span>
                     <span className="fp-recent-format">{m.format}</span>
                     <span className="fp-recent-summary">{m.summary}</span>

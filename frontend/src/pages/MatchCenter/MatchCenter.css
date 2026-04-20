@@ -511,7 +511,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.75rem;
-  background: #111827;
+  background: #052e16;
+  border-top: 1px solid #14532d;
   flex-wrap: wrap;
 }
 .mc-comm-over-label { font-size: 0.75rem; font-weight: 700; color: #22d3ee; }
@@ -546,6 +547,102 @@
 .mcr-four { color: #22d3ee; }
 .mcr-dot { color: #475569; }
 .mc-comm-ball-text { color: #64748b; flex: 1; line-height: 1.4; }
+
+/* ─── Over context panel ─── */
+.mc-comm-over-ctx {
+  border-top: 2px solid #14532d;
+  border-bottom: 2px solid #14532d;
+  background: #052e16;
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mc-comm-ctx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+}
+.mc-comm-ctx-players {
+  justify-content: space-between;
+}
+.mc-comm-ctx-bats {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.mc-comm-ctx-bat {
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+.mc-comm-ctx-bat strong {
+  color: #f8fafc;
+}
+.mc-comm-ctx-bowl {
+  color: #94a3b8;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mc-comm-ctx-wkt-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mc-comm-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+.mc-comm-ctx-lastwkt {
+  color: #fca5a5;
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+}
+.mc-comm-ctx-over {
+  color: #64748b;
+}
+.mc-comm-ctx-rates {
+  gap: 0.85rem;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+.mc-comm-ctx-rates span {
+  white-space: nowrap;
+}
+.mc-comm-ctx-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-right: 0.2rem;
+}
+
+/* ─── Milestone celebration cards ─── */
+.mc-comm-milestone {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-top: 1px solid transparent;
+  font-size: 0.8rem;
+}
+.mc-ms-icon { font-size: 1.2rem; flex-shrink: 0; }
+.mc-ms-text { flex: 1; line-height: 1.4; }
+
+/* Batting milestones */
+.mc-ms-bat-50  { background: linear-gradient(90deg, #1c1a00 0%, #0f172a 100%); border-color: #a16207; color: #fde68a; }
+.mc-ms-bat-100 { background: linear-gradient(90deg, #1c1200 0%, #0f172a 100%); border-color: #ca8a04; color: #fef08a; }
+.mc-ms-bat-150 { background: linear-gradient(90deg, #1a0f00 0%, #0f172a 100%); border-color: #d97706; color: #fcd34d; }
+.mc-ms-bat-200 { background: linear-gradient(90deg, #1a0800 0%, #0f172a 100%); border-color: #f59e0b; color: #fbbf24; }
+
+/* Bowling milestones */
+.mc-ms-bowl-3w { background: linear-gradient(90deg, #1a003a 0%, #0f172a 100%); border-color: #7c3aed; color: #ddd6fe; }
+.mc-ms-bowl-5w { background: linear-gradient(90deg, #2a0010 0%, #0f172a 100%); border-color: #dc2626; color: #fecaca; }
 
 /* ═══ GRAPHS TAB ═══ */
 .mc-graphs { display: flex; flex-direction: column; gap: 0.5rem; }

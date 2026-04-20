@@ -94,6 +94,9 @@ public class Player {
     @Builder.Default
     private int confidence = 50;
 
+    @Column(name = "sim_session_id")
+    private UUID simSessionId;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getCommentary, getMatchResult, getRivalry } from '../../api/auth';
 import toast from 'react-hot-toast';
@@ -124,9 +124,16 @@ export default function MatchCenter() {
   const isLiveRoute = location.pathname.endsWith('/live');
   const defaultTab = location.pathname.endsWith('/commentary') ? 'commentary' : 'scorecard';
   const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    const tab = location.pathname.endsWith('/commentary') ? 'commentary' : 'scorecard';
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
   const [scActiveInnings, setScActiveInnings] = useState(1);
   const [commFilter, setCommFilter] = useState('all');
   const feedRef = useRef(null);
+  const userScrolledRef = useRef(false);
 
   const TABS = [
     { id: 'scorecard', label: 'Scorecard' },
@@ -168,6 +175,9 @@ export default function MatchCenter() {
 
   // ─── Load match data ───
   useEffect(() => {
+    setCommentary(null);
+    setResult(null);
+    setLoading(true);
     (async () => {
       try {
         const [commRes, resRes] = await Promise.all([
@@ -244,10 +254,36 @@ export default function MatchCenter() {
     return innings;
   }, [commentary, currentInnings, currentBallIdx, matchEnded, isLive]);
 
-  // ─── Auto-scroll feed ───
+  // ─── Reset userScrolled when tab changes or match changes ───
   useEffect(() => {
-    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-  }, [currentBallIdx, activeTab]);
+    userScrolledRef.current = false;
+  }, [activeTab, fixtureId]);
+
+  // ─── Detect user manually scrolling the feed ───
+  useEffect(() => {
+    const el = feedRef.current;
+    if (!el) return;
+    const onScroll = () => { userScrolledRef.current = true; };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [activeTab]);
+
+  // ─── Auto-scroll feed (live only, skip if user scrolled) ───
+  useEffect(() => {
+    if (!feedRef.current) return;
+    const liveAndRunning = isLive && !matchEnded;
+    if (!liveAndRunning) return;
+    if (userScrolledRef.current) return;
+    feedRef.current.scrollTop = 0; // newest over is at top in live reversed layout
+  }, [currentBallIdx, activeTab, isLive, matchEnded]);
+
+  // ─── Initial scroll to top when entering live commentary ───
+  useEffect(() => {
+    if (!feedRef.current) return;
+    if (isLive && !matchEnded && activeTab === 'commentary') {
+      feedRef.current.scrollTop = 0;
+    }
+  }, [isLive, matchEnded, activeTab]);
 
   // ─── Partnerships computed ───
   const partnerships = useMemo(() => {
@@ -503,12 +539,127 @@ export default function MatchCenter() {
     if (!commOverGroups[e.over]) commOverGroups[e.over] = [];
     commOverGroups[e.over].push(e);
   }
-  const commOvers = Object.keys(commOverGroups).map(Number).sort((a, b) => a - b);
+  const liveRunning = isLive && !matchEnded;
+  const commOvers = Object.keys(commOverGroups).map(Number).sort((a, b) => liveRunning ? b - a : a - b);
   const filteredCommOvers =
     commFilter === 'all' ? commOvers
     : commFilter === 'wickets' ? commOvers.filter((o) => commOverGroups[o].some((e) => e.isWicket))
     : commFilter === 'boundaries' ? commOvers.filter((o) => commOverGroups[o].some((e) => e.isBoundary || e.isSix))
     : commOvers;
+
+  // ─── Commentary over snapshots (cumulative state at end of each over) ───
+  const commOverSnapshots = (() => {
+    if (!commBalls.length) return {};
+    const snapshots = {};
+    let cumRuns = 0, cumLegal = 0, cumWkts = 0;
+    const batMap = {};   // name -> { runs, balls, dismissed }
+    const bowlMap = {};  // name -> { runs, legalBalls, wickets }
+    let lastWicket = null;
+    let partRuns = 0, partBalls = 0;
+    let prevSnOver = -1, overLegal = 0;
+
+    for (let idx = 0; idx < commBalls.length; idx++) {
+      const b = commBalls[idx];
+      if (b.over !== prevSnOver) { overLegal = 0; prevSnOver = b.over; }
+      const nextLegalNum = overLegal + 1;
+      const displayBall = b.isWide
+        ? `${b.over}.${nextLegalNum}w`
+        : b.isNoBall
+        ? `${b.over}.${nextLegalNum}nb`
+        : `${b.over}.${nextLegalNum}`;
+      if (!b.isWide && !b.isNoBall) overLegal++;
+      cumRuns += b.runs;
+      if (!b.isWide && !b.isNoBall) cumLegal++;
+
+      if (!batMap[b.batsman]) batMap[b.batsman] = { runs: 0, balls: 0, dismissed: false };
+      if (!b.isWide) batMap[b.batsman].runs += b.runs;
+      if (!b.isWide && !b.isNoBall) batMap[b.batsman].balls++;
+      else if (b.isNoBall) batMap[b.batsman].balls++;
+
+      if (!bowlMap[b.bowler]) bowlMap[b.bowler] = { runs: 0, legalBalls: 0, wickets: 0 };
+      bowlMap[b.bowler].runs += b.runs;
+      if (!b.isWide && !b.isNoBall) bowlMap[b.bowler].legalBalls++;
+
+      if (!b.isWide) partRuns += b.runs;
+      else partRuns += b.runs; // wides still count as extras to partnership
+      if (!b.isWide && !b.isNoBall) partBalls++;
+      else if (b.isNoBall) partBalls++;
+
+      if (b.isWicket) {
+        cumWkts++;
+        batMap[b.batsman].dismissed = true;
+        lastWicket = {
+          batsman: b.batsman,
+          runs: batMap[b.batsman].runs,
+          balls: batMap[b.batsman].balls,
+          bowler: b.bowler,
+          overBall: displayBall,
+          score: `${cumRuns}/${cumWkts}`,
+        };
+        partRuns = 0;
+        partBalls = 0;
+      }
+
+      const nextBall = commBalls[idx + 1];
+      if (!nextBall || nextBall.over !== b.over) {
+        const atCrease = Object.entries(batMap)
+          .filter(([, v]) => !v.dismissed)
+          .map(([name, v]) => ({ name, runs: v.runs, balls: v.balls }))
+          .slice(-2);
+        snapshots[b.over] = {
+          cumRuns, cumWkts, cumLegal,
+          atCrease,
+          curBowler: b.bowler,
+          curBowlerFigs: { ...bowlMap[b.bowler] },
+          partRuns, partBalls,
+          lastWicket: lastWicket ? { ...lastWicket } : null,
+          rr: cumLegal > 0 ? (cumRuns / cumLegal) * 6 : 0,
+        };
+      }
+    }
+    return snapshots;
+  })();
+
+  // ─── Target info for chase innings in commentary ───
+  const commTargetInfo = (() => {
+    if (isFC || scActiveInnings !== 2) return null;
+    const inn1 = liveScorecard.find((s) => s.inningsNumber === 1);
+    if (!inn1) return null;
+    const t = (parseInt(inn1.scoreDisplay) || 0) + 1;
+    const totalBalls = result.format === 'T20' ? 120 : 300;
+    return { target: t, totalBalls };
+  })();
+
+  // ─── Commentary milestones (50/100/150/200 for bat, 3W/5W for bowl) ───
+  const commMilestones = (() => {
+    const map = new Map();
+    const batRuns = {};
+    const bowlerWkts = {};
+    for (const b of commBalls) {
+      if (!b.isWide) {
+        if (!batRuns[b.batsman]) batRuns[b.batsman] = 0;
+        const prev = batRuns[b.batsman];
+        batRuns[b.batsman] += b.runs;
+        const curr = batRuns[b.batsman];
+        for (const ms of [50, 100, 150, 200]) {
+          if (prev < ms && curr >= ms) {
+            if (!map.has(b)) map.set(b, []);
+            map.get(b).push({ type: 'bat', player: b.batsman, score: ms });
+          }
+        }
+      }
+      if (b.isWicket) {
+        if (!bowlerWkts[b.bowler]) bowlerWkts[b.bowler] = 0;
+        bowlerWkts[b.bowler]++;
+        const w = bowlerWkts[b.bowler];
+        if (w === 3 || w === 5) {
+          if (!map.has(b)) map.set(b, []);
+          map.get(b).push({ type: 'bowl', player: b.bowler, wickets: w });
+        }
+      }
+    }
+    return map;
+  })();
 
   // ─── Break countdown display helper ───
   const breakMinutes = Math.floor(breakRemaining / 60);
@@ -788,33 +939,138 @@ export default function MatchCenter() {
                 <div className="mc-comm-empty">{isLive && visibleBalls.length === 0 ? 'Match starting...' : 'No events match filter.'}</div>
               ) : (
                 filteredCommOvers.map((overNum) => {
-                  const balls = commOverGroups[overNum];
+                  const allBalls = commOverGroups[overNum];
+                  // Build legal-ball display labels for each delivery in this over
+                  const ballDisplayMap = new Map();
+                  let overLegalCount = 0;
+                  for (const ball of allBalls) {
+                    const nextNum = overLegalCount + 1;
+                    if (ball.isWide) {
+                      ballDisplayMap.set(ball, `${overNum}.${nextNum}w`);
+                    } else if (ball.isNoBall) {
+                      ballDisplayMap.set(ball, `${overNum}.${nextNum}nb`);
+                    } else {
+                      overLegalCount++;
+                      ballDisplayMap.set(ball, `${overNum}.${overLegalCount}`);
+                    }
+                  }
+                  const filteredBalls = commFilter === 'wickets'
+                    ? allBalls.filter((b) => b.isWicket)
+                    : commFilter === 'boundaries'
+                    ? allBalls.filter((b) => b.isBoundary || b.isSix)
+                    : allBalls;
+                  const balls = liveRunning ? [...filteredBalls].reverse() : filteredBalls;
                   const overRuns = balls.reduce((s, b) => s + b.runs, 0);
                   const overWickets = balls.filter((b) => b.isWicket).length;
+                  const snap = commOverSnapshots[overNum];
+                  const ctxPanel = snap ? (
+                        <div className="mc-comm-over-ctx">
+                          <div className="mc-comm-ctx-row mc-comm-ctx-players">
+                            <div className="mc-comm-ctx-bats">
+                              {snap.atCrease.map((bat) => (
+                                <span key={bat.name} className="mc-comm-ctx-bat">
+                                  {bat.name} <strong>{bat.runs}</strong>({bat.balls})
+                                </span>
+                              ))}
+                            </div>
+                            <span className="mc-comm-ctx-bowl">
+                              {snap.curBowler} {oversDisplay(snap.curBowlerFigs.legalBalls)}-{snap.curBowlerFigs.wickets}/{snap.curBowlerFigs.runs}
+                            </span>
+                          </div>
+                          <div className="mc-comm-ctx-row mc-comm-ctx-wkt-row">
+                            <span className="mc-comm-ctx-item">
+                              <span className="mc-comm-ctx-label">Pship</span>
+                              <span>{snap.partRuns}({snap.partBalls})</span>
+                            </span>
+                            {snap.lastWicket && (
+                              <span className="mc-comm-ctx-item mc-comm-ctx-lastwkt">
+                                <span className="mc-comm-ctx-label">Last wkt</span>
+                                <span>
+                                  {snap.lastWicket.score} · {snap.lastWicket.batsman} {snap.lastWicket.runs}({snap.lastWicket.balls}) b {snap.lastWicket.bowler}
+                                  <span className="mc-comm-ctx-over"> ({snap.lastWicket.overBall})</span>
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="mc-comm-ctx-row mc-comm-ctx-rates">
+                            <span><span className="mc-comm-ctx-label">RR</span> {snap.rr.toFixed(2)}</span>
+                            {commTargetInfo && (() => {
+                              const need = Math.max(0, commTargetInfo.target - snap.cumRuns);
+                              const remainBalls = Math.max(0, commTargetInfo.totalBalls - snap.cumLegal);
+                              const rrr = remainBalls > 0 ? (need / remainBalls) * 6 : null;
+                              return (
+                                <>
+                                  <span><span className="mc-comm-ctx-label">RRR</span> {rrr !== null ? rrr.toFixed(2) : '—'}</span>
+                                  <span><span className="mc-comm-ctx-label">Need</span> {need} in {remainBalls}b</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      ) : null;
                   return (
                     <div key={overNum} className="mc-comm-over-group">
-                      <div className="mc-comm-over-header">
-                        <span className="mc-comm-over-label">Over {overNum}</span>
-                        <span className="mc-comm-over-summary">
-                          {overRuns} run{overRuns !== 1 ? 's' : ''}
-                          {overWickets > 0 && `, ${overWickets} wkt${overWickets > 1 ? 's' : ''}`}
-                        </span>
-                        <div className="mc-comm-chips">
-                          {balls.map((b, i) => (
-                            <span key={i} className={`mc-chip ${chipClass(b)}`}>{chipText(b)}</span>
-                          ))}
+                      {liveRunning && commFilter === 'all' && (
+                        <div className="mc-comm-over-header">
+                          <span className="mc-comm-over-label">Over {overNum + 1}</span>
+                          <span className="mc-comm-over-summary">
+                            {overRuns} run{overRuns !== 1 ? 's' : ''}
+                            {overWickets > 0 && `, ${overWickets} wkt${overWickets > 1 ? 's' : ''}`}
+                          </span>
+                          <div className="mc-comm-chips">
+                            {filteredBalls.map((b, i) => (
+                              <span key={i} className={`mc-chip ${chipClass(b)}`}>{chipText(b)}</span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      {liveRunning && commFilter === 'all' && ctxPanel}
                       <div className="mc-comm-ball-list">
                         {balls.map((b, i) => (
-                          <div key={i} className={`mc-comm-ball-row ${b.isWicket ? 'mc-row-wicket' : b.isSix ? 'mc-row-six' : b.isBoundary ? 'mc-row-four' : ''}`}>
-                            <span className="mc-comm-ball-num">{b.overBall}</span>
-                            <span className="mc-comm-ball-players">{b.bowler} to {b.batsman}</span>
-                            <span className={`mc-comm-ball-result ${ballResultClass(b)}`}>{ballResultText(b)}</span>
-                            {b.commentary && <span className="mc-comm-ball-text">{b.commentary}</span>}
-                          </div>
+                          <Fragment key={i}>
+                            <div className={`mc-comm-ball-row ${b.isWicket ? 'mc-row-wicket' : b.isSix ? 'mc-row-six' : b.isBoundary ? 'mc-row-four' : ''}`}>
+                              <span className="mc-comm-ball-num">{ballDisplayMap.get(b) ?? b.overBall}</span>
+                              <span className="mc-comm-ball-players">{b.bowler} to {b.batsman}</span>
+                              <span className={`mc-comm-ball-result ${ballResultClass(b)}`}>{ballResultText(b)}</span>
+                              {b.commentary && <span className="mc-comm-ball-text">{b.commentary}</span>}
+                            </div>
+                            {commMilestones.has(b) && commMilestones.get(b).map((m, mi) => (
+                              <div key={`ms-${i}-${mi}`} className={`mc-comm-milestone ${m.type === 'bat' ? `mc-ms-bat mc-ms-bat-${m.score}` : `mc-ms-bowl mc-ms-bowl-${m.wickets}w`}`}>
+                                {m.type === 'bat' ? (
+                                  <>
+                                    <span className="mc-ms-icon">{m.score >= 100 ? '💯' : '⭐'}</span>
+                                    <span className="mc-ms-text">
+                                      <strong>{m.player}</strong> brings up {m.score === 150 ? 'a brilliant' : m.score === 200 ? 'a magnificent' : 'a'} <strong>{m.score}</strong>!
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="mc-ms-icon">{m.wickets === 5 ? '🔥' : '💥'}</span>
+                                    <span className="mc-ms-text">
+                                      <strong>{m.player}</strong> completes {m.wickets === 5 ? 'a magnificent FIVE-wicket haul' : 'a THREE-wicket haul'}!
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </Fragment>
                         ))}
                       </div>
+                      {!liveRunning && commFilter === 'all' && (
+                        <div className="mc-comm-over-header">
+                          <span className="mc-comm-over-label">Over {overNum + 1}</span>
+                          <span className="mc-comm-over-summary">
+                            {overRuns} run{overRuns !== 1 ? 's' : ''}
+                            {overWickets > 0 && `, ${overWickets} wkt${overWickets > 1 ? 's' : ''}`}
+                          </span>
+                          <div className="mc-comm-chips">
+                            {filteredBalls.map((b, i) => (
+                              <span key={i} className={`mc-chip ${chipClass(b)}`}>{chipText(b)}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!liveRunning && commFilter === 'all' && ctxPanel}
                     </div>
                   );
                 })

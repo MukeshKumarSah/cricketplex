@@ -157,3 +157,9 @@ export const getWeatherForecast = () => API.get('/weather/forecast');
 
 // Activity Feed
 export const getRecentActivities = () => API.get('/activity');
+
+// Admin - Simulation Lab
+export const createSimSession = (data) => API.post('/admin/sim/sessions', data);
+export const listSimSessions = () => API.get('/admin/sim/sessions');
+export const getSimSession = (id) => API.get(`/admin/sim/sessions/${id}`);
+export const deleteSimSession = (id) => API.delete(`/admin/sim/sessions/${id}`);

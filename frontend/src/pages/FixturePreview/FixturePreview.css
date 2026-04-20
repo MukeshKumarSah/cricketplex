@@ -330,6 +330,15 @@
   margin-bottom: 6px;
 }
 
+.fp-recent-row-clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.fp-recent-row-clickable:hover {
+  background: #1e293b;
+}
+
 .fp-recent-date {
   color: #64748b;
   font-size: 11px;

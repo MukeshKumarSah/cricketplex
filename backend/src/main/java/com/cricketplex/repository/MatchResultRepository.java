@@ -2,6 +2,7 @@ package com.cricketplex.repository;
 
 import com.cricketplex.entity.MatchResult;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,4 +36,8 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
            "(mr.fixture.homeTeam.id = :tid OR mr.fixture.awayTeam.id = :tid) " +
            "ORDER BY mr.fixture.matchDate DESC")
     List<MatchResult> findRecentByTeam(@Param("tid") UUID teamId);
+
+    @Modifying
+    @Query("DELETE FROM MatchResult mr WHERE mr.fixture.simSessionId = :simId")
+    void deleteBySimSessionId(@Param("simId") UUID simId);
 }

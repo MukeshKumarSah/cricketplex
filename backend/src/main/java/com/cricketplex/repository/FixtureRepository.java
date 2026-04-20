@@ -3,6 +3,7 @@ package com.cricketplex.repository;
 import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,6 +26,8 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
     long countByLeagueIdAndSeason(UUID leagueId, Integer season);
 
     void deleteByLeagueId(UUID leagueId);
+
+    List<Fixture> findBySimSessionId(UUID simSessionId);
 
     List<Fixture> findByHomeTeamAndMatchDateGreaterThanEqualOrderByMatchDateAsc(Team homeTeam, LocalDate date);
 
@@ -50,4 +53,8 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     @Query("SELECT DISTINCT f.season FROM Fixture f WHERE f.league.id = :leagueId ORDER BY f.season")
     List<Integer> findDistinctSeasonsByLeagueId(@Param("leagueId") UUID leagueId);
+
+    @Modifying
+    @Query("DELETE FROM Fixture f WHERE f.simSessionId = :simId")
+    void deleteBySimSessionId(@Param("simId") UUID simId);
 }

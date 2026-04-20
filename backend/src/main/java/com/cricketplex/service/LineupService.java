@@ -343,6 +343,15 @@ public class LineupService {
 
         DefaultLineup def = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format)
                 .orElse(DefaultLineup.builder().team(team).format(format).build());
+
+        // Preserve the existing batOrBowl preference if the new save didn't set one
+        // (Home team games don't require a toss call, so batOrBowl may arrive as null;
+        //  we keep the value from the last away game rather than overwriting with null)
+        if (data.get("batOrBowl") == null && def.getLineupData() != null) {
+            Object prev = def.getLineupData().get("batOrBowl");
+            if (prev != null) data.put("batOrBowl", prev);
+        }
+
         def.setLineupData(data);
         defaultLineupRepository.save(def);
     }

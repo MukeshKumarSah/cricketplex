@@ -18,6 +18,8 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     List<Team> findByTeamNameContainingIgnoreCase(String teamName);
 
+    List<Team> findBySimSessionId(UUID simSessionId);
+
     List<Team> findByCountryIgnoreCaseAndIsBotTrue(String country);
 
     long countByCountryIgnoreCaseAndIsBot(String country, boolean isBot);

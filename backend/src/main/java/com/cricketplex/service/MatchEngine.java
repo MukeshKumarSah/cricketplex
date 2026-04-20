@@ -173,17 +173,22 @@ public class MatchEngine {
         // ─── Save ───
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
-        logMatchActivity(result, fixture);
-        // Only update team/player stats for league matches — friendlies have no consequences
-        if (fixture.getLeague() != null) {
+        // Skip activity logs, stats updates, and gate money for simulation fixtures
+        boolean isSim = fixture.getSimSessionId() != null;
+        // NOTE: logMatchActivity is NOT called here — it is deferred to MatchScheduler
+        // Pass 2 so the Won/Lost activity only appears after the live viewing window ends.
+        // Only update team/player stats for league matches — friendlies and sims have no consequences
+        if (!isSim && fixture.getLeague() != null) {
             String resolvedFormat = fixture.getLeague().getFormat();
             updateMoraleAndFans(result, fixture, resolvedFormat);
             updatePlayerStats(result, resolvedFormat);
             distributeGateMoney(result, fixture);
         }
         MatchResult saved = matchResultRepository.save(result);
-        // Apply any deferred bot→human swaps that were queued while this match was in progress
-        fixtureService.applyPendingSwap(fixture.getId(), saved);
+        // Apply any deferred bot→human swaps — skip for sim fixtures
+        if (!isSim) {
+            fixtureService.applyPendingSwap(fixture.getId(), saved);
+        }
         return saved;
     }
 
@@ -1462,14 +1467,17 @@ public class MatchEngine {
         fixture.setFcDay(2);
         fixture.setStatus("COMPLETED");
         fixtureRepository.save(fixture);
-        logMatchActivity(result, fixture);
-        if (fixture.getLeague() != null) {
+        boolean isSim = fixture.getSimSessionId() != null;
+        // NOTE: logMatchActivity is NOT called here — deferred to MatchScheduler Pass 2.
+        if (!isSim && fixture.getLeague() != null) {
             updateMoraleAndFans(result, fixture, "FC");
             updatePlayerStats(result, "FC");
             distributeGateMoney(result, fixture);
         }
         MatchResult saved = matchResultRepository.save(result);
-        fixtureService.applyPendingSwap(fixture.getId(), saved);
+        if (!isSim) {
+            fixtureService.applyPendingSwap(fixture.getId(), saved);
+        }
         return saved;
     }
 
@@ -2329,7 +2337,7 @@ public class MatchEngine {
 
     // ─── Result determination ───────────────────────────────────
 
-    private void logMatchActivity(MatchResult result, Fixture fixture) {
+    public void logMatchActivity(MatchResult result, Fixture fixture) {
         Team home = fixture.getHomeTeam();
         Team away = fixture.getAwayTeam();
         String fmt = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();

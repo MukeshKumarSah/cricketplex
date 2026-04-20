@@ -2,6 +2,7 @@ package com.cricketplex.repository;
 
 import com.cricketplex.entity.MatchLineup;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,4 +17,8 @@ public interface MatchLineupRepository extends JpaRepository<MatchLineup, UUID> 
 
     @Query("SELECT ml.fixture.id FROM MatchLineup ml WHERE ml.team.id = :teamId")
     List<UUID> findFixtureIdsByTeamId(@Param("teamId") UUID teamId);
+
+    @Modifying
+    @Query("DELETE FROM MatchLineup ml WHERE ml.fixture.simSessionId = :simId")
+    void deleteBySimSessionId(@Param("simId") UUID simId);
 }
