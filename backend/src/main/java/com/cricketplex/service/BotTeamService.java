@@ -223,10 +223,12 @@ public class BotTeamService {
                                 .findFirst()
                                 .orElse(null);
 
-                        if (targetLeague != null && !leagueTeamRepository.existsByLeagueIdAndTeamId(targetLeague.getId(), team.getId())) {
+                        if (targetLeague != null
+                                && !leagueTeamRepository.existsByLeagueIdAndTeamIdAndSeason(targetLeague.getId(), team.getId(), targetLeague.getSeason())) {
                             leagueTeamRepository.save(LeagueTeam.builder()
                                     .league(targetLeague)
                                     .team(team)
+                                    .season(targetLeague.getSeason())
                                     .build());
                             assigned++;
                         }
@@ -241,7 +243,7 @@ public class BotTeamService {
         int fixturesGenerated = 0;
         List<League> allLeagues = leagueRepository.findAll();
         for (League league : allLeagues) {
-            long teamCount = leagueTeamRepository.countByLeagueId(league.getId());
+            long teamCount = leagueTeamRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason());
             if (teamCount >= TEAMS_PER_LEAGUE && fixtureRepository.countByLeagueId(league.getId()) == 0) {
                 try {
                     fixtureService.generateFixtures(league);
@@ -276,7 +278,7 @@ public class BotTeamService {
         String format = league.getFormat();
         int div = league.getDivision();
 
-        long existing = leagueTeamRepository.countByLeagueId(league.getId());
+        long existing = leagueTeamRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason());
         int needed = TEAMS_PER_LEAGUE - (int) existing;
         if (needed <= 0) return;
 
@@ -286,9 +288,9 @@ public class BotTeamService {
 
         for (int i = 0; i < fromUnassigned; i++) {
             Team bot = unassigned.get(i);
-            if (!leagueTeamRepository.existsByLeagueIdAndTeamId(league.getId(), bot.getId())) {
+            if (!leagueTeamRepository.existsByLeagueIdAndTeamIdAndSeason(league.getId(), bot.getId(), league.getSeason())) {
                 leagueTeamRepository.save(LeagueTeam.builder()
-                        .league(league).team(bot).build());
+                        .league(league).team(bot).season(league.getSeason()).build());
                 // Also assign to the other 2 formats in a matching league
                 assignBotToOtherFormats(bot, country, format, div, league.getLeagueNumber());
                 needed--;
@@ -329,7 +331,7 @@ public class BotTeamService {
 
                 // Assign to this league
                 leagueTeamRepository.save(LeagueTeam.builder()
-                        .league(league).team(bot).build());
+                        .league(league).team(bot).season(league.getSeason()).build());
 
                 // Also assign to the other 2 formats in matching leagues
                 assignBotToOtherFormats(bot, country, format, div, league.getLeagueNumber());
@@ -355,9 +357,10 @@ public class BotTeamService {
                     .filter(l -> l.getDivision() == div && l.getLeagueNumber() == leagueNum)
                     .findFirst().orElse(null);
 
-            if (target != null && !leagueTeamRepository.existsByLeagueIdAndTeamId(target.getId(), bot.getId())) {
+            if (target != null
+                    && !leagueTeamRepository.existsByLeagueIdAndTeamIdAndSeason(target.getId(), bot.getId(), target.getSeason())) {
                 leagueTeamRepository.save(LeagueTeam.builder()
-                        .league(target).team(bot).build());
+                        .league(target).team(bot).season(target.getSeason()).build());
             }
         }
     }

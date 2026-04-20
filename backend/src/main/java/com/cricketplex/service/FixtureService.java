@@ -101,7 +101,7 @@ public class FixtureService {
     public void generateFixtures(League league) {
         if (fixtureRepository.countByLeagueIdAndStatusNot(league.getId(), "COMPLETED") > 0) return;
 
-        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueId(league.getId());
+        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), league.getSeason());
         if (leagueTeams.size() != 8) {
             log.warn("Cannot generate fixtures for league {} — has {} teams (need 8)",
                     league.getId(), leagueTeams.size());
@@ -121,6 +121,7 @@ public class FixtureService {
             for (int m = 0; m < 4; m++) {
                 fixtures.add(Fixture.builder()
                         .league(league)
+                        .season(league.getSeason())
                         .round(r + 1)
                         .matchNumber(m + 1)
                         .homeTeam(teams[FIRST_HALF[r][m][0]])
@@ -139,6 +140,7 @@ public class FixtureService {
                 // Swap home/away from source round
                 fixtures.add(Fixture.builder()
                         .league(league)
+                        .season(league.getSeason())
                         .round(r + 8)
                         .matchNumber(m + 1)
                         .homeTeam(teams[FIRST_HALF[srcRound][m][1]])
@@ -324,7 +326,7 @@ public class FixtureService {
      */
     @Transactional
     public void ensureFixturesExist(League league) {
-        if (fixtureRepository.countByLeagueId(league.getId()) == 0) {
+        if (fixtureRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason()) == 0) {
             generateFixtures(league);
         }
     }
@@ -335,8 +337,12 @@ public class FixtureService {
     @Transactional
     public List<Map<String, Object>> getFixturesGroupedByRound(League league) {
         ensureFixturesExist(league);
+        return getFixturesGroupedByRound(league, league.getSeason());
+    }
 
-        List<Fixture> all = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(league.getId());
+    @Transactional
+    public List<Map<String, Object>> getFixturesGroupedByRound(League league, int season) {
+        List<Fixture> all = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(league.getId(), season);
         if (all.isEmpty()) return List.of();
 
         Map<Integer, List<Map<String, Object>>> byRound = new LinkedHashMap<>();
@@ -352,6 +358,13 @@ public class FixtureService {
             match.put("awayTeam", teamInfo(f.getAwayTeam()));
             match.put("status", f.getStatus());
 
+            if ("COMPLETED".equals(f.getStatus())) {
+                matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+                    String summary = buildResultSummary(mr);
+                    if (summary != null) match.put("resultSummary", summary);
+                });
+            }
+
             byRound.computeIfAbsent(f.getRound(), k -> new ArrayList<>()).add(match);
         }
 
@@ -365,6 +378,19 @@ public class FixtureService {
             result.add(roundData);
         }
         return result;
+    }
+
+    private String buildResultSummary(MatchResult mr) {
+        String rt = mr.getResultType();
+        if (rt == null) return null;
+        if ("DRAW".equals(rt)) return "Match Drawn";
+        if ("TIE".equals(rt)) return "Match Tied";
+        if (mr.getWinner() == null || mr.getResultMargin() == null) return null;
+        String winner = mr.getWinner().getTeamName();
+        if ("RUNS".equals(rt)) return winner + " won by " + mr.getResultMargin() + " run" + (mr.getResultMargin() == 1 ? "" : "s");
+        if ("WICKETS".equals(rt)) return winner + " won by " + mr.getResultMargin() + " wicket" + (mr.getResultMargin() == 1 ? "" : "s");
+        if ("INNINGS".equals(rt)) return winner + " won by an innings and " + mr.getResultMargin() + " run" + (mr.getResultMargin() == 1 ? "" : "s");
+        return null;
     }
 
     private Map<String, Object> teamInfo(Team team) {

@@ -34,6 +34,7 @@ public class TransferAuctionService {
     private final TransactionLogRepository transactionLogRepository;
     private final ActivityLogService activityLogService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TrainingAssignmentRepository trainingAssignmentRepository;
 
     @Scheduled(fixedDelay = 30_000, initialDelay = 10_000)
     @Transactional
@@ -90,6 +91,8 @@ public class TransferAuctionService {
 
         // Transfer player
         Player player = listing.getPlayer();
+        // Release any focused/general training assignment for this player from the seller team
+        trainingAssignmentRepository.deleteByTeamIdAndPlayerId(sellerTeam.getId(), player.getId());
         player.setTeam(buyerTeam);
         playerRepository.save(player);
 

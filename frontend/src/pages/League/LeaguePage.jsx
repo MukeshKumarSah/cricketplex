@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -25,7 +25,12 @@ const STAT_TABS = [
 export default function LeaguePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [league, setLeague] = useState(null);
+  const [season, setSeason] = useState(() => {
+    const raw = searchParams.get('season');
+    return raw ? Number(raw) : null;
+  });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => sessionStorage.getItem('league_tab') || 'standings');
   const [fixtureData, setFixtureData] = useState(null);
@@ -36,35 +41,52 @@ export default function LeaguePage() {
 
   useEffect(() => {
     setLoading(true);
-    getLeagueDetail(id)
-      .then((res) => setLeague(res.data))
+    getLeagueDetail(id, season)
+      .then((res) => {
+        setLeague(res.data);
+        if (season == null && res.data?.season != null) {
+          setSeason(res.data.season);
+        }
+      })
       .catch(() => toast.error('Failed to load league'))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, season]);
 
   useEffect(() => {
     sessionStorage.setItem('league_tab', activeTab);
   }, [activeTab]);
+
   useEffect(() => {
     sessionStorage.setItem('league_stat_tab', activeStatTab);
   }, [activeStatTab]);
 
   useEffect(() => {
+    setFixtureData(null);
+    setStatsData(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (season) next.set('season', String(season));
+      else next.delete('season');
+      return next;
+    });
+  }, [season, setSearchParams]);
+
+  useEffect(() => {
     if (activeTab === 'fixtures' && !fixtureData) {
       setFixturesLoading(true);
-      getLeagueFixtures(id)
+      getLeagueFixtures(id, season)
         .then((res) => setFixtureData(res.data))
         .catch(() => toast.error('Failed to load fixtures'))
         .finally(() => setFixturesLoading(false));
     }
     if (activeTab === 'stats' && !statsData) {
       setStatsLoading(true);
-      getLeaguePlayerStats(id)
+      getLeaguePlayerStats(id, season)
         .then((res) => setStatsData(res.data))
         .catch(() => toast.error('Failed to load stats'))
         .finally(() => setStatsLoading(false));
     }
-  }, [activeTab, id, fixtureData, statsData]);
+  }, [activeTab, id, fixtureData, statsData, season]);
 
   if (loading) {
     return (
@@ -84,7 +106,6 @@ export default function LeaguePage() {
 
   return (
     <div className="lp-page">
-      {/* Header */}
       <div className="lp-header">
         <HiOutlineGlobeAlt className="lp-header-icon" />
         <div>
@@ -93,10 +114,18 @@ export default function LeaguePage() {
             Division {league.division} · League {league.leagueNumber} · Season {league.season} · {league.totalTeams} Teams
             {league.matchStartTimeUtc && <> · Match Time: {league.matchStartTimeUtc} UTC</>}
           </p>
+          {league.availableSeasons?.length > 1 && (
+            <div style={{ marginTop: 12 }}>
+              <select value={season ?? league.season} onChange={(e) => setSeason(Number(e.target.value))}>
+                {league.availableSeasons.map((s) => (
+                  <option key={s} value={s}>Season {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="lp-tabs">
         {TABS.map((tab) => (
           <button
@@ -110,7 +139,6 @@ export default function LeaguePage() {
         ))}
       </div>
 
-      {/* Tab Content */}
       <div className="lp-content">
         {activeTab === 'standings' && (
           <div className="lp-standings">
@@ -175,84 +203,83 @@ export default function LeaguePage() {
                 <p>No fixtures generated yet</p>
               </div>
             ) : (
-              <div className="lp-rounds">
+              <div className="lp-fixture-table">
+                {/* Table header */}
+                <div className="lp-ft-head">
+                  <span className="lp-ft-col-fixture">Fixture</span>
+                  <span className="lp-ft-col-result">Result / Status</span>
+                </div>
+
                 {fixtureData.rounds.map((round) => (
-                  <div key={round.round} className="lp-round-block">
-                    <div className="lp-round-header">
-                      <span className="lp-round-label">Round {round.round}</span>
-                      <span className="lp-round-date">
+                  <div key={round.round}>
+                    {/* Round divider */}
+                    <div className="lp-ft-round-divider">
+                      <span className="lp-ft-round-label">Round {round.round}</span>
+                      <span className="lp-ft-round-meta">
                         {round.matchDate
                           ? new Date(round.matchDate + 'T00:00:00Z').toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              timeZone: 'UTC',
+                              weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
                             })
                           : ''}
                         {round.matchStartTimeUtc && (
-                          <span className="lp-round-time"> · {round.matchStartTimeUtc} UTC</span>
+                          <span className="lp-ft-round-time"> · {round.matchStartTimeUtc} UTC</span>
                         )}
                       </span>
                     </div>
-                    <div className="lp-round-matches">
-                      {round.matches.map((m) => (
-                        <div
-                          key={m.id}
-                          className="lp-match-card lp-match-clickable"
-                          onClick={() => {
-                            if (m.status === 'FC_DAY1_COMPLETE') {
-                              navigate(`/match/${m.id}/fc-strategy`);
-                            } else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') {
-                              navigate(`/match/${m.id}/scorecard`);
-                            } else {
-                              navigate(`/match/${m.id}/preview`);
-                            }
-                          }}
-                        >
-                          <div className="lp-match-team lp-match-home">
+
+                    {/* Match rows */}
+                    {round.matches.map((m) => (
+                      <div
+                        key={m.id}
+                        className="lp-ft-row"
+                        onClick={() => {
+                          if (m.status === 'FC_DAY1_COMPLETE') navigate(`/match/${m.id}/fc-strategy`);
+                          else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') navigate(`/match/${m.id}/scorecard`);
+                          else navigate(`/match/${m.id}/preview`);
+                        }}
+                      >
+                        {/* Fixture column */}
+                        <div className="lp-ft-col-fixture">
+                          {/* Home */}
+                          <div className="lp-ft-team">
                             {m.homeTeam.teamProfilePicUrl ? (
-                              <img
-                                className="lp-match-logo"
-                                src={`http://localhost:8080/api/files/${m.homeTeam.teamProfilePicUrl}`}
-                                alt={m.homeTeam.teamName}
-                              />
+                              <img className="lp-ft-logo" src={`http://localhost:8080/api/files/${m.homeTeam.teamProfilePicUrl}`} alt={m.homeTeam.teamName} />
                             ) : (
-                              <span className="lp-match-initials">
-                                {m.homeTeam.teamName?.slice(0, 2).toUpperCase()}
-                              </span>
+                              <span className="lp-ft-initials">{m.homeTeam.teamName?.slice(0, 2).toUpperCase()}</span>
                             )}
-                            <span className="lp-match-name">
-                              {m.homeTeam.teamName}
-                              {m.homeTeam.isBot && <span className="lp-bot-badge">BOT</span>}
-                            </span>
+                            <span className="lp-ft-name">{m.homeTeam.teamName}</span>
+                            {m.homeTeam.isBot && <span className="lp-ft-bot">BOT</span>}
                           </div>
-                          <div className="lp-match-center">
-                            <span className="lp-match-vs">vs</span>
-                            {m.status === 'COMPLETED' && <span className="lp-match-status lp-status-completed">Completed</span>}
-                            {m.status === 'IN_PROGRESS' && <span className="lp-match-status lp-status-live">LIVE</span>}
-                            {m.status === 'FC_DAY1_COMPLETE' && <span className="lp-match-status lp-status-live">Day 1 Done</span>}
-                            {m.status === 'SCHEDULED' && <span className="lp-match-status lp-status-scheduled">Scheduled</span>}
-                          </div>
-                          <div className="lp-match-team lp-match-away">
-                            <span className="lp-match-name lp-match-name-right">
-                              {m.awayTeam.teamName}
-                              {m.awayTeam.isBot && <span className="lp-bot-badge">BOT</span>}
-                            </span>
+                          <span className="lp-ft-vs">vs</span>
+                          {/* Away */}
+                          <div className="lp-ft-team">
                             {m.awayTeam.teamProfilePicUrl ? (
-                              <img
-                                className="lp-match-logo"
-                                src={`http://localhost:8080/api/files/${m.awayTeam.teamProfilePicUrl}`}
-                                alt={m.awayTeam.teamName}
-                              />
+                              <img className="lp-ft-logo" src={`http://localhost:8080/api/files/${m.awayTeam.teamProfilePicUrl}`} alt={m.awayTeam.teamName} />
                             ) : (
-                              <span className="lp-match-initials">
-                                {m.awayTeam.teamName?.slice(0, 2).toUpperCase()}
-                              </span>
+                              <span className="lp-ft-initials">{m.awayTeam.teamName?.slice(0, 2).toUpperCase()}</span>
                             )}
+                            <span className="lp-ft-name">{m.awayTeam.teamName}</span>
+                            {m.awayTeam.isBot && <span className="lp-ft-bot">BOT</span>}
                           </div>
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Result / Status column */}
+                        <div className="lp-ft-col-result">
+                          {m.status === 'COMPLETED' && (
+                            <span className="lp-ft-result">{m.resultSummary || 'Completed'}</span>
+                          )}
+                          {m.status === 'IN_PROGRESS' && (
+                            <span className="lp-ft-pill lp-ft-pill-live">● LIVE</span>
+                          )}
+                          {m.status === 'FC_DAY1_COMPLETE' && (
+                            <span className="lp-ft-pill lp-ft-pill-live">Day 1 Done</span>
+                          )}
+                          {m.status === 'SCHEDULED' && (
+                            <span className="lp-ft-pill lp-ft-pill-scheduled">Scheduled</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -267,7 +294,7 @@ export default function LeaguePage() {
             ) : !statsData || (statsData.batting.length === 0 && statsData.bowling.length === 0 && statsData.fielding.length === 0) ? (
               <div className="lp-coming-soon">
                 <HiOutlineChartBar className="lp-coming-icon" />
-                <p>No stats available yet — matches haven't been played</p>
+                <p>No stats available yet - matches haven&apos;t been played</p>
               </div>
             ) : (
               <>
@@ -283,7 +310,6 @@ export default function LeaguePage() {
                   ))}
                 </div>
 
-                {/* Batting Stats */}
                 {activeStatTab === 'batting' && (
                   <div className="lp-stat-table-wrap">
                     <table className="lp-stat-table">
@@ -335,7 +361,6 @@ export default function LeaguePage() {
                   </div>
                 )}
 
-                {/* Bowling Stats */}
                 {activeStatTab === 'bowling' && (
                   <div className="lp-stat-table-wrap">
                     <table className="lp-stat-table">
@@ -385,7 +410,6 @@ export default function LeaguePage() {
                   </div>
                 )}
 
-                {/* Fielding Stats */}
                 {activeStatTab === 'fielding' && (
                   <div className="lp-stat-table-wrap">
                     <table className="lp-stat-table">

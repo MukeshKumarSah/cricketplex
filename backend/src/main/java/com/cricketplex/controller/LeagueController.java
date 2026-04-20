@@ -27,17 +27,19 @@ public class LeagueController {
     private final MatchEngine matchEngine;
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getLeagueDetail(@PathVariable UUID id) {
+    public ResponseEntity<?> getLeagueDetail(@PathVariable UUID id,
+                                             @RequestParam(required = false) Integer season) {
         Optional<League> opt = leagueRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         League league = opt.get();
-        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueId(id);
+        int viewSeason = resolveLeagueSeason(league, season);
+        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueIdAndSeason(id, viewSeason);
 
         // Build standings from completed match results
-        List<Fixture> fixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
+        List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(id, viewSeason);
         Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
         // For FC: [runsScored, wicketsLost, runsConceded, wicketsTaken]
         // For T20/ODI: [runsScored, oversPlayed, runsConceded, oversBowled]
@@ -167,7 +169,8 @@ public class LeagueController {
         result.put("division", league.getDivision());
         result.put("leagueNumber", league.getLeagueNumber());
         result.put("leagueId", league.getDivision() + "." + league.getLeagueNumber());
-        result.put("season", league.getSeason());
+        result.put("season", viewSeason);
+        result.put("availableSeasons", fixtureRepository.findDistinctSeasonsByLeagueId(id));
         result.put("totalTeams", leagueTeams.size());
         result.put("matchStartTimeUtc", league.getMatchStartTime());
         result.put("standings", standings);
@@ -176,7 +179,8 @@ public class LeagueController {
     }
 
     @GetMapping("/{id}/fixtures")
-    public ResponseEntity<?> getLeagueFixtures(@PathVariable UUID id) {
+    public ResponseEntity<?> getLeagueFixtures(@PathVariable UUID id,
+                                               @RequestParam(required = false) Integer season) {
         Optional<League> opt = leagueRepository.findById(id);
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
@@ -186,7 +190,8 @@ public class LeagueController {
         LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
         String startTimeStr = league.getMatchStartTime() != null ? league.getMatchStartTime() : "14:00";
         LocalTime matchTime = LocalTime.parse(startTimeStr);
-        List<Fixture> leagueFixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
+        int viewSeason = resolveLeagueSeason(league, season);
+        List<Fixture> leagueFixtures = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(id, viewSeason);
         for (Fixture f : leagueFixtures) {
             if ("FC".equalsIgnoreCase(league.getFormat()) && !"FC_DAY1_COMPLETE".equals(f.getStatus())) {
                 Optional<MatchResult> mrOpt = matchResultRepository.findByFixtureId(f.getId());
@@ -211,11 +216,12 @@ public class LeagueController {
             } catch (Exception ignored) { }
         }
 
-        List<Map<String, Object>> fixtures = fixtureService.getFixturesGroupedByRound(league);
+        List<Map<String, Object>> fixtures = fixtureService.getFixturesGroupedByRound(league, viewSeason);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("leagueId", league.getDivision() + "." + league.getLeagueNumber());
         result.put("format", league.getFormat());
+        result.put("season", viewSeason);
         result.put("totalRounds", fixtures.size());
         result.put("rounds", fixtures);
         return ResponseEntity.ok(result);
@@ -224,12 +230,14 @@ public class LeagueController {
     // ── League Stats (Batting / Bowling / Fielding) ──
 
     @GetMapping("/{id}/stats")
-    public ResponseEntity<?> getLeagueStats(@PathVariable UUID id) {
+    public ResponseEntity<?> getLeagueStats(@PathVariable UUID id,
+                                            @RequestParam(required = false) Integer season) {
         Optional<League> opt = leagueRepository.findById(id);
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         League league = opt.get();
-        List<Fixture> fixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(id);
+        int viewSeason = resolveLeagueSeason(league, season);
+        List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(id, viewSeason);
 
         // Collect all completed match results
         List<MatchResult> completedResults = new ArrayList<>();
@@ -301,8 +309,8 @@ public class LeagueController {
                     agg.maidens += bwc.getMaidens();
                     agg.runs += bwc.getRunsConceded();
                     agg.wickets += bwc.getWickets();
-                    if (bwc.getWickets() >= 3) agg.threeWI++;
                     if (bwc.getWickets() >= 5) agg.fiveWI++;
+                    else if (bwc.getWickets() >= 3) agg.threeWI++;
                     // Track best bowling (most wickets, least runs)
                     if (bwc.getWickets() > agg.bestWickets ||
                         (bwc.getWickets() == agg.bestWickets && bwc.getRunsConceded() < agg.bestRuns)) {
@@ -478,5 +486,18 @@ public class LeagueController {
         if (p.getBowlHand() == null || p.getBowlType() == null) return "-";
         String hand = "RH".equals(p.getBowlHand()) ? "R" : "L";
         return hand + p.getBowlType();
+    }
+
+    private int resolveLeagueSeason(League league, Integer requestedSeason) {
+        if (requestedSeason != null) return requestedSeason;
+        if (!"FC".equalsIgnoreCase(league.getFormat())) return league.getSeason();
+        int currentSeason = league.getSeason();
+        int previousSeason = currentSeason - 1;
+        if (previousSeason >= 1
+                && fixtureRepository.existsByLeagueIdAndSeason(league.getId(), previousSeason)
+                && fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), previousSeason, "COMPLETED") > 0) {
+            return previousSeason;
+        }
+        return currentSeason;
     }
 }

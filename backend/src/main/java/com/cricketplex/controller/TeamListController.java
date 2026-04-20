@@ -22,6 +22,7 @@ public class TeamListController {
     private final MatchResultRepository matchResultRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final StadiumSeatsRepository stadiumSeatsRepository;
+    private final LeagueRepository leagueRepository;
 
     @GetMapping
     public ResponseEntity<?> getAllTeams() {
@@ -107,7 +108,7 @@ public class TeamListController {
             Map<String, Object> match = new LinkedHashMap<>();
             match.put("id", f.getId());
             match.put("matchDate", f.getMatchDate().toString());
-            match.put("matchStartTimeUtc", isFriendly ? null : league.getMatchStartTime());
+            match.put("matchStartTimeUtc", isFriendly ? f.getMatchTime() : league.getMatchStartTime());
             match.put("format", isFriendly ? f.getFormat() : league.getFormat());
             match.put("round", f.getRound());
             match.put("leagueLabel", isFriendly ? "Friendly" : league.getDivision() + "." + league.getLeagueNumber());
@@ -125,22 +126,29 @@ public class TeamListController {
             match.put("status", f.getStatus());
             match.put("pitchType", f.getPitchType());
 
-            // Include result summary for completed matches
+            // Include result summary for completed matches (from viewed team's perspective)
             if ("COMPLETED".equals(f.getStatus())) {
                 matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
                     match.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
-                    String summary = "";
+                    String summary;
                     if ("TIE".equals(mr.getResultType())) {
                         summary = "Match Tied";
+                    } else if ("DRAW".equals(mr.getResultType())) {
+                        summary = "Match Drawn";
                     } else if (mr.getWinner() != null && mr.getResultMargin() != null) {
-                        String winnerName = mr.getWinner().getTeamName();
+                        boolean teamWon = mr.getWinner().getId().equals(team.getId());
+                        String margin = mr.getResultMargin().toString();
                         if ("RUNS".equals(mr.getResultType())) {
-                            summary = winnerName + " won by " + mr.getResultMargin() + " runs";
+                            summary = teamWon ? "Won by " + margin + " runs" : "Lost by " + margin + " runs";
                         } else if ("WICKETS".equals(mr.getResultType())) {
-                            summary = winnerName + " won by " + mr.getResultMargin() + " wickets";
+                            summary = teamWon ? "Won by " + margin + " wickets" : "Lost by " + margin + " wickets";
+                        } else if ("INNINGS".equals(mr.getResultType())) {
+                            summary = teamWon ? "Won by an innings & " + margin + " runs" : "Lost by an innings & " + margin + " runs";
                         } else {
-                            summary = winnerName + " won";
+                            summary = teamWon ? "Won" : "Lost";
                         }
+                    } else {
+                        summary = "Completed";
                     }
                     match.put("resultSummary", summary);
                 });
@@ -159,15 +167,16 @@ public class TeamListController {
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         Team team = opt.get();
-        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByTeamId(teamId);
+        int currentSeason = leagueRepository.findMaxSeason();
+        List<LeagueTeam> leagueTeams = leagueTeamRepository.findByTeamIdAndSeason(teamId, currentSeason);
 
         List<Map<String, Object>> leagues = new ArrayList<>();
         for (LeagueTeam lt : leagueTeams) {
             League league = lt.getLeague();
-            List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueId(league.getId());
+            List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), currentSeason);
 
             // Compute standings to find position
-            List<Fixture> fixtures = fixtureRepository.findByLeagueIdOrderByRoundAscMatchNumberAsc(league.getId());
+            List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(league.getId(), currentSeason);
             Map<UUID, int[]> stats = new LinkedHashMap<>(); // [points, wins]
             Map<UUID, double[]> nrrData = new LinkedHashMap<>();
             for (LeagueTeam entry : allInLeague) {
@@ -225,7 +234,7 @@ public class TeamListController {
             leagueInfo.put("format", league.getFormat());
             leagueInfo.put("division", league.getDivision());
             leagueInfo.put("leagueNumber", league.getLeagueNumber());
-            leagueInfo.put("season", league.getSeason());
+            leagueInfo.put("season", currentSeason);
             leagueInfo.put("position", position);
             leagueInfo.put("totalTeams", allInLeague.size());
             leagues.add(leagueInfo);

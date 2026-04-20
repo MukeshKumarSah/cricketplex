@@ -132,11 +132,11 @@ public class WeatherService {
     }
 
     /**
-     * Get 5-day weather forecast for a country starting from a given date.
+     * Get 7-day weather forecast for a country starting from a given date.
      */
     public List<Map<String, Object>> getForecast(String country, LocalDate startDate) {
         List<Map<String, Object>> forecast = new ArrayList<>();
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
             LocalDate date = startDate.plusDays(i);
             Map<String, Object> day = getWeather(country, date);
             day.put("date", date.toString());
@@ -146,11 +146,11 @@ public class WeatherService {
     }
 
     /**
-     * Get weather for a match; returns null-like "not available" if more than 5 days away.
+     * Get weather for a match; returns null-like "not available" if more than 7 days away.
      */
     public Map<String, Object> getMatchWeather(String homeCountry, LocalDate matchDate, LocalDate today) {
         long daysUntil = ChronoUnit.DAYS.between(today, matchDate);
-        if (daysUntil > 5) {
+        if (daysUntil > 7) {
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("available", false);
             result.put("message", "Forecast not yet available");

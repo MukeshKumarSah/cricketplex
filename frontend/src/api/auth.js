@@ -75,9 +75,9 @@ export const getMyMatches = (season, format) => {
 };
 
 // League Detail
-export const getLeagueDetail = (id) => API.get(`/leagues/${id}`);
-export const getLeagueFixtures = (id) => API.get(`/leagues/${id}/fixtures`);
-export const getLeaguePlayerStats = (id) => API.get(`/leagues/${id}/stats`);
+export const getLeagueDetail = (id, season) => API.get(`/leagues/${id}`, { params: season ? { season } : {} });
+export const getLeagueFixtures = (id, season) => API.get(`/leagues/${id}/fixtures`, { params: season ? { season } : {} });
+export const getLeaguePlayerStats = (id, season) => API.get(`/leagues/${id}/stats`, { params: season ? { season } : {} });
 
 // Admin - League Management
 export const getLeagueStats = () => API.get('/admin/leagues/stats');

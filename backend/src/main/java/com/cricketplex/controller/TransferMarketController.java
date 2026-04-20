@@ -35,6 +35,7 @@ public class TransferMarketController {
     private final TransactionLogRepository transactionLogRepository;
     private final ActivityLogService activityLogService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TrainingAssignmentRepository trainingAssignmentRepository;
 
     // ════════════════════════════════════════════
     //  POST /api/transfer/list — list player on TM (48h auction)
@@ -340,6 +341,9 @@ public class TransferMarketController {
         listingRepository.findByPlayerIdAndStatus(playerId, "ACTIVE")
                 .ifPresent(l -> { l.setStatus("CANCELLED"); listingRepository.save(l); });
 
+        // Release any focused/general training assignment for this player from the team
+        trainingAssignmentRepository.deleteByTeamIdAndPlayerId(team.getId(), player.getId());
+
         player.setTeam(null);
         playerRepository.save(player);
 
@@ -368,6 +372,9 @@ public class TransferMarketController {
         // Cancel any active listing
         listingRepository.findByPlayerIdAndStatus(playerId, "ACTIVE")
                 .ifPresent(l -> { l.setStatus("CANCELLED"); listingRepository.save(l); });
+
+        // Release any focused/general training assignment for this player from the team
+        trainingAssignmentRepository.deleteByTeamIdAndPlayerId(team.getId(), player.getId());
 
         player.setTeam(null);
         playerRepository.save(player);

@@ -412,6 +412,18 @@
   color: #94a3b8;
 }
 
+.matches-result-won {
+  color: #4ade80;
+}
+
+.matches-result-lost {
+  color: #f87171;
+}
+
+.matches-result-draw {
+  color: #fbbf24;
+}
+
 /* ── Responsive ── */
 @media (max-width: 800px) {
   .matches-filters {

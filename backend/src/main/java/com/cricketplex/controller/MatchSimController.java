@@ -240,7 +240,7 @@ public class MatchSimController {
         String format = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();
         resp.put("format", format);
         resp.put("matchDate", fixture.getMatchDate() != null ? fixture.getMatchDate().toString() : null);
-        resp.put("matchStartTimeUtc", fixture.getLeague() != null ? fixture.getLeague().getMatchStartTime() : null);
+        resp.put("matchStartTimeUtc", fixture.getLeague() != null ? fixture.getLeague().getMatchStartTime() : fixture.getMatchTime());
         resp.put("groundName", fixture.getHomeTeam().getGroundName());
         resp.put("pitchType", fixture.getPitchType());
         resp.put("matchType", fixture.getMatchType());
@@ -319,31 +319,21 @@ public class MatchSimController {
             String condition = (String) weather.get("condition");
             int temperature = (int) weather.get("temperature");
 
-            // Find first innings per team for batting cards (has all 11), and bowling cards
-            List<Innings> innings = result.getInningsList();
-            Innings homeBatInn = null, awayBatInn = null;
-            Innings homeBowlInn = null, awayBowlInn = null;
             UUID homeId = fx.getHomeTeam().getId();
             UUID awayId = fx.getAwayTeam().getId();
-            for (Innings inn : innings) {
-                if (homeBatInn == null && inn.getBattingTeam().getId().equals(homeId)) homeBatInn = inn;
-                if (awayBatInn == null && inn.getBattingTeam().getId().equals(awayId)) awayBatInn = inn;
-                if (homeBowlInn == null && inn.getBowlingTeam().getId().equals(homeId)) homeBowlInn = inn;
-                if (awayBowlInn == null && inn.getBowlingTeam().getId().equals(awayId)) awayBowlInn = inn;
-            }
+
+            // Use full match lineups so all 11 players are included regardless of how many batted
+            Optional<MatchLineup> homeLineupOpt = matchLineupRepository.findByFixtureIdAndTeamId(fx.getId(), homeId);
+            Optional<MatchLineup> awayLineupOpt = matchLineupRepository.findByFixtureIdAndTeamId(fx.getId(), awayId);
 
             Map<String, Object> strengths = new LinkedHashMap<>();
-            if (homeBatInn != null && homeBowlInn != null) {
+            if (homeLineupOpt.isPresent()) {
                 strengths.put("home", matchEngine.computeTeamStrengthBreakdown(
-                        new ArrayList<>(homeBatInn.getBattingCards()),
-                        new ArrayList<>(homeBowlInn.getBowlingCards()),
-                        pitchType, condition, temperature));
+                        homeLineupOpt.get(), pitchType, condition, temperature));
             }
-            if (awayBatInn != null && awayBowlInn != null) {
+            if (awayLineupOpt.isPresent()) {
                 strengths.put("away", matchEngine.computeTeamStrengthBreakdown(
-                        new ArrayList<>(awayBatInn.getBattingCards()),
-                        new ArrayList<>(awayBowlInn.getBowlingCards()),
-                        pitchType, condition, temperature));
+                        awayLineupOpt.get(), pitchType, condition, temperature));
             }
             resp.put("teamStrengths", strengths);
         } catch (Exception ignored) {

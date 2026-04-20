@@ -259,8 +259,17 @@ export default function Matches() {
                         </button>
                       )
                     ) : (
-                      <span className="matches-result">
-                        {m.status === 'COMPLETED' ? 'Completed' : m.status}
+                      <span className={`matches-result${
+                        m.status === 'COMPLETED' && m.resultSummary
+                          ? m.resultSummary.startsWith('Won') ? ' matches-result-won'
+                          : m.resultSummary.startsWith('Lost') ? ' matches-result-lost'
+                          : (m.resultSummary.includes('Tied') || m.resultSummary.includes('Drawn')) ? ' matches-result-draw'
+                          : ''
+                          : ''
+                      }`}>
+                        {m.status === 'COMPLETED'
+                          ? (m.resultSummary || 'Completed')
+                          : m.status}
                       </span>
                     )}
                   </div>

@@ -112,15 +112,16 @@ public class TeamService {
     private int countBotSlots(String country, String format) {
         Integer maxDiv = leagueRepository.findMaxDivisionForFormat(country, format);
         if (maxDiv == null) return 0;
+        int currentSeason = leagueRepository.findMaxSeason();
 
         List<League> bottomLeagues = leagueRepository
                 .findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(
-                        country, format, 1);
+                        country, format, currentSeason);
 
         int count = 0;
         for (League l : bottomLeagues) {
             if (!l.getDivision().equals(maxDiv)) continue;
-            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(l.getId());
+            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueIdAndSeason(l.getId(), currentSeason);
             for (LeagueTeam lt : entries) {
                 if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) count++;
             }
@@ -163,17 +164,18 @@ public class TeamService {
             // Find the highest division (bottom of the hierarchy)
             Integer maxDiv = leagueRepository.findMaxDivisionForFormat(country, format);
             if (maxDiv == null) continue;
+            int currentSeason = leagueRepository.findMaxSeason();
 
             // Get all leagues in the bottom division for this format
             List<League> bottomLeagues = leagueRepository
                     .findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(
-                            country, format, 1);
+                            country, format, currentSeason);
 
             // Collect only bottom-division leagues that have at least one bot
             List<League> candidates = new ArrayList<>();
             for (League l : bottomLeagues) {
                 if (!l.getDivision().equals(maxDiv)) continue;
-                List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(l.getId());
+                List<LeagueTeam> entries = leagueTeamRepository.findByLeagueIdAndSeason(l.getId(), currentSeason);
                 boolean hasBot = entries.stream().anyMatch(lt -> Boolean.TRUE.equals(lt.getTeam().getIsBot()));
                 if (hasBot) candidates.add(l);
             }
@@ -186,7 +188,7 @@ public class TeamService {
             fixtureService.ensureFixturesExist(targetLeague);
 
             // Find a bot team in this league to replace — prefer one not in an active match
-            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(targetLeague.getId());
+            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueIdAndSeason(targetLeague.getId(), currentSeason);
             LeagueTeam botEntry = null;
             for (LeagueTeam lt : entries) {
                 if (Boolean.TRUE.equals(lt.getTeam().getIsBot())) {
@@ -203,6 +205,7 @@ public class TeamService {
             if (botEntry != null) {
                 UUID oldBotId = botEntry.getTeam().getId();
                 botEntry.setTeam(team);
+                botEntry.setSeason(currentSeason);
                 leagueTeamRepository.save(botEntry);
                 fixtureService.swapTeamInFixtures(targetLeague.getId(), oldBotId, team.getId());
             }

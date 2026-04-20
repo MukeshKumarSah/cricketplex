@@ -24,7 +24,7 @@ public class WeatherController {
     private final TeamRepository teamRepository;
 
     /**
-     * 5-day forecast for the user's home country.
+     * 7-day forecast for the user's home country.
      */
     @GetMapping("/forecast")
     public ResponseEntity<?> getForecast(@AuthenticationPrincipal UserPrincipal principal) {

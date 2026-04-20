@@ -69,14 +69,17 @@ public class LeagueService {
      */
     public Map<String, Object> getLeaguesByCountry(String country, String format, Integer season) {
         List<League> leagues;
-        if (format != null && season != null) {
-            leagues = leagueRepository.findByCountryIgnoreCaseAndFormatAndSeasonOrderByDivisionAscLeagueNumberAsc(country, format, season);
-        } else if (format != null) {
+        if (format != null) {
             leagues = leagueRepository.findByCountryIgnoreCaseAndFormatOrderByDivisionAscLeagueNumberAsc(country, format);
-        } else if (season != null) {
-            leagues = leagueRepository.findByCountryIgnoreCaseAndSeasonOrderByDivisionAscLeagueNumberAsc(country, season);
         } else {
             leagues = leagueRepository.findByCountryIgnoreCaseOrderByDivisionAscLeagueNumberAsc(country);
+        }
+
+        if (season != null) {
+            leagues = leagues.stream()
+                    .filter(l -> fixtureRepository.existsByLeagueIdAndSeason(l.getId(), season)
+                            || leagueTeamRepository.countByLeagueIdAndSeason(l.getId(), season) > 0)
+                    .toList();
         }
 
         Map<Integer, List<Map<String, Object>>> divMap = new LinkedHashMap<>();
@@ -87,7 +90,7 @@ public class LeagueService {
                           "leagueId", l.getDivision() + "." + l.getLeagueNumber(),
                           "division", l.getDivision(),
                           "leagueNumber", l.getLeagueNumber(),
-                          "season", l.getSeason(),
+                          "season", season != null ? season : l.getSeason(),
                           "format", l.getFormat(),
                           "matchStartTime", l.getMatchStartTime()
                   ));
@@ -102,7 +105,7 @@ public class LeagueService {
                 "maxDivision", maxDiv != null ? maxDiv : 0,
                 "totalLeagues", leagues.size(),
                 "divisions", divMap,
-                "seasons", leagueRepository.findDistinctSeasonsByCountry(country)
+                "seasons", fixtureRepository.findDistinctSeasonsByCountry(country)
         );
     }
 

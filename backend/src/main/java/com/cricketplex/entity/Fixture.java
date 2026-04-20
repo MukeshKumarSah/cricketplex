@@ -40,6 +40,10 @@ public class Fixture {
     @Column(length = 10)
     private String format;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer season = 1;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "home_team_id", nullable = false)
     private Team homeTeam;
@@ -50,6 +54,10 @@ public class Fixture {
 
     @Column(name = "match_date")
     private LocalDate matchDate;
+
+    /** UTC match start time (HH:mm), populated for friendly fixtures */
+    @Column(name = "match_time", length = 5)
+    private String matchTime;
 
     @Column(nullable = false, length = 20)
     @Builder.Default

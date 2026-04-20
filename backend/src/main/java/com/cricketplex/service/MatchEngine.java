@@ -2410,7 +2410,8 @@ public class MatchEngine {
 
         // 4. Team quality multiplier (format-specific ELO as proxy for league position)
         //    Rating 800 → 0.85×, 1000 → 1.0×, 1200 → 1.15×, 1400+ → 1.30×
-        String fmt = fixture.getFormat() != null ? fixture.getFormat() : "T20";
+        String fmt = fixture.getLeague() != null ? fixture.getLeague().getFormat()
+                : (fixture.getFormat() != null ? fixture.getFormat() : "T20");
         int homeRating = getRatingForFormat(home, fmt);
         int awayRating = getRatingForFormat(away, fmt);
         double avgRating = (homeRating + awayRating) / 2.0;
@@ -2423,34 +2424,76 @@ public class MatchEngine {
         // Total demand = people who want to attend
         int totalDemand = (int) Math.round(baseDemand * moraleMult * divMult * ratingMult * randomFactor);
 
-        // ═══ SEAT DISTRIBUTION (cheapest fills first, most overflow leaves) ═══
-        // People prefer cheap seats. If their tier is full, only 25% are willing
-        // to pay more for the next tier — the rest leave. This prevents gaming
-        // the system by shrinking cheap sections to force upgrades.
-        double upgradeRate = 0.25;
+        // ═══ DYNAMIC SEAT DEMAND ═══
+        // Crowd preferences depend on:
+        //  - affordability bias (most fans still prefer cheaper seats)
+        //  - match hype (bigger games shift some demand upward)
+        //  - stadium shape (grounds with more lower-tier seating should benefit)
+        double moraleAppeal = Math.max(0.0, Math.min(1.0, (moraleMult - 0.70) / 0.60));
+        double divisionAppeal = Math.max(0.0, Math.min(1.0, (divMult - 0.85) / 0.65));
+        double ratingAppeal = Math.max(0.0, Math.min(1.0, (ratingMult - 0.70) / 0.70));
+        double hypeScore = (moraleAppeal * 0.25) + (divisionAppeal * 0.35) + (ratingAppeal * 0.40);
 
-        int standWant = (int) (totalDemand * 0.40);  // 40% prefer Standing ($2)
-        int ecoWant   = (int) (totalDemand * 0.30);  // 30% prefer Economy ($4)
-        int stdWant   = (int) (totalDemand * 0.20);  // 20% prefer Standard ($7)
-        int premWant  = totalDemand - standWant - ecoWant - stdWant; // 10% Premium ($10)
+        // Low-hype matches skew affordable; bigger matches pull more upper-tier demand.
+        double[] lowHype = {0.52, 0.28, 0.14, 0.06};
+        double[] highHype = {0.35, 0.32, 0.22, 0.11};
+        double[] baseWeights = new double[4];
+        for (int i = 0; i < 4; i++) {
+            baseWeights[i] = lowHype[i] + (highHype[i] - lowHype[i]) * hypeScore;
+        }
 
-        // Standing → 25% of overflow willing to upgrade to Economy, rest leave
-        int standingAtt    = Math.min(standWant, standingCap);
-        int standOverflow  = standWant - standingAtt;
-        ecoWant += (int) (standOverflow * upgradeRate);
+        // Blend in actual stadium composition so affordable-heavy grounds aren't punished.
+        double[] capWeights = {
+                standingCap / (double) totalCap,
+                economyCap / (double) totalCap,
+                standardCap / (double) totalCap,
+                premiumCap / (double) totalCap
+        };
+        double[] finalWeights = new double[4];
+        for (int i = 0; i < 4; i++) {
+            finalWeights[i] = baseWeights[i] * 0.70 + capWeights[i] * 0.30;
+        }
+        normalize(finalWeights);
 
-        // Economy → 25% of overflow willing to upgrade to Standard, rest leave
-        int economyAtt     = Math.min(ecoWant, economyCap);
-        int ecoOverflow    = ecoWant - economyAtt;
-        stdWant += (int) (ecoOverflow * upgradeRate);
+        int[] capacities = {standingCap, economyCap, standardCap, premiumCap};
+        int[] attendance = new int[4];
+        int[] currentDemand = allocateDemand(totalDemand, finalWeights);
+        int[] remainingCap = Arrays.copyOf(capacities, capacities.length);
 
-        // Standard → 25% of overflow willing to upgrade to Premium, rest leave
-        int standardAtt    = Math.min(stdWant, standardCap);
-        int stdOverflow    = stdWant - standardAtt;
-        premWant += (int) (stdOverflow * upgradeRate);
+        // Two-way overflow: some fans trade up, some settle for cheaper seats.
+        double[][] overflowMatrix = {
+                {0.00, 0.35, 0.10, 0.00}, // Standing overflow -> Economy / Standard
+                {0.20, 0.00, 0.25, 0.05}, // Economy overflow -> Standing / Standard / Premium
+                {0.00, 0.20, 0.00, 0.20}, // Standard overflow -> Economy / Premium
+                {0.00, 0.15, 0.45, 0.00}  // Premium overflow -> Economy / Standard
+        };
 
-        // Premium → overflow turned away
-        int premiumAtt     = Math.min(premWant, premiumCap);
+        for (int wave = 0; wave < 4 && sum(currentDemand) > 0; wave++) {
+            int[] unmet = new int[4];
+            for (int i = 0; i < 4; i++) {
+                int fill = Math.min(currentDemand[i], remainingCap[i]);
+                attendance[i] += fill;
+                remainingCap[i] -= fill;
+                unmet[i] = currentDemand[i] - fill;
+            }
+
+            if (sum(unmet) == 0) break;
+
+            double[] nextRaw = new double[4];
+            for (int from = 0; from < 4; from++) {
+                if (unmet[from] <= 0) continue;
+                for (int to = 0; to < 4; to++) {
+                    if (overflowMatrix[from][to] <= 0) continue;
+                    nextRaw[to] += unmet[from] * overflowMatrix[from][to];
+                }
+            }
+            currentDemand = roundDemand(nextRaw);
+        }
+
+        int standingAtt = attendance[0];
+        int economyAtt = attendance[1];
+        int standardAtt = attendance[2];
+        int premiumAtt = attendance[3];
 
         int totalAtt = standingAtt + economyAtt + standardAtt + premiumAtt;
 
@@ -2497,6 +2540,69 @@ public class MatchEngine {
             case "FC", "TEST" -> team.getFcRating() != null ? team.getFcRating() : 1000;
             default -> team.getT20Rating() != null ? team.getT20Rating() : 1000;
         };
+    }
+
+    private void normalize(double[] weights) {
+        double total = 0.0;
+        for (double weight : weights) total += weight;
+        if (total <= 0.0) {
+            Arrays.fill(weights, 0.25);
+            return;
+        }
+        for (int i = 0; i < weights.length; i++) {
+            weights[i] /= total;
+        }
+    }
+
+    private int[] allocateDemand(int total, double[] weights) {
+        int[] result = new int[weights.length];
+        double[] fractions = new double[weights.length];
+        int allocated = 0;
+        for (int i = 0; i < weights.length; i++) {
+            double raw = total * weights[i];
+            result[i] = (int) Math.floor(raw);
+            fractions[i] = raw - result[i];
+            allocated += result[i];
+        }
+        while (allocated < total) {
+            int best = 0;
+            for (int i = 1; i < fractions.length; i++) {
+                if (fractions[i] > fractions[best]) best = i;
+            }
+            result[best]++;
+            fractions[best] = -1.0;
+            allocated++;
+        }
+        return result;
+    }
+
+    private int[] roundDemand(double[] raw) {
+        int[] result = new int[raw.length];
+        double[] fractions = new double[raw.length];
+        int targetTotal = (int) Math.round(Arrays.stream(raw).sum());
+        int allocated = 0;
+        for (int i = 0; i < raw.length; i++) {
+            result[i] = (int) Math.floor(raw[i]);
+            fractions[i] = raw[i] - result[i];
+            allocated += result[i];
+        }
+        while (allocated < targetTotal) {
+            int best = 0;
+            for (int i = 1; i < fractions.length; i++) {
+                if (fractions[i] > fractions[best]) best = i;
+            }
+            if (fractions[best] <= 0) break;
+            result[best]++;
+            fractions[best] = -1.0;
+            allocated++;
+        }
+        return result;
+    }
+
+    private int sum(int[] values) {
+        int total = 0;
+        for (int value : values) total += value;
+        return total;
     }
 
     /**
@@ -3018,21 +3124,20 @@ public class MatchEngine {
      * but excludes per-delivery factors (fatigue, phase, chase pressure).
      */
     public Map<String, Object> computeTeamStrengthBreakdown(
-            List<BattingScorecard> battingCards,
-            List<BowlingScorecard> bowlingCards,
+            MatchLineup lineup,
             String pitchType, String condition, int temperature) {
 
-        // Sort batting by position
-        List<BattingScorecard> sorted = new ArrayList<>(battingCards);
-        sorted.sort(Comparator.comparingInt(BattingScorecard::getBattingPosition));
+        // Sort all 11 lineup players by batting position — never just players who batted
+        List<LineupPlayer> sortedPlayers = new ArrayList<>(lineup.getPlayers());
+        sortedPlayers.sort(Comparator.comparingInt(LineupPlayer::getBattingPosition));
 
         double topOrder = 0, middleOrder = 0, lowerOrder = 0;
         double totalFielding = 0;
         double wkSkill = 0;
 
-        for (BattingScorecard bc : sorted) {
-            Player p = bc.getPlayer();
-            int pos = bc.getBattingPosition();
+        for (LineupPlayer lp : sortedPlayers) {
+            Player p = lp.getPlayer();
+            int pos = lp.getBattingPosition();
 
             // Effective batting = same formula as ME minus fatigue/phase/chase
             double batEff = p.getBatRating()
@@ -3055,14 +3160,16 @@ public class MatchEngine {
             }
         }
 
-        // Bowling: only bowlers who actually bowled, grouped by seam/spin
+        // Bowling: all distinct planned bowlers from the bowling order (not just those who bowled)
         double seamBowling = 0, spinBowling = 0;
         int seamCount = 0, spinCount = 0;
         Set<String> seamTypes = Set.of("F", "FM", "MF", "M");
         Set<String> spinTypes = Set.of("FS", "WS");
+        Set<UUID> seenBowlerIds = new HashSet<>();
 
-        for (BowlingScorecard bc : bowlingCards) {
-            Player p = bc.getPlayer();
+        for (BowlingOrder bo : lineup.getBowlingOrders()) {
+            Player p = bo.getBowler();
+            if (!seenBowlerIds.add(p.getId())) continue; // deduplicate
             String bType = p.getBowlType() != null ? p.getBowlType() : "M";
             PitchEffect pe = getPitchEffect(pitchType, bType);
             WeatherEffect we = getWeatherEffect(condition, temperature, bType);

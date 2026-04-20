@@ -14,9 +14,15 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     List<Fixture> findByLeagueIdOrderByRoundAscMatchNumberAsc(UUID leagueId);
 
+    List<Fixture> findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(UUID leagueId, Integer season);
+
     List<Fixture> findByLeagueId(UUID leagueId);
 
+    List<Fixture> findByLeagueIdAndSeason(UUID leagueId, Integer season);
+
     long countByLeagueId(UUID leagueId);
+
+    long countByLeagueIdAndSeason(UUID leagueId, Integer season);
 
     void deleteByLeagueId(UUID leagueId);
 
@@ -34,4 +40,14 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
     List<Fixture> findByStatus(@Param("status") String status);
 
     long countByLeagueIdAndStatusNot(UUID leagueId, String status);
+
+    long countByLeagueIdAndSeasonAndStatusNot(UUID leagueId, Integer season, String status);
+
+    boolean existsByLeagueIdAndSeason(UUID leagueId, Integer season);
+
+    @Query("SELECT DISTINCT f.season FROM Fixture f WHERE LOWER(f.league.country) = LOWER(:country) ORDER BY f.season")
+    List<Integer> findDistinctSeasonsByCountry(@Param("country") String country);
+
+    @Query("SELECT DISTINCT f.season FROM Fixture f WHERE f.league.id = :leagueId ORDER BY f.season")
+    List<Integer> findDistinctSeasonsByLeagueId(@Param("leagueId") UUID leagueId);
 }

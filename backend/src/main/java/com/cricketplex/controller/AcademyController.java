@@ -235,12 +235,22 @@ public class AcademyController {
         Player player = generateYouthPlayer(team, role, pulledCountry, rng);
         player = playerRepository.save(player);
 
-        // Record pull
+        // Record pull with stat snapshot
         AcademyPull pull = AcademyPull.builder()
                 .team(team)
                 .player(player)
                 .requestedRole(role)
                 .pulledFromCountry(pulledCountry)
+                .snapshotRole(player.getRole())
+                .snapshotAge(player.getAge())
+                .snapshotAgeDays(player.getAgeDays())
+                .snapshotBatRating(player.getBatRating())
+                .snapshotBowlRating(player.getBowlRating())
+                .snapshotKeeperRating(player.getKeeperRating())
+                .snapshotFldRating(player.getFldRating())
+                .snapshotStamina(player.getStamina())
+                .snapshotConfidence(player.getConfidence())
+                .snapshotExperience(player.getExperience())
                 .build();
         academyPullRepository.save(pull);
 
@@ -265,7 +275,26 @@ public class AcademyController {
         for (AcademyPull p : pulls) {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", p.getId());
-            m.put("player", buildPlayerMap(p.getPlayer()));
+            // Use snapshot if available, fall back to live data for old pulls
+            if (p.getSnapshotBatRating() != null) {
+                Map<String, Object> snap = new LinkedHashMap<>();
+                snap.put("id", p.getPlayer().getId());
+                snap.put("name", p.getPlayer().getFirstName() + " " + p.getPlayer().getLastName());
+                snap.put("country", p.getPlayer().getCountry());
+                snap.put("role", p.getSnapshotRole());
+                snap.put("age", p.getSnapshotAge());
+                snap.put("ageDays", p.getSnapshotAgeDays());
+                snap.put("batRating", p.getSnapshotBatRating());
+                snap.put("bowlRating", p.getSnapshotBowlRating());
+                snap.put("keeperRating", p.getSnapshotKeeperRating());
+                snap.put("fldRating", p.getSnapshotFldRating());
+                snap.put("stamina", p.getSnapshotStamina());
+                snap.put("confidence", p.getSnapshotConfidence());
+                snap.put("experience", p.getSnapshotExperience());
+                m.put("player", snap);
+            } else {
+                m.put("player", buildPlayerMap(p.getPlayer()));
+            }
             m.put("requestedRole", p.getRequestedRole());
             m.put("pulledFrom", p.getPulledFromCountry());
             m.put("pulledAt", p.getPulledAt() != null ? p.getPulledAt().toString() : null);

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to CricketPlex</title>
+  <style>
+    :root {
+      --bg: #f6f1ea;
+      --paper: #fffdf9;
+      --ink: #1f1a16;
+      --muted: #6f6358;
+      --line: #dfd2c5;
+      --accent: #0f766e;
+      --accent-soft: #dff5f2;
+      --gold: #b7791f;
+      --red: #c1121f;
+      --red-soft: #fff1f2;
+      --shadow: 0 20px 50px rgba(42, 31, 20, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fff8ef 0, transparent 35%),
+        linear-gradient(180deg, #f8f3ec 0%, #f6f1ea 100%);
+      line-height: 1.7;
+    }
+
+    .wrap {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 56px 0 36px;
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, #183733 0%, #25645e 58%, #d19a4f 100%);
+      color: #fffdfa;
+      border-radius: 30px;
+      padding: 54px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      bottom: -70px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 18px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.15;
+      margin: 0 0 16px;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 4.6rem);
+      max-width: 850px;
+    }
+
+    h2 {
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      margin-top: 0;
+    }
+
+    h3 {
+      font-size: 1.18rem;
+      margin-top: 22px;
+    }
+
+    p {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+    }
+
+    .hero p {
+      max-width: 760px;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 1.1rem;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .meta span {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+    }
+
+    main {
+      padding-bottom: 56px;
+    }
+
+    section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 34px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .lead {
+      font-size: 1.14rem;
+      color: #2c241e;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: #fff9f2;
+      border: 1px solid #eadccc;
+      border-radius: 18px;
+      padding: 20px;
+    }
+
+    .step {
+      margin: 18px 0;
+      padding: 18px 20px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 14px;
+    }
+
+    ul {
+      margin: 10px 0 16px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .placeholder {
+      border: 2px dashed var(--red);
+      color: var(--red);
+      background: var(--red-soft);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+      font-weight: 700;
+      margin: 22px 0;
+    }
+
+    .placeholder small {
+      display: block;
+      margin-top: 8px;
+      font-weight: 400;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .tags span {
+      background: #fff6ea;
+      border: 1px solid #dccab2;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+    }
+
+    .note {
+      background: #fff7e7;
+      border-left: 4px solid var(--gold);
+      padding: 16px 18px;
+      border-radius: 14px;
+      margin: 18px 0;
+    }
+
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      padding: 8px 0 28px;
+    }
+
+    @media (max-width: 800px) {
+      .hero-card,
+      section {
+        padding: 24px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-card">
+        <div class="eyebrow">CricketPlex Guide</div>
+        <h1>Welcome to CricketPlex</h1>
+        <p>
+          CricketPlex is built for managers who want more than just a match result. Here, you build your club,
+          manage your squad, plan across formats, develop players over time, compete in leagues, take on friendly rivals,
+          and shape the future of your team one decision at a time.
+        </p>
+        <p>
+          If you are new to the game, this guide will walk you through what the site offers and how each area of CricketPlex
+          fits into your journey as a manager.
+        </p>
+        <div class="meta">
+          <span>Create Your Team</span>
+          <span>Compete in T20, ODI, and FC</span>
+          <span>Train, Trade, and Grow</span>
+          <span>Build a Club Over Time</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <h2>Start Your Journey</h2>
+        <p class="lead">
+          Your story in CricketPlex begins with signing up, creating your club, and choosing the identity you want to carry into every league and every season.
+        </p>
+        <p>
+          Once your team is set up, you are not entering a temporary session. You are entering a club world where your players,
+          finances, fixtures, fans, and league history continue to matter as you move forward.
+        </p>
+        <div class="step">
+          <strong>What you do first:</strong> create your account, set up your team, choose your country, and step into the manager dashboard.
+        </div>
+        <div class="placeholder">
+          Signup / Login / Team Setup Page Image
+          <small>Insert your onboarding screenshots here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Your Club Dashboard</h2>
+        <p>
+          The dashboard is your home base. It is designed to give you a quick read on your club at any moment.
+          From here, you can see your team identity, upcoming matches, league progress, weather, morale, fan growth,
+          home ground context, trophies, and recent club activity.
+        </p>
+        <p>
+          Instead of making you open five different pages to understand the current state of your team,
+          CricketPlex pulls the essentials together in one place so you can decide what matters next.
+        </p>
+        <ul>
+          <li>Check your latest match state and upcoming fixtures.</li>
+          <li>Track your league position across formats.</li>
+          <li>Watch morale, fans, and club momentum.</li>
+          <li>Stay aware of weather and recent events around your team.</li>
+        </ul>
+        <div class="placeholder">
+          Dashboard Page Image
+          <small>Insert your main dashboard screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Compete Across Three Formats</h2>
+        <p>
+          CricketPlex is built around three different competitive identities: T20, ODI, and First-Class cricket.
+          That means your club is not limited to one style of play. You manage the same club across formats that demand different thinking.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>T20</h3>
+            <p>
+              Quick, high-impact cricket where momentum swings fast and every decision feels immediate.
+            </p>
+          </div>
+          <div class="card">
+            <h3>ODI</h3>
+            <p>
+              A middle ground where balance matters and squad structure starts to show its value over longer innings.
+            </p>
+          </div>
+          <div class="card">
+            <h3>FC</h3>
+            <p>
+              The deeper format, where strategy stretches across days and long-term planning matters most.
+            </p>
+          </div>
+          <div class="card">
+            <h3>One Club, Many Challenges</h3>
+            <p>
+              Your squad, training choices, and team development all feed into how your club performs across these formats.
+            </p>
+          </div>
+        </div>
+        <div class="placeholder">
+          League Page Image
+          <small>Insert a league standings or fixtures screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Follow Your Matches From Start to Finish</h2>
+        <p>
+          Matches in CricketPlex are not hidden behind a single simulate button. Each fixture has its own flow,
+          starting before the toss and continuing through strategy, live play, commentary, and final scorecards.
+        </p>
+        <div class="step">
+          <strong>Before the match:</strong> review the fixture preview, check the pitch, prepare your lineup, and get ready.
+        </div>
+        <div class="step">
+          <strong>During the match:</strong> move into the live match center or commentary experience and follow the action.
+        </div>
+        <div class="step">
+          <strong>After the match:</strong> review the result, scorecard, and the impact on your club.
+        </div>
+        <p>
+          This gives every fixture more presence. A match feels like an event, not just a background calculation.
+        </p>
+        <div class="placeholder">
+          Fixture Preview Page Image
+          <small>Insert your fixture preview screenshot here.</small>
+        </div>
+        <div class="placeholder">
+          Lineup Setup Page Image
+          <small>Insert your lineup setup screenshot here.</small>
+        </div>
+        <div class="placeholder">
+          Live Match / Match Center / Scorecard Page Image
+          <small>Insert your match center or scorecard screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>First-Class Cricket Has Its Own Rhythm</h2>
+        <p>
+          First-Class matches in CricketPlex are designed to feel different. They are not treated like longer limited-overs matches.
+          They unfold with their own pacing, their own decisions, and their own between-day tension.
+        </p>
+        <p>
+          If your club is playing FC cricket, you can experience multi-day match flow, day-based progression,
+          and strategy choices that matter beyond a single innings.
+        </p>
+        <ul>
+          <li>Pause after day 1 and prepare for day 2.</li>
+          <li>Adjust FC strategy when the match situation changes.</li>
+          <li>Make decisions around declarations and longer-form planning.</li>
+        </ul>
+        <div class="note">
+          FC is where patient managers can really feel the depth of CricketPlex.
+        </div>
+        <div class="placeholder">
+          FC Strategy Page Image
+          <small>Insert your FC strategy or day 1 complete screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Grow Players Through the Academy</h2>
+        <p>
+          The academy is where you invest in the future of your club. It gives you a steady connection to youth development
+          and lets you shape player growth through focused training.
+        </p>
+        <p>
+          You can pull youth players, manage training assignments, review training history, and improve academy capacity over time.
+          This gives long-term squad planning a real place inside the game.
+        </p>
+        <ul>
+          <li>Pull new youth players on a weekly cycle.</li>
+          <li>Choose focused training types for selected players.</li>
+          <li>Track how players improve over time.</li>
+          <li>Upgrade the academy to unlock more focused development slots.</li>
+        </ul>
+        <div class="placeholder">
+          Academy Page Image
+          <small>Insert your academy screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Use the Transfer Market to Reshape Your Squad</h2>
+        <p>
+          Not every squad problem is solved through training. Sometimes you need the market.
+          CricketPlex includes a transfer market where managers can browse player listings, place bids,
+          track ongoing auctions, and manage their own listings.
+        </p>
+        <p>
+          This makes squad building more dynamic. A player is not just an item in a menu.
+          He can be contested, valued differently by different clubs, and won or lost through bidding.
+        </p>
+        <ul>
+          <li>Browse active transfer listings.</li>
+          <li>Filter by role, age, ratings, skills, and player profile details.</li>
+          <li>Place bids in live auctions.</li>
+          <li>Track your own listings and completed transfer activity.</li>
+        </ul>
+        <div class="placeholder">
+          Transfer Market Page Image
+          <small>Insert your transfer market screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Keep the Club Financially Healthy</h2>
+        <p>
+          Every ambitious club needs more than talent. It needs stability. The finances area in CricketPlex helps you understand
+          how money is moving through your club and what that means for future decisions.
+        </p>
+        <p>
+          You can review your balance, income, expenses, wages, and transaction history, so upgrades, player moves,
+          and club growth always feel grounded in a larger management picture.
+        </p>
+        <div class="tags">
+          <span>Gate Money</span>
+          <span>Wages</span>
+          <span>Transfer Income</span>
+          <span>Transfer Costs</span>
+          <span>Academy Spending</span>
+          <span>Prize Money</span>
+        </div>
+        <div class="placeholder">
+          Finances Page Image
+          <small>Insert your finances screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Challenge Other Managers</h2>
+        <p>
+          League cricket gives structure. Friendly challenges give freedom.
+          In CricketPlex, you can send direct challenges to other managers, choose the format,
+          select a pitch type, set a match date and time, and create your own side contests outside league play.
+        </p>
+        <p>
+          This is a great way to test your team, enjoy rivalry matches, or simply play more often against other human-managed clubs.
+        </p>
+        <div class="placeholder">
+          Challenges Page Image
+          <small>Insert your friendly challenges screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Track Every Fixture in One Place</h2>
+        <p>
+          The matches page helps you keep control of your schedule. Instead of hunting through leagues one by one,
+          you can view upcoming fixtures, live matches, FC day 1 completions, and past results in one consolidated space.
+        </p>
+        <p>
+          This is especially useful when your club is active across multiple formats and seasons.
+        </p>
+        <div class="placeholder">
+          Matches Page Image
+          <small>Insert your matches page screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Explore the Wider CricketPlex World</h2>
+        <p>
+          CricketPlex is not only about your own club. You can also explore the rest of the game world through search,
+          team lists, player profiles, team profiles, and stats pages.
+        </p>
+        <ul>
+          <li>Search for managers, players, teams, and leagues.</li>
+          <li>Browse the full team list and compare clubs.</li>
+          <li>Study player profiles and team identities.</li>
+          <li>Review batting, bowling, and fielding statistics by format.</li>
+        </ul>
+        <p>
+          These pages help make CricketPlex feel alive as a shared world of clubs, managers, rivalries, and careers.
+        </p>
+        <div class="placeholder">
+          Search Page Image
+          <small>Insert your search page screenshot here.</small>
+        </div>
+        <div class="placeholder">
+          Team List / Team Profile Page Image
+          <small>Insert your team list or team profile screenshot here.</small>
+        </div>
+        <div class="placeholder">
+          Stats Page Image
+          <small>Insert your stats page screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>Stay Connected Through Chat</h2>
+        <p>
+          CricketPlex also includes in-app chat, giving managers a direct way to communicate.
+          Whether you want to talk to another user, stay active in a group, or build social energy around the game,
+          chat gives the site a more connected and community-driven feel.
+        </p>
+        <p>
+          It turns the experience from a solo dashboard into a world where other managers are present too.
+        </p>
+        <div class="placeholder">
+          Chat Widget Image
+          <small>Insert your chat widget or conversation screenshot here.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>What CricketPlex Is Really About</h2>
+        <p>
+          At its heart, CricketPlex is about building and guiding a cricket club over time.
+          Every area of the site supports that idea in a different way.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Matches give you moments</h3>
+            <p>Fixtures, strategy, live play, and results give your club a competitive story.</p>
+          </div>
+          <div class="card">
+            <h3>Training gives you progress</h3>
+            <p>The academy and player development systems help you think beyond the next match.</p>
+          </div>
+          <div class="card">
+            <h3>Transfers give you flexibility</h3>
+            <p>The market lets you react, rebuild, and chase better squad balance.</p>
+          </div>
+          <div class="card">
+            <h3>Leagues give you purpose</h3>
+            <p>Seasonal competition across formats gives every decision a larger direction.</p>
+          </div>
+        </div>
+        <div class="note">
+          CricketPlex is meant to be explored like a manager’s world, not just clicked through like a menu.
+        </div>
+      </section>
+
+      <section>
+        <h2>Step In and Build Your Club</h2>
+        <p>
+          Whether you enjoy squad building, tactical planning, multi-format league play, player development,
+          or the long-term challenge of running a cricket club, CricketPlex is designed to give you a place for it.
+        </p>
+        <p>
+          Build your identity. Train your players. Compete across formats. Track your growth.
+          And most importantly, create a club story that feels like your own.
+        </p>
+        <div class="placeholder">
+          Final Showcase Image
+          <small>Insert your best closing screenshot here.</small>
+        </div>
+      </section>
+    </main>
+
+    <div class="footer-note">
+      CricketPlex guide page draft.
+    </div>
+  </div>
+</body>
+</html>

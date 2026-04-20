@@ -36,4 +36,16 @@ public class AcademyPull {
 
     @CreationTimestamp
     private LocalDateTime pulledAt;
+
+    // ── Snapshot of player stats at the moment of pull ──
+    private String snapshotRole;
+    private Integer snapshotAge;
+    private Integer snapshotAgeDays;
+    private Integer snapshotBatRating;
+    private Integer snapshotBowlRating;
+    private Integer snapshotKeeperRating;
+    private Integer snapshotFldRating;
+    private Integer snapshotStamina;
+    private Integer snapshotConfidence;
+    private Integer snapshotExperience;
 }

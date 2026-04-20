@@ -116,6 +116,7 @@ public class FriendlyChallengeService {
                 .homeTeam(challenge.getChallengerTeam())
                 .awayTeam(challenge.getChallengedTeam())
                 .matchDate(challenge.getMatchDate())
+                .matchTime(challenge.getMatchTime())
                 .pitchType(challenge.getPitchType())
                 .matchType("FRIENDLY")
                 .format(challenge.getFormat())

@@ -126,12 +126,13 @@ public class TeamController {
         }
 
         Team myTeam = teamOpt.get();
-        List<LeagueTeam> myLeagueTeams = leagueTeamRepository.findByTeamId(myTeam.getId());
+        int currentSeason = leagueRepository.findMaxSeason();
+        List<LeagueTeam> myLeagueTeams = leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason);
 
         // Auto-assign if team exists but has no league entries (legacy teams)
         if (myLeagueTeams.isEmpty()) {
             teamService.assignTeamToLeagues(myTeam);
-            myLeagueTeams = leagueTeamRepository.findByTeamId(myTeam.getId());
+            myLeagueTeams = leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason);
         }
 
         List<Map<String, Object>> leagues = new ArrayList<>();
@@ -139,7 +140,8 @@ public class TeamController {
             League league = lt.getLeague();
 
             // Get all teams in this league
-            List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueId(league.getId());
+            int standingsSeason = resolveLeagueSeasonForSummary(league);
+            List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), standingsSeason);
 
             // Compute standings from completed fixtures
             Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
@@ -152,7 +154,7 @@ public class TeamController {
                 nrrData.put(entry.getTeam().getId(), new double[4]);
             }
 
-            List<Fixture> fixtures = fixtureRepository.findByLeagueId(league.getId());
+            List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeason(league.getId(), standingsSeason);
             for (Fixture f : fixtures) {
                 if (!"COMPLETED".equals(f.getStatus())) continue;
                 Optional<MatchResult> mrOpt = matchResultRepository.findByFixtureId(f.getId());
@@ -279,7 +281,7 @@ public class TeamController {
             leagueInfo.put("format", league.getFormat());
             leagueInfo.put("division", league.getDivision());
             leagueInfo.put("leagueNumber", league.getLeagueNumber());
-            leagueInfo.put("season", league.getSeason());
+            leagueInfo.put("season", standingsSeason);
             leagueInfo.put("matchStartTimeUtc", league.getMatchStartTime());
             leagueInfo.put("position", position);
             leagueInfo.put("totalTeams", allInLeague.size());
@@ -311,7 +313,8 @@ public class TeamController {
         Team myTeam = teamOpt.get();
 
         // Ensure fixtures exist for all user's leagues
-        List<LeagueTeam> myLeagueTeams = leagueTeamRepository.findByTeamId(myTeam.getId());
+        int currentSeason = leagueRepository.findMaxSeason();
+        List<LeagueTeam> myLeagueTeams = leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason);
         for (LeagueTeam lt : myLeagueTeams) {
             fixtureService.ensureFixturesExist(lt.getLeague());
         }
@@ -360,7 +363,7 @@ public class TeamController {
             boolean isFriendly = league == null;
             String fFormat = isFriendly ? f.getFormat() : league.getFormat();
 
-            if (season != null && !isFriendly && !league.getSeason().equals(season)) continue;
+            if (season != null && !isFriendly && !includeLeagueFixtureForSeason(f, league, season, currentSeason)) continue;
             if (format != null && (fFormat == null || !fFormat.equalsIgnoreCase(format))) continue;
 
             boolean isHome = f.getHomeTeam().getId().equals(myTeam.getId());
@@ -369,7 +372,7 @@ public class TeamController {
             Map<String, Object> match = new LinkedHashMap<>();
             match.put("id", f.getId());
             match.put("matchDate", f.getMatchDate().toString());
-            match.put("matchStartTimeUtc", isFriendly ? null : league.getMatchStartTime());
+            match.put("matchStartTimeUtc", isFriendly ? f.getMatchTime() : league.getMatchStartTime());
             match.put("format", fFormat);
             match.put("round", f.getRound());
             match.put("leagueLabel", isFriendly ? "Friendly" : league.getDivision() + "." + league.getLeagueNumber());
@@ -386,10 +389,39 @@ public class TeamController {
             match.put("opponentIsBot", opponent.getIsBot());
             match.put("status", f.getStatus());
             match.put("pitchType", f.getPitchType());
-            match.put("season", isFriendly ? null : league.getSeason());
+            match.put("season", isFriendly ? null : fixtureSeason(f, league));
             match.put("lineupSet", linedUpFixtures.contains(f.getId()));
             match.put("weather", weatherService.getMatchWeather(
                     f.getHomeTeam().getCountry(), f.getMatchDate(), today));
+
+            // Result summary for completed matches (from myTeam's perspective)
+            if ("COMPLETED".equals(f.getStatus())) {
+                matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+                    String summary;
+                    if ("TIE".equals(mr.getResultType())) {
+                        summary = "Match Tied";
+                    } else if ("DRAW".equals(mr.getResultType())) {
+                        summary = "Match Drawn";
+                    } else if (mr.getWinner() != null && mr.getResultMargin() != null) {
+                        boolean myTeamWon = mr.getWinner().getId().equals(myTeam.getId());
+                        String margin = mr.getResultMargin().toString();
+                        if ("RUNS".equals(mr.getResultType())) {
+                            summary = myTeamWon ? "Won by " + margin + " runs" : "Lost by " + margin + " runs";
+                        } else if ("WICKETS".equals(mr.getResultType())) {
+                            summary = myTeamWon ? "Won by " + margin + " wickets" : "Lost by " + margin + " wickets";
+                        } else if ("INNINGS".equals(mr.getResultType())) {
+                            summary = myTeamWon ? "Won by an innings & " + margin + " runs" : "Lost by an innings & " + margin + " runs";
+                        } else {
+                            summary = myTeamWon ? "Won" : "Lost";
+                        }
+                    } else {
+                        summary = "Completed";
+                    }
+                    match.put("resultSummary", summary);
+                    match.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
+                });
+            }
+
             result.add(match);
         }
 
@@ -409,5 +441,30 @@ public class TeamController {
             case "FC" -> 90;
             default -> 20;
         };
+    }
+
+    private int resolveLeagueSeasonForSummary(League league) {
+        if (!"FC".equalsIgnoreCase(league.getFormat())) return league.getSeason();
+        int previousSeason = league.getSeason() - 1;
+        if (previousSeason >= 1
+                && fixtureRepository.existsByLeagueIdAndSeason(league.getId(), previousSeason)
+                && fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), previousSeason, "COMPLETED") > 0) {
+            return previousSeason;
+        }
+        return league.getSeason();
+    }
+
+    private boolean includeLeagueFixtureForSeason(Fixture fixture, League league, int requestedSeason, int currentSeason) {
+        int fixtureSeason = fixtureSeason(fixture, league);
+        if (fixtureSeason == requestedSeason) return true;
+        return "FC".equalsIgnoreCase(league.getFormat())
+                && requestedSeason == currentSeason
+                && fixtureSeason == currentSeason - 1
+                && !"COMPLETED".equals(fixture.getStatus());
+    }
+
+    private int fixtureSeason(Fixture fixture, League league) {
+        if (fixture.getSeason() != null) return fixture.getSeason();
+        return league != null ? league.getSeason() : 1;
     }
 }

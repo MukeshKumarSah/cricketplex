@@ -278,7 +278,7 @@ export default function Dashboard() {
         <section className="dash-card dash-weather-card">
           <div className="dash-card-header">
             <span className="dash-card-icon">🌤️</span>
-            <h2>{weatherCountry} — 5-Day Forecast</h2>
+            <h2>{weatherCountry} — 7-Day Forecast</h2>
           </div>
           <div className="dash-weather-grid">
             {weatherForecast.map((day, i) => {
@@ -350,8 +350,15 @@ export default function Dashboard() {
             const isLive = m.status === 'IN_PROGRESS' || m.status === 'LIVE';
             const isDone = m.status === 'COMPLETED';
             const isDay1 = m.status === 'FC_DAY1_COMPLETE';
-            const statusClass = isLive ? 'live' : isDone ? 'completed' : isDay1 ? 'day1done' : 'upcoming';
-            const statusLabel = isLive ? 'LIVE' : isDone ? 'Completed' : isDay1 ? 'Day 1 Done' : 'Upcoming';
+            const statusClass = isLive ? 'live' : isDone ? (
+              m.resultSummary
+                ? m.resultSummary.startsWith('Won') ? 'won'
+                : m.resultSummary.startsWith('Lost') ? 'lost'
+                : (m.resultSummary.includes('Tied') || m.resultSummary.includes('Drawn')) ? 'draw'
+                : 'completed'
+                : 'completed'
+            ) : isDay1 ? 'day1done' : 'upcoming';
+            const statusLabel = isLive ? 'LIVE' : isDone ? (m.resultSummary || 'Completed') : isDay1 ? 'Day 1 Done' : 'Upcoming';
             const formatColors = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
             return (
               <div

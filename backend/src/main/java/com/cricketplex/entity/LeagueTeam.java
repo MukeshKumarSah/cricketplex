@@ -28,6 +28,10 @@ public class LeagueTeam {
     @JoinColumn(name = "team_id", nullable = false)
     private Team team;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer season = 1;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -284,14 +284,7 @@ public class MatchScheduler {
                             LocalDateTime matchDateTime = LocalDateTime.of(fc.getMatchDate(), LocalTime.parse(fc.getMatchTime()));
                             if (nowUtc.isBefore(matchDateTime)) continue;
 
-                            // Check both lineups are set
                             UUID fixtureId = fc.getFixture().getId();
-                            Boolean bothLineupsSet = txTemplate.execute(status -> {
-                                List<MatchLineup> lineups = matchLineupRepository.findByFixtureId(fixtureId);
-                                return lineups.size() >= 2;
-                            });
-                            if (!Boolean.TRUE.equals(bothLineupsSet)) continue;
-
                             // Check result doesn't already exist
                             Boolean hasResult = txTemplate.execute(status ->
                                 matchResultRepository.existsByFixtureId(fixtureId)
