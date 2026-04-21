@@ -6,6 +6,7 @@ import {
   getTeamMatches,
   getTeamLeagues,
   getTeamGround,
+  getCurrentSeason,
 } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -14,6 +15,7 @@ import {
   HiOutlineUserGroup,
   HiOutlineGlobeAlt,
   HiOutlineBuildingOffice2,
+  HiOutlineFunnel,
 } from 'react-icons/hi2';
 import './TeamProfile.css';
 
@@ -24,6 +26,7 @@ const TABS = [
   { key: 'ground', label: 'Ground', icon: HiOutlineBuildingOffice2 },
 ];
 
+const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
 const ROLE_ORDER = { BATSMAN: 0, KEEPER: 1, ALL_ROUNDER: 2, BOWLER: 3 };
 const ROLE_LABEL = { BATSMAN: 'Batsman', KEEPER: 'Keeper', ALL_ROUNDER: 'All-Rounder', BOWLER: 'Bowler' };
 
@@ -44,6 +47,10 @@ export default function TeamProfile() {
 
   const [matches, setMatches] = useState(null);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [matchFilterFormat, setMatchFilterFormat] = useState('');
+  const [matchViewTab, setMatchViewTab] = useState('upcoming');
+  const [matchSeason, setMatchSeason] = useState(null);
+  const [maxSeason, setMaxSeason] = useState(1);
   const [squad, setSquad] = useState(null);
   const [squadLoading, setSquadLoading] = useState(false);
   const [leagues, setLeagues] = useState(null);
@@ -60,9 +67,20 @@ export default function TeamProfile() {
   }, [teamId]);
 
   useEffect(() => {
-    if (activeTab === 'matches' && !matches) {
+    getCurrentSeason()
+      .then((res) => {
+        const s = res.data.season;
+        setMaxSeason(s);
+        setMatchSeason(s);
+      })
+      .catch(() => { setMaxSeason(1); setMatchSeason(1); });
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'matches' && matchSeason != null) {
       setMatchesLoading(true);
-      getTeamMatches(teamId)
+      setMatches(null);
+      getTeamMatches(teamId, matchSeason)
         .then((res) => setMatches(res.data))
         .catch(() => toast.error('Failed to load matches'))
         .finally(() => setMatchesLoading(false));
@@ -169,66 +187,159 @@ export default function TeamProfile() {
           <div className="tp-matches">
             {matchesLoading ? (
               <div className="tp-loading">Loading matches...</div>
-            ) : !matches || matches.length === 0 ? (
-              <div className="tp-empty">
-                <HiOutlineCalendarDays className="tp-empty-icon" />
-                <p>No matches found</p>
-              </div>
             ) : (
-              <div className="tp-match-list">
-                {matches.map((m) => {
-                  const won = m.status === 'COMPLETED' && m.winnerId === teamId;
-                  const lost = m.status === 'COMPLETED' && m.winnerId && m.winnerId !== teamId;
-                  const tied = m.status === 'COMPLETED' && !m.winnerId;
+              <>
+                {/* Filter bar */}
+                <div className="tp-match-filters">
+                  <div className="tp-match-filter-group">
+                    <HiOutlineFunnel className="tp-mf-icon" />
+                    <div className="tp-mf-item">
+                      <label>Season</label>
+                      <select value={matchSeason ?? ''} onChange={(e) => setMatchSeason(Number(e.target.value))}>
+                        {Array.from({ length: maxSeason }, (_, i) => i + 1).map((s) => (
+                          <option key={s} value={s}>Season {s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="tp-mf-item">
+                      <label>Format</label>
+                      <select value={matchFilterFormat} onChange={(e) => setMatchFilterFormat(e.target.value)}>
+                        <option value="">All Formats</option>
+                        <option value="T20">T20</option>
+                        <option value="ODI">One Day</option>
+                        <option value="FC">First Class</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="tp-match-tabs">
+                    {(() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const filtered = (matches || []).filter(m => !matchFilterFormat || m.format === matchFilterFormat);
+                      const upcoming = filtered.filter(m => m.status === 'IN_PROGRESS' || m.status === 'FC_DAY1_COMPLETE' || m.status === 'LIVE' || (m.matchDate >= today && m.status === 'SCHEDULED'));
+                      const past = filtered.filter(m => m.status === 'COMPLETED');
+                      return (
+                        <>
+                          <button className={`tp-mtab ${matchViewTab === 'upcoming' ? 'active' : ''}`} onClick={() => setMatchViewTab('upcoming')}>
+                            <HiOutlineCalendarDays /> Upcoming ({upcoming.length})
+                          </button>
+                          <button className={`tp-mtab ${matchViewTab === 'past' ? 'active' : ''}`} onClick={() => setMatchViewTab('past')}>
+                            <HiOutlineTrophy /> Past ({past.length})
+                          </button>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Table */}
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const filtered = (matches || []).filter(m => !matchFilterFormat || m.format === matchFilterFormat);
+                  const upcoming = filtered.filter(m => m.status === 'IN_PROGRESS' || m.status === 'FC_DAY1_COMPLETE' || m.status === 'LIVE' || (m.matchDate >= today && m.status === 'SCHEDULED'));
+                  const past = filtered.filter(m => m.status === 'COMPLETED').slice().reverse();
+                  const displayed = matchViewTab === 'upcoming' ? upcoming : past;
+
+                  const formatDate = (dateStr) => {
+                    const d = new Date(dateStr + 'T00:00:00');
+                    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                  };
+
+                  if (displayed.length === 0) {
+                    return (
+                      <div className="tp-empty">
+                        <HiOutlineCalendarDays className="tp-empty-icon" />
+                        <p>{matchViewTab === 'upcoming' ? 'No upcoming matches.' : 'No past matches.'}</p>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div
-                      key={m.id}
-                      className="tp-match-card tp-match-clickable"
-                      onClick={() => {
-                        if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') {
-                          navigate(`/match/${m.id}/scorecard`);
-                        } else {
-                          navigate(`/match/${m.id}/preview`);
-                        }
-                      }}
-                    >
-                      <div className="tp-match-meta">
-                        <span className="tp-match-format">{m.format}</span>
-                        <span className="tp-match-league">{m.leagueLabel}</span>
-                        <span className="tp-match-date">{m.matchDate}</span>
-                        {m.status === 'COMPLETED' && (
-                          <span className={`tp-match-result ${won ? 'tp-win' : lost ? 'tp-loss' : 'tp-tie'}`}>
-                            {won ? 'W' : lost ? 'L' : 'T'}
-                          </span>
-                        )}
-                        {m.status === 'SCHEDULED' && <span className="tp-match-scheduled">Scheduled</span>}
+                    <div className="tp-match-list">
+                      <div className="tp-match-head">
+                        <span className="tp-mc-date">Date</span>
+                        <span className="tp-mc-format">Format</span>
+                        <span className="tp-mc-fixture">Fixture</span>
+                        <span className="tp-mc-result">{matchViewTab === 'upcoming' ? 'Status' : 'Result'}</span>
                       </div>
-                      <div className="tp-match-teams">
-                        <div className="tp-match-team">
-                          {m.homeTeamPicUrl ? (
-                            <img className="tp-match-logo" src={`http://localhost:8080/api/files/${m.homeTeamPicUrl}`} alt="" />
-                          ) : (
-                            <span className="tp-match-initials">{m.homeTeamName?.slice(0, 2).toUpperCase()}</span>
-                          )}
-                          <span className={m.homeTeamId === teamId ? 'tp-match-team-bold' : ''}>{m.homeTeamName}</span>
-                        </div>
-                        <span className="tp-match-vs">vs</span>
-                        <div className="tp-match-team">
-                          <span className={m.awayTeamId === teamId ? 'tp-match-team-bold' : ''}>{m.awayTeamName}</span>
-                          {m.awayTeamPicUrl ? (
-                            <img className="tp-match-logo" src={`http://localhost:8080/api/files/${m.awayTeamPicUrl}`} alt="" />
-                          ) : (
-                            <span className="tp-match-initials">{m.awayTeamName?.slice(0, 2).toUpperCase()}</span>
-                          )}
-                        </div>
-                      </div>
-                      {m.resultSummary && (
-                        <div className="tp-match-summary">{m.resultSummary}</div>
-                      )}
+                      {displayed.map((m) => {
+                        const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
+                        return (
+                          <div
+                            key={m.id}
+                            className="tp-match-row tp-match-clickable"
+                            onClick={() => {
+                              if (m.status === 'COMPLETED') navigate(`/match/${m.id}/scorecard`);
+                              else if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') navigate(`/match/${m.id}/live`);
+                              else if (m.status === 'FC_DAY1_COMPLETE') navigate(`/match/${m.id}/fc-strategy`);
+                              else navigate(`/match/${m.id}/preview`);
+                            }}
+                          >
+                            {/* Date */}
+                            <div className="tp-mc-date">
+                              <span className="tp-mrow-date">{formatDate(m.matchDate)}</span>
+                              <span className="tp-mrow-sub">
+                                {m.matchType === 'FRIENDLY' ? 'Friendly' : `R${m.round} · Div ${m.leagueLabel}`}
+                              </span>
+                              {m.matchStartTimeUtc && <span className="tp-mrow-time">{m.matchStartTimeUtc} UTC</span>}
+                            </div>
+
+                            {/* Format */}
+                            <div className="tp-mc-format">
+                              <span
+                                className="tp-mrow-fmt"
+                                style={{ background: fmtColor + '18', color: fmtColor, borderColor: fmtColor + '40' }}
+                              >
+                                {m.matchType === 'FRIENDLY' ? m.format + ' F' : m.format}
+                              </span>
+                            </div>
+
+                            {/* Fixture */}
+                            <div className="tp-mc-fixture">
+                              <div className="tp-mrow-fixture">
+                                <div className="tp-mrow-team">
+                                  {m.homeTeamPicUrl
+                                    ? <img className="tp-mrow-logo" src={`http://localhost:8080/api/files/${m.homeTeamPicUrl}`} alt="" />
+                                    : <span className="tp-mrow-initials">{m.homeTeamName?.slice(0, 2).toUpperCase()}</span>}
+                                  <span className={`tp-mrow-name ${String(m.homeTeamId) === teamId ? 'tp-mrow-mine' : ''}`}>{m.homeTeamName}</span>
+                                </div>
+                                <span className="tp-mrow-vs">vs</span>
+                                <div className="tp-mrow-team">
+                                  {m.awayTeamPicUrl
+                                    ? <img className="tp-mrow-logo" src={`http://localhost:8080/api/files/${m.awayTeamPicUrl}`} alt="" />
+                                    : <span className="tp-mrow-initials">{m.awayTeamName?.slice(0, 2).toUpperCase()}</span>}
+                                  <span className={`tp-mrow-name ${String(m.awayTeamId) === teamId ? 'tp-mrow-mine' : ''}`}>{m.awayTeamName}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Result / Status */}
+                            <div className="tp-mc-result">
+                              {m.status === 'COMPLETED' && (
+                                <span className={`tp-mrow-result${
+                                  m.resultSummary?.startsWith('Won') ? ' tp-res-won'
+                                  : m.resultSummary?.startsWith('Lost') ? ' tp-res-lost'
+                                  : ' tp-res-draw'
+                                }`}>
+                                  {m.resultSummary || 'Completed'}
+                                </span>
+                              )}
+                              {(m.status === 'IN_PROGRESS' || m.status === 'LIVE') && (
+                                <span className="tp-res-live">● Live</span>
+                              )}
+                              {m.status === 'FC_DAY1_COMPLETE' && (
+                                <span className="tp-res-day2">Day 2</span>
+                              )}
+                              {m.status === 'SCHEDULED' && (
+                                <span className="tp-res-sched">Scheduled</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
-                })}
-              </div>
+                })()}
+              </>
             )}
           </div>
         )}

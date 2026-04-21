@@ -138,7 +138,14 @@ export default function Search() {
         {activeTab === 'managers' && results.length > 0 && (
           <div className="search-grid">
             {results.map((m) => (
-              <div key={m.id} className="search-card">
+              <div
+                key={m.id}
+                className={`search-card ${m.teamId ? 'search-card-clickable' : ''}`}
+                onClick={() => {
+                  if (!m.teamId) return;
+                  navigate(m.teamId === user?.teamId ? '/' : `/team/${m.teamId}`);
+                }}
+              >
                 <div className="search-card-avatar">
                   {m.profilePicUrl ? (
                     <img src={`http://localhost:8080/api/files/${m.profilePicUrl}`} alt={m.name} />

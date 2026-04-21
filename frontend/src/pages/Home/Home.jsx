@@ -29,6 +29,7 @@ import Finances from '../Finances/Finances';
 import GameFormulas from '../Admin/GameFormulas';
 import AdminBots from '../Admin/AdminBots';
 import AdminSims from '../Admin/AdminSims';
+import ComingSoon from '../ComingSoon/ComingSoon';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
 import './Home.css';
@@ -257,6 +258,22 @@ export default function Home() {
             <Route
               path="challenges"
               element={<Challenges />}
+            />
+            <Route
+              path="forums"
+              element={<ComingSoon icon="💬" title="Forums" description="A space to discuss tactics, share experiences and connect with other managers. Coming soon." />}
+            />
+            <Route
+              path="blogs"
+              element={<ComingSoon icon="✍️" title="Blogs" description="In-depth articles, match analysis, and community stories. Coming soon." />}
+            />
+            <Route
+              path="changelogs"
+              element={<ComingSoon icon="📋" title="Changelogs" description="Track every update, bug fix, and new feature added to CricketPlex. Coming soon." />}
+            />
+            <Route
+              path="support"
+              element={<ComingSoon icon="❤️" title="Support the Game" description="Help keep CricketPlex running and growing. Options to support the project will be available here soon." />}
             />
             {user?.role === 'ADMIN' && (
               <Route

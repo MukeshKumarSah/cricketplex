@@ -1,0 +1,54 @@
+.cs-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 2rem;
+}
+
+.cs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 2.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+.cs-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.cs-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.cs-desc {
+  font-size: 0.95rem;
+  color: var(--text-3);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.cs-badge {
+  margin-top: 0.5rem;
+  padding: 0.35rem 1.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-surface);
+  border: 1px solid var(--accent-border);
+  border-radius: 20px;
+}

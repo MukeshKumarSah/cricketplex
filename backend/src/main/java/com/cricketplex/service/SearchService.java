@@ -35,6 +35,7 @@ public class SearchService {
             entry.put("username", u.getUsername());
             entry.put("profilePicUrl", u.getProfilePicUrl());
             entry.put("teamSetupDone", u.getTeamSetupDone());
+            teamRepository.findByOwner(u).ifPresent(t -> entry.put("teamId", t.getId()));
             results.add(entry);
         }
         return results;

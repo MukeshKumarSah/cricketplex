@@ -90,12 +90,15 @@ public class TeamListController {
     // ── Matches for any team ──
 
     @GetMapping("/{teamId}/matches")
-    public ResponseEntity<?> getTeamMatches(@PathVariable UUID teamId) {
+    public ResponseEntity<?> getTeamMatches(@PathVariable UUID teamId,
+                                            @RequestParam(required = false) Integer season) {
         Optional<Team> opt = teamRepository.findById(teamId);
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
 
         Team team = opt.get();
-        List<Fixture> all = fixtureRepository.findAllByTeamOrderByMatchDate(team);
+        List<Fixture> all = (season != null)
+            ? fixtureRepository.findAllByTeamAndSeasonOrderByMatchDate(team, season)
+            : fixtureRepository.findAllByTeamOrderByMatchDate(team);
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (Fixture f : all) {

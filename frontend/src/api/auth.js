@@ -46,7 +46,7 @@ export const getTeamList = () => API.get('/teams');
 // Team Profile (public, any team)
 export const getTeamProfile = (teamId) => API.get(`/teams/${teamId}`);
 export const getTeamSquad = (teamId) => API.get(`/teams/${teamId}/squad`);
-export const getTeamMatches = (teamId) => API.get(`/teams/${teamId}/matches`);
+export const getTeamMatches = (teamId, season) => API.get(`/teams/${teamId}/matches`, { params: season != null ? { season } : {} });
 export const getTeamLeagues = (teamId) => API.get(`/teams/${teamId}/leagues`);
 export const getTeamGround = (teamId) => API.get(`/teams/${teamId}/ground`);
 
