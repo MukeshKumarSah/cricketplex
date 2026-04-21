@@ -2,9 +2,9 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.AppState;
 import com.cricketplex.entity.Fixture;
-import com.cricketplex.entity.Innings;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.LeagueTeam;
+import com.cricketplex.entity.MatchResult;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.TransactionLog;
 import com.cricketplex.entity.Trophy;
@@ -28,9 +28,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -117,17 +120,147 @@ public class SeasonalUpdateService {
         }
     }
 
-    private void processPrizeMoney(int season) {
+    /**
+     * Dev/admin override — bypasses the date guard and forces both phases
+     * (prize money + promotion/relegation + fixture generation) for the given season.
+     * Uses bulk queries to avoid N+1 problems.
+     * Blocked if any league fixtures for the season are still incomplete.
+     */
+    @Transactional
+    public Map<String, Object> forceSeasonalUpdate(int season) {
+        // Guard: T20/ODI — all rounds are in this season
+        List<UUID> incompleteCurrent = fixtureRepository.findLeagueIdsWithIncompleteFixtures(season);
+        // Guard: FC — rounds 1-7 are stored as 'season', rounds 8-14 stored as 'season-1' but logically season+1.
+        // For the seasonal update of season N, FC prize money settles season N-1 fixtures.
+        List<UUID> incompletePrev = season > 1
+                ? fixtureRepository.findLeagueIdsWithIncompleteFixtures(season - 1) : List.of();
+
+        if (!incompleteCurrent.isEmpty() || !incompletePrev.isEmpty()) {
+            long total = (long) incompleteCurrent.size() + incompletePrev.size();
+            throw new IllegalStateException(
+                    total + " league(s) still have incomplete fixtures for season " + season +
+                    ". Fast-forward or wait for all matches to complete before running the seasonal update.");
+        }
+
+        log.info("Force seasonal update: pre-loading standings cache for season {}", season);
+
+        // Pre-compute standings for T20/ODI (settled = season) and FC (settled = season-1)
+        Map<UUID, List<UUID>> standingsCurrent = buildBulkStandings(season);
+        Map<UUID, List<UUID>> standingsPrev = season > 1 ? buildBulkStandings(season - 1) : Map.of();
+
+        log.info("Force seasonal update: phase 1 (prize money) for season {}", season);
+        processPrizeMoney(season, standingsCurrent, standingsPrev);
+        processSalaryUpdate(season);
+        setAppStateInt(PRIZE_KEY, season);
+
+        log.info("Force seasonal update: phase 2 (promotion/relegation) for season {}", season);
+        processPromotionRelegation(season, standingsCurrent, standingsPrev);
+        processSeasonChange();
+        generateNewFixtures();
+        setAppStateInt(TRANSITION_KEY, season);
+
+        log.info("Force seasonal update complete for season {}", season);
+        return Map.of(
+                "season", season,
+                "message", "Seasonal update (prize money + promotion/relegation + new fixtures) complete for season " + season
+        );
+    }
+
+    /**
+     * Build standings for ALL leagues for a given season in 3 bulk queries:
+     *  1. All league-team memberships for the season
+     *  2. All completed league fixtures for the season (with homeTeam/awayTeam joined)
+     *  3. All match results for those fixtures (with winner joined)
+     *
+     * Returns: Map&lt;leagueId, sorted list of teamIds by points desc&gt;
+     */
+    private Map<UUID, List<UUID>> buildBulkStandings(int season) {
+        // Query 1: league memberships → Map<leagueId, Set<teamId>>
+        Map<UUID, Set<UUID>> members = new HashMap<>();
+        for (LeagueTeam lt : leagueTeamRepository.findBySeason(season)) {
+            members.computeIfAbsent(lt.getLeague().getId(), k -> new HashSet<>())
+                   .add(lt.getTeam().getId());
+        }
+
+        // Query 2: all completed fixtures grouped by leagueId
+        Map<UUID, List<Fixture>> fixturesByLeague = new HashMap<>();
+        List<Fixture> allFixtures = fixtureRepository.findAllCompletedLeagueFixturesBySeason(season);
+        List<UUID> fixtureIds = new ArrayList<>(allFixtures.size());
+        for (Fixture f : allFixtures) {
+            fixturesByLeague.computeIfAbsent(f.getLeague().getId(), k -> new ArrayList<>()).add(f);
+            fixtureIds.add(f.getId());
+        }
+
+        // Query 3: all match results for those fixtures
+        Map<UUID, MatchResult> resultsByFixture = new HashMap<>();
+        if (!fixtureIds.isEmpty()) {
+            for (MatchResult mr : matchResultRepository.findAllByFixtureIds(fixtureIds)) {
+                resultsByFixture.put(mr.getFixture().getId(), mr);
+            }
+        }
+
+        // Compute standings in memory for each league
+        Map<UUID, List<UUID>> standings = new HashMap<>();
+        for (Map.Entry<UUID, Set<UUID>> entry : members.entrySet()) {
+            UUID leagueId = entry.getKey();
+            Map<UUID, int[]> stats = new LinkedHashMap<>();
+            for (UUID teamId : entry.getValue()) {
+                stats.put(teamId, new int[2]); // [points, wins]
+            }
+
+            for (Fixture f : fixturesByLeague.getOrDefault(leagueId, List.of())) {
+                MatchResult result = resultsByFixture.get(f.getId());
+                if (result == null) continue;
+
+                UUID teamA = f.getHomeTeam().getId();
+                UUID teamB = f.getAwayTeam().getId();
+                int[] sA = stats.get(teamA);
+                int[] sB = stats.get(teamB);
+                if (sA == null || sB == null) continue;
+
+                if ("TIE".equals(result.getResultType())) {
+                    sA[0] += 1;
+                    sB[0] += 1;
+                } else if (result.getWinner() != null) {
+                    UUID winnerId = result.getWinner().getId();
+                    if (winnerId.equals(teamA)) { sA[0] += 2; sA[1]++; }
+                    else if (winnerId.equals(teamB)) { sB[0] += 2; sB[1]++; }
+                }
+            }
+
+            List<UUID> sorted = new ArrayList<>(stats.keySet());
+            sorted.sort((a, b) -> {
+                int cmp = Integer.compare(stats.get(b)[0], stats.get(a)[0]);
+                return cmp != 0 ? cmp : Integer.compare(stats.get(b)[1], stats.get(a)[1]);
+            });
+            standings.put(leagueId, sorted);
+        }
+        log.info("buildBulkStandings(season={}): {} leagues, {} fixtures, {} results loaded",
+                season, members.size(), allFixtures.size(), resultsByFixture.size());
+        return standings;
+    }
+
+    private void processPrizeMoney(int season,
+                                   Map<UUID, List<UUID>> standingsCurrent,
+                                   Map<UUID, List<UUID>> standingsPrev) {
+        // Leagues with still-incomplete fixtures must be skipped
+        Set<UUID> incompleteLeagues = new HashSet<>(fixtureRepository.findLeagueIdsWithIncompleteFixtures(season));
+        Set<UUID> incompleteLeaguesPrev = season > 1
+                ? new HashSet<>(fixtureRepository.findLeagueIdsWithIncompleteFixtures(season - 1)) : Set.of();
+
+        List<Team> teamsToSave = new ArrayList<>();
+        List<TransactionLog> txLogs = new ArrayList<>();
+        List<Trophy> trophies = new ArrayList<>();
+
         for (League league : leagueRepository.findAll()) {
             Integer settledSeason = settlementSeason(league.getFormat(), season);
             if (settledSeason == null) continue;
 
-            if ("FC".equals(league.getFormat())
-                    && fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), settledSeason, "COMPLETED") > 0) {
-                continue;
-            }
+            Set<UUID> incomplete = settledSeason == season ? incompleteLeagues : incompleteLeaguesPrev;
+            if (incomplete.contains(league.getId())) continue;
 
-            List<UUID> standings = computeStandings(league, settledSeason);
+            Map<UUID, List<UUID>> standingsMap = settledSeason == season ? standingsCurrent : standingsPrev;
+            List<UUID> standings = standingsMap.getOrDefault(league.getId(), List.of());
             double divMul = divisionMultiplier(league.getDivision());
 
             for (int i = 0; i < standings.size() && i < PRIZE_BY_POSITION.length; i++) {
@@ -137,23 +270,21 @@ public class SeasonalUpdateService {
                 long prize = Math.round(PRIZE_BY_POSITION[i] * divMul);
                 long balance = team.getFunds() + prize;
                 team.setFunds(balance);
-                teamRepository.save(team);
+                teamsToSave.add(team);
 
-                saveTx(team, "PRIZE_MONEY", prize,
-                        String.format("Season %d %s %s %d.%d - %s place",
+                txLogs.add(TransactionLog.builder()
+                        .team(team).type("PRIZE_MONEY").amount(prize)
+                        .description(String.format("Season %d %s %s %d.%d - %s place",
                                 settledSeason, league.getCountry(), league.getFormat(),
-                                league.getDivision(), league.getLeagueNumber(), ordinal(i + 1)),
-                        balance);
+                                league.getDivision(), league.getLeagueNumber(), ordinal(i + 1)))
+                        .balanceAfter(balance)
+                        .build());
 
                 if (i == 0) {
-                    trophyRepository.save(Trophy.builder()
-                            .team(team)
-                            .format(league.getFormat())
-                            .country(league.getCountry())
-                            .division(league.getDivision())
-                            .leagueNumber(league.getLeagueNumber())
-                            .season(settledSeason)
-                            .build());
+                    trophies.add(Trophy.builder()
+                            .team(team).format(league.getFormat()).country(league.getCountry())
+                            .division(league.getDivision()).leagueNumber(league.getLeagueNumber())
+                            .season(settledSeason).build());
                     activityLogService.log(team, "season",
                             String.format("Won %s %s Division %d.%d trophy - Season %d",
                                     league.getCountry(), league.getFormat(),
@@ -161,6 +292,10 @@ public class SeasonalUpdateService {
                 }
             }
         }
+
+        teamRepository.saveAll(teamsToSave);
+        transactionLogRepository.saveAll(txLogs);
+        trophyRepository.saveAll(trophies);
 
         teamRepository.findAll().stream()
                 .filter(team -> !team.getIsBot())
@@ -172,16 +307,32 @@ public class SeasonalUpdateService {
         log.info("Salary update for season {} - formula pending", season);
     }
 
-    private void processPromotionRelegation(int season) {
+    private void processPromotionRelegation(int season,
+                                            Map<UUID, List<UUID>> standingsCurrent,
+                                            Map<UUID, List<UUID>> standingsPrev) {
         String[] formats = {"T20", "ODI", "FC"};
         for (String country : leagueRepository.findDistinctCountries()) {
             for (String format : formats) {
-                processPromoForCountryFormat(country, format, season);
+                processPromoForCountryFormat(country, format, season, standingsCurrent, standingsPrev);
             }
         }
     }
 
-    private void processPromoForCountryFormat(String country, String format, int season) {
+    // Keep old signature for the scheduler path (applyMissedUpdates)
+    private void processPrizeMoney(int season) {
+        processPrizeMoney(season, buildBulkStandings(season),
+                season > 1 ? buildBulkStandings(season - 1) : Map.of());
+    }
+
+    private void processPromotionRelegation(int season) {
+        Map<UUID, List<UUID>> cur = buildBulkStandings(season);
+        Map<UUID, List<UUID>> prev = season > 1 ? buildBulkStandings(season - 1) : Map.of();
+        processPromotionRelegation(season, cur, prev);
+    }
+
+    private void processPromoForCountryFormat(String country, String format, int season,
+                                              Map<UUID, List<UUID>> standingsCurrent,
+                                              Map<UUID, List<UUID>> standingsPrev) {
         Integer settledSeason = settlementSeason(format, season);
         if (settledSeason == null) return;
 
@@ -189,17 +340,12 @@ public class SeasonalUpdateService {
                 .findByCountryIgnoreCaseAndFormatOrderByDivisionAscLeagueNumberAsc(country, format);
         if (leagues.isEmpty()) return;
 
-        if ("FC".equals(format) && leagues.stream().anyMatch(league ->
-                fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), settledSeason, "COMPLETED") > 0)) {
-            return;
-        }
+        Map<UUID, List<UUID>> standingsMap = settledSeason == season ? standingsCurrent : standingsPrev;
 
         int nextSeason = season + 1;
-        Map<UUID, List<UUID>> standingsByLeague = new LinkedHashMap<>();
+        // Seed next-season members from current settled-season members
         Map<UUID, List<UUID>> nextSeasonMembers = new LinkedHashMap<>();
-
         for (League league : leagues) {
-            standingsByLeague.put(league.getId(), computeStandings(league, settledSeason));
             nextSeasonMembers.put(
                     league.getId(),
                     leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), settledSeason).stream()
@@ -229,9 +375,9 @@ public class SeasonalUpdateService {
                         .findFirst().orElse(null);
                 if (child1 == null || child2 == null) continue;
 
-                List<UUID> parentStandings = standingsByLeague.get(parent.getId());
-                List<UUID> child1Standings = standingsByLeague.get(child1.getId());
-                List<UUID> child2Standings = standingsByLeague.get(child2.getId());
+                List<UUID> parentStandings = standingsMap.getOrDefault(parent.getId(), List.of());
+                List<UUID> child1Standings = standingsMap.getOrDefault(child1.getId(), List.of());
+                List<UUID> child2Standings = standingsMap.getOrDefault(child2.getId(), List.of());
                 if (parentStandings.size() < 8 || child1Standings.isEmpty() || child2Standings.isEmpty()) continue;
 
                 UUID relegated1 = parentStandings.get(6);
@@ -256,23 +402,16 @@ public class SeasonalUpdateService {
         }
         for (UUID[] swap : swaps) {
             List<UUID> members = nextSeasonMembers.computeIfAbsent(swap[1], ignored -> new ArrayList<>());
-            if (!members.contains(swap[2])) {
-                members.add(swap[2]);
-            }
+            if (!members.contains(swap[2])) members.add(swap[2]);
         }
 
         for (League league : leagues) {
             leagueTeamRepository.deleteByLeagueIdAndSeason(league.getId(), nextSeason);
-
             List<LeagueTeam> rows = new ArrayList<>();
             for (UUID teamId : nextSeasonMembers.getOrDefault(league.getId(), List.of())) {
                 Team team = teamRepository.findById(teamId).orElse(null);
                 if (team == null) continue;
-                rows.add(LeagueTeam.builder()
-                        .league(league)
-                        .team(team)
-                        .season(nextSeason)
-                        .build());
+                rows.add(LeagueTeam.builder().league(league).team(team).season(nextSeason).build());
             }
             leagueTeamRepository.saveAll(rows);
         }
@@ -295,50 +434,6 @@ public class SeasonalUpdateService {
             generated++;
         }
         log.info("Fixtures generated for {} leagues", generated);
-    }
-
-    private List<UUID> computeStandings(League league, int season) {
-        Map<UUID, int[]> stats = new LinkedHashMap<>();
-        for (LeagueTeam lt : leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), season)) {
-            stats.put(lt.getTeam().getId(), new int[2]);
-        }
-
-        for (Fixture fixture : fixtureRepository.findByLeagueIdAndSeason(league.getId(), season)) {
-            if (!"COMPLETED".equals(fixture.getStatus())) continue;
-
-            matchResultRepository.findByFixtureId(fixture.getId()).ifPresent(result -> {
-                List<Innings> innings = result.getInningsList();
-                if (innings.isEmpty()) return;
-
-                UUID teamA = innings.get(0).getBattingTeam().getId();
-                UUID teamB = innings.get(0).getBowlingTeam().getId();
-                int[] statsA = stats.get(teamA);
-                int[] statsB = stats.get(teamB);
-                if (statsA == null || statsB == null) return;
-
-                if ("TIE".equals(result.getResultType())) {
-                    statsA[0] += 1;
-                    statsB[0] += 1;
-                } else if (result.getWinner() != null) {
-                    UUID winnerId = result.getWinner().getId();
-                    if (winnerId.equals(teamA)) {
-                        statsA[0] += 2;
-                        statsA[1]++;
-                    } else if (winnerId.equals(teamB)) {
-                        statsB[0] += 2;
-                        statsB[1]++;
-                    }
-                }
-            });
-        }
-
-        List<UUID> sorted = new ArrayList<>(stats.keySet());
-        sorted.sort((a, b) -> {
-            int cmp = Integer.compare(stats.get(b)[0], stats.get(a)[0]);
-            if (cmp != 0) return cmp;
-            return Integer.compare(stats.get(b)[1], stats.get(a)[1]);
-        });
-        return sorted;
     }
 
     private Integer settlementSeason(String format, int season) {

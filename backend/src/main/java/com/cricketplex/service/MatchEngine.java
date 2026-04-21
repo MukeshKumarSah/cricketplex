@@ -31,6 +31,19 @@ import java.util.*;
 @RequiredArgsConstructor
 public class MatchEngine {
 
+    /**
+     * When true, BallEvent rows are NOT written to the DB.
+     * Used during dev fast-forward to skip millions of commentary rows.
+     * Stats (scorecards, standings, ratings) are unaffected — they rely on
+     * BattingScorecard / BowlingScorecard, not BallEvent.
+     * ThreadLocal so it is safe to use with parallel simulation threads.
+     */
+    private static final ThreadLocal<Boolean> SKIP_BALL_EVENTS = ThreadLocal.withInitial(() -> false);
+
+    public static void setSkipBallEvents(boolean skip) {
+        SKIP_BALL_EVENTS.set(skip);
+    }
+
     private final MatchResultRepository matchResultRepository;
     private final MatchLineupRepository matchLineupRepository;
     private final PlayerRepository playerRepository;
@@ -273,26 +286,28 @@ public class MatchEngine {
                         overNumber, totalRuns, totalWickets, ballsBowled,
                         batCards.get(striker.player.getId()));
 
-                // Create ball event
-                BallEvent event = BallEvent.builder()
-                        .innings(innings)
-                        .overNumber(overNumber)
-                        .ballNumber(ballInOver)
-                        .batsman(striker.player)
-                        .bowler(currentBowler)
-                        .runs(delivery.runs)
-                        .isWicket(delivery.isWicket)
-                        .isBoundary(delivery.isBoundary)
-                        .isSix(delivery.isSix)
-                        .isWide(delivery.isWide)
-                        .isNoBall(delivery.isNoBall)
-                        .isBye(delivery.isBye)
-                        .isLegBye(delivery.isLegBye)
-                        .dismissalType(delivery.dismissalType)
-                        .fielder(delivery.fielder)
-                        .commentary(delivery.commentary)
-                        .build();
-                innings.getBallEvents().add(event);
+                // Create ball event (skipped during fast-forward to avoid millions of rows)
+                if (!Boolean.TRUE.equals(SKIP_BALL_EVENTS.get())) {
+                    BallEvent event = BallEvent.builder()
+                            .innings(innings)
+                            .overNumber(overNumber)
+                            .ballNumber(ballInOver)
+                            .batsman(striker.player)
+                            .bowler(currentBowler)
+                            .runs(delivery.runs)
+                            .isWicket(delivery.isWicket)
+                            .isBoundary(delivery.isBoundary)
+                            .isSix(delivery.isSix)
+                            .isWide(delivery.isWide)
+                            .isNoBall(delivery.isNoBall)
+                            .isBye(delivery.isBye)
+                            .isLegBye(delivery.isLegBye)
+                            .dismissalType(delivery.dismissalType)
+                            .fielder(delivery.fielder)
+                            .commentary(delivery.commentary)
+                            .build();
+                    innings.getBallEvents().add(event);
+                }
 
                 // Update scores
                 totalRuns += delivery.runs;
@@ -1932,17 +1947,19 @@ public class MatchEngine {
                         overNumber, totalRuns, totalWickets, ballsBowled,
                         batCards.get(striker.player.getId()));
 
-                BallEvent event = BallEvent.builder()
-                        .innings(innings).overNumber(overNumber).ballNumber(ballInOver)
-                        .batsman(striker.player).bowler(currentBowler)
-                        .runs(delivery.runs).isWicket(delivery.isWicket)
-                        .isBoundary(delivery.isBoundary).isSix(delivery.isSix)
-                        .isWide(delivery.isWide).isNoBall(delivery.isNoBall)
-                        .isBye(delivery.isBye).isLegBye(delivery.isLegBye)
-                        .dismissalType(delivery.dismissalType)
-                        .fielder(delivery.fielder).commentary(delivery.commentary)
-                        .build();
-                innings.getBallEvents().add(event);
+                if (!Boolean.TRUE.equals(SKIP_BALL_EVENTS.get())) {
+                    BallEvent event = BallEvent.builder()
+                            .innings(innings).overNumber(overNumber).ballNumber(ballInOver)
+                            .batsman(striker.player).bowler(currentBowler)
+                            .runs(delivery.runs).isWicket(delivery.isWicket)
+                            .isBoundary(delivery.isBoundary).isSix(delivery.isSix)
+                            .isWide(delivery.isWide).isNoBall(delivery.isNoBall)
+                            .isBye(delivery.isBye).isLegBye(delivery.isLegBye)
+                            .dismissalType(delivery.dismissalType)
+                            .fielder(delivery.fielder).commentary(delivery.commentary)
+                            .build();
+                    innings.getBallEvents().add(event);
+                }
 
                 totalRuns += delivery.runs;
 
@@ -2135,10 +2152,11 @@ public class MatchEngine {
     }
 
     private int getOversUsed(Innings innings) {
-        long ballCount = innings.getBallEvents().stream()
-                .filter(b -> !Boolean.TRUE.equals(b.getIsWide()) && !Boolean.TRUE.equals(b.getIsNoBall()))
-                .count();
-        return (int) Math.ceil(ballCount / 6.0);
+        // Use totalOvers field — works whether ball events were stored or skipped.
+        double totalOvers = innings.getTotalOvers() != null ? innings.getTotalOvers() : 0.0;
+        int full = (int) totalOvers;
+        int partial = (int) Math.round((totalOvers - full) * 10);
+        return full + (partial > 0 ? 1 : 0);
     }
 
     // ─── Bot lineup auto-generation ─────────────────────────────

@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/team")
@@ -127,12 +128,25 @@ public class TeamController {
 
         Team myTeam = teamOpt.get();
         int currentSeason = leagueRepository.findMaxSeason();
-        List<LeagueTeam> myLeagueTeams = leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason);
+        List<LeagueTeam> myLeagueTeams = new ArrayList<>(leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason));
 
         // Auto-assign if team exists but has no league entries (legacy teams)
         if (myLeagueTeams.isEmpty()) {
             teamService.assignTeamToLeagues(myTeam);
-            myLeagueTeams = leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason);
+            myLeagueTeams = new ArrayList<>(leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason));
+        }
+
+        // FC leagues span 2 seasons — rounds 8-14 happen in season N+1 dates but
+        // memberships are written for season N (FC promotion/relegation is deferred).
+        // If no FC entry exists for currentSeason, include FC entries from season N-1.
+        if (currentSeason > 1) {
+            Set<UUID> foundLeagueIds = myLeagueTeams.stream()
+                    .map(lt -> lt.getLeague().getId()).collect(Collectors.toSet());
+            leagueTeamRepository.findByTeamIdAndSeason(myTeam.getId(), currentSeason - 1)
+                    .stream()
+                    .filter(lt -> "FC".equalsIgnoreCase(lt.getLeague().getFormat()))
+                    .filter(lt -> !foundLeagueIds.contains(lt.getLeague().getId()))
+                    .forEach(myLeagueTeams::add);
         }
 
         List<Map<String, Object>> leagues = new ArrayList<>();
@@ -456,15 +470,17 @@ public class TeamController {
 
     private boolean includeLeagueFixtureForSeason(Fixture fixture, League league, int requestedSeason, int currentSeason) {
         int fixtureSeason = fixtureSeason(fixture, league);
-        if (fixtureSeason == requestedSeason) return true;
-        return "FC".equalsIgnoreCase(league.getFormat())
-                && requestedSeason == currentSeason
-                && fixtureSeason == currentSeason - 1
-                && !"COMPLETED".equals(fixture.getStatus());
+        return fixtureSeason == requestedSeason;
     }
 
     private int fixtureSeason(Fixture fixture, League league) {
-        if (fixture.getSeason() != null) return fixture.getSeason();
-        return league != null ? league.getSeason() : 1;
+        int stored = fixture.getSeason() != null ? fixture.getSeason()
+                   : (league != null ? league.getSeason() : 1);
+        // FC rounds 8-14 have match dates in the following season
+        if ("FC".equalsIgnoreCase(league != null ? league.getFormat() : fixture.getFormat())
+                && fixture.getRound() != null && fixture.getRound() > 7) {
+            return stored + 1;
+        }
+        return stored;
     }
 }

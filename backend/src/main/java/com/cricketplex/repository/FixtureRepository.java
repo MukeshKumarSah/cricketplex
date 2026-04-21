@@ -46,6 +46,16 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
 
     long countByLeagueIdAndSeasonAndStatusNot(UUID leagueId, Integer season, String status);
 
+    /** All COMPLETED league fixtures for a season — homeTeam/awayTeam eagerly loaded. */
+    @Query("SELECT f FROM Fixture f JOIN FETCH f.homeTeam JOIN FETCH f.awayTeam " +
+           "WHERE f.league IS NOT NULL AND f.season = :season AND f.status = 'COMPLETED'")
+    List<Fixture> findAllCompletedLeagueFixturesBySeason(@Param("season") Integer season);
+
+    /** League IDs that still have non-COMPLETED fixtures for a season. */
+    @Query("SELECT DISTINCT f.league.id FROM Fixture f " +
+           "WHERE f.league IS NOT NULL AND f.season = :season AND f.status <> 'COMPLETED'")
+    List<UUID> findLeagueIdsWithIncompleteFixtures(@Param("season") Integer season);
+
     boolean existsByLeagueIdAndSeason(UUID leagueId, Integer season);
 
     @Query("SELECT DISTINCT f.season FROM Fixture f WHERE LOWER(f.league.country) = LOWER(:country) ORDER BY f.season")

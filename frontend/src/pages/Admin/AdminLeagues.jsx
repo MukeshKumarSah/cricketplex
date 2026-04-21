@@ -20,6 +20,7 @@ import {
   triggerFitness,
   triggerTraining,
   triggerSeasonal,
+  devFastForward,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminLeagues.css';
@@ -300,24 +301,102 @@ export default function AdminLeagues() {
           <span className="al-badge">Manual</span>
         </div>
         <p className="al-form-hint">
-          Triggers the seasonal catch-up: prize money, salary update, promotion/relegation,
-          season change, and fixture generation. Idempotent — only applies missed seasons.
-          Runs automatically every 56 days but can be forced here if it fails.
+          Triggers prize money, promotion/relegation, season change, and new fixture generation.
+          Normally runs automatically every 56 days. Use <strong>Force for Season</strong> to run immediately
+          (e.g. after fast-forwarding all matches in dev).
         </p>
-        <button
-          className="al-btn-bot"
-          onClick={async () => {
-            try {
-              const res = await triggerSeasonal();
-              toast.success(res.data.message || 'Seasonal update complete');
-              await loadStats();
-            } catch (err) {
-              toast.error(err.response?.data?.message || 'Seasonal update failed');
-            }
-          }}
-        >
-          🏆 Force Seasonal Update
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select id="seasonal-season-select" className="al-select" defaultValue="1" style={{ width: 'auto' }}>
+            {[1,2,3,4,5].map(s => (
+              <option key={s} value={s}>Season {s}</option>
+            ))}
+          </select>
+          <button
+            className="al-btn-bot"
+            onClick={async () => {
+              const season = parseInt(document.getElementById('seasonal-season-select').value, 10);
+              if (!window.confirm(`Force seasonal update for Season ${season}? This credits prize money and applies promotion/relegation.`)) return;
+              const toastId = toast.loading(`Running seasonal update for Season ${season}…`);
+              try {
+                const res = await triggerSeasonal(season);
+                toast.success(res.data.message || 'Seasonal update complete', { id: toastId, duration: 6000 });
+                await loadStats();
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Seasonal update failed', { id: toastId });
+              }
+            }}
+          >
+            🏆 Force Seasonal Update
+          </button>
+          <button
+            className="al-btn-bot"
+            style={{ background: '#374151' }}
+            onClick={async () => {
+              const toastId = toast.loading('Running seasonal catch-up (date-based)…');
+              try {
+                const res = await triggerSeasonal();
+                toast.success(res.data.message || 'Seasonal update complete', { id: toastId });
+                await loadStats();
+              } catch (err) {
+                toast.error(err.response?.data?.message || 'Seasonal update failed', { id: toastId });
+              }
+            }}
+          >
+            📅 Auto Catch-up
+          </button>
+        </div>
+      </div>
+
+      {/* ── Dev: Fast-Forward Season ── */}
+      <div className="al-card" style={{ borderColor: '#f59e0b' }}>
+        <div className="al-card-head">
+          <h2>⚡ Dev: Fast-Forward Season</h2>
+          <span className="al-badge" style={{ background: '#78350f', color: '#fef3c7' }}>DEV ONLY</span>
+        </div>
+        <p className="al-form-hint">
+          Instantly simulates all LEAGUE fixtures up to (but not including) the chosen week.
+          Select <strong>All Weeks</strong> to simulate the entire season at once.
+          <strong> Do not use on production.</strong>
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            id="ff-week-select"
+            className="al-select"
+            defaultValue="7"
+            style={{ width: 'auto' }}
+          >
+            {[2,3,4,5,6,7,8].map(w => (
+              <option key={w} value={w}>Fast-forward to Week {w}</option>
+            ))}
+            <option value={9}>All Weeks (simulate entire season)</option>
+          </select>
+          <button
+            className="al-btn-bot"
+            style={{ background: '#92400e' }}
+            onClick={async () => {
+              const week = parseInt(document.getElementById('ff-week-select').value, 10);
+              if (!window.confirm(`This will instantly simulate all league matches in rounds 1–${week - 1}. Continue?`)) return;
+              const toastId = toast.loading(`Simulating rounds 1–${week - 1}…`);
+              try {
+                const res = await devFastForward(week);
+                const d = res.data;
+                toast.success(
+                  `Done! ${d.simulated} fixtures completed up to ${d.cutoffDate} (${d.skipped} skipped).`,
+                  { id: toastId, duration: 6000 }
+                );
+                if (d.errors?.length) {
+                  console.warn('FastForward errors:', d.errors);
+                  toast.error(`${d.errors.length} fixture(s) had errors — check console.`);
+                }
+                await loadStats();
+              } catch (err) {
+                toast.error(err.response?.data?.error || 'Fast-forward failed', { id: toastId });
+              }
+            }}
+          >
+            ⚡ Run Fast-Forward
+          </button>
+        </div>
       </div>
 
       {/* ── Create League Form ── */}

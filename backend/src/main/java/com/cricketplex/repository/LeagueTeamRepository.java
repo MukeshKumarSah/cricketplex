@@ -14,6 +14,9 @@ public interface LeagueTeamRepository extends JpaRepository<LeagueTeam, UUID> {
 
     List<LeagueTeam> findByLeagueIdAndSeason(UUID leagueId, Integer season);
 
+    /** All league-team memberships for an entire season — one query replaces 162 per-league queries. */
+    List<LeagueTeam> findBySeason(Integer season);
+
     List<LeagueTeam> findByTeamId(UUID teamId);
 
     List<LeagueTeam> findByTeamIdAndSeason(UUID teamId, Integer season);

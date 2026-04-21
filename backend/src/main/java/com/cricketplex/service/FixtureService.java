@@ -163,7 +163,8 @@ public class FixtureService {
      * Schedule per week (season = 8 weeks, start = Sunday):
      *   T20: Sunday (odd rounds) + Thursday (even rounds)  → 7 weeks for 14 rounds
      *   ODI: Monday (odd rounds) + Friday (even rounds)   → 7 weeks for 14 rounds
-     *   FC:  Tuesday, 1 round per week — R1-R7 in current season, R8-R14 in next season
+     *   FC:  Tuesday, 1 round per week — R1-R7 in season 1 (weeks 1-7), dead week 8,
+     *        R8-R14 in season 2 (weeks 1-7).
      */
     private LocalDate computeMatchDate(String format, int round, int season) {
         LocalDate seasonStart = SEASON_1_START.plusWeeks((long)(season - 1) * 8);
@@ -181,10 +182,11 @@ public class FixtureService {
             }
             case "FC": {
                 if (round <= 7) {
-                    // First half: weeks 1-7 of current season
+                    // Rounds 1-7: Tuesday of weeks 1-7 in current season.
+                    // Season ends after week 7 with prize money/wage update (dead week 8).
                     return seasonStart.plusWeeks(round - 1).plusDays(2);
                 } else {
-                    // Second half: weeks 1-7 of NEXT season (+ 56 days)
+                    // Rounds 8-14: Tuesday of weeks 1-7 of NEXT season.
                     return seasonStart.plusDays(SEASON_DAYS).plusWeeks(round - 8).plusDays(2);
                 }
             }

@@ -86,7 +86,15 @@ public class AdminLeagueController {
     }
 
     @PostMapping("/trigger-seasonal")
-    public ResponseEntity<?> triggerSeasonal() {
+    public ResponseEntity<?> triggerSeasonal(
+            @RequestParam(required = false) Integer season) {
+        if (season != null) {
+            try {
+                return ResponseEntity.ok(seasonalUpdateService.forceSeasonalUpdate(season));
+            } catch (IllegalStateException e) {
+                return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            }
+        }
         seasonalUpdateService.applyMissedUpdates();
         return ResponseEntity.ok(Map.of("message", "Seasonal update catch-up complete"));
     }
