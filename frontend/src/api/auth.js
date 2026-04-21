@@ -109,6 +109,7 @@ export const saveFCStrategy = (fixtureId, data) => API.post(`/match/fc-strategy/
 
 // Friendly Challenges
 export const getChallenges = () => API.get('/challenges');
+export const getPendingChallengeCount = () => API.get('/challenges/pending-count');
 export const getChallengeableTeams = () => API.get('/challenges/teams');
 export const sendChallenge = (data) => API.post('/challenges/send', data);
 export const acceptChallenge = (id) => API.post(`/challenges/${id}/accept`);

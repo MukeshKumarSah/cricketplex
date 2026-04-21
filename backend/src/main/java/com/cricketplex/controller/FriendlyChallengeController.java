@@ -30,6 +30,15 @@ public class FriendlyChallengeController {
         return ResponseEntity.ok(challengeService.getChallenges(user));
     }
 
+    // ─── Pending incoming challenge count (for sidebar badge) ──
+
+    @GetMapping("/pending-count")
+    public ResponseEntity<?> getPendingCount(@AuthenticationPrincipal UserPrincipal principal) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return ResponseEntity.ok(Map.of("count", challengeService.getPendingIncomingCount(user)));
+    }
+
     // ─── Get teams available to challenge ──────────────────────
 
     @GetMapping("/teams")

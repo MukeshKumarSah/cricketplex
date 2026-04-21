@@ -216,6 +216,12 @@ public class FriendlyChallengeService {
 
     // ─── Get all challenges for my team ──────────────────────────
 
+    public long getPendingIncomingCount(User user) {
+        return teamRepository.findByOwner(user)
+                .map(team -> challengeRepository.countByChallengedTeamIdAndStatus(team.getId(), "PENDING"))
+                .orElse(0L);
+    }
+
     public List<Map<String, Object>> getChallenges(User user) {
         Team myTeam = teamRepository.findByOwner(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));

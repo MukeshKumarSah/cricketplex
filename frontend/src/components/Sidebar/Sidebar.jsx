@@ -1,5 +1,7 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useEffect, useState } from 'react';
+import { getPendingChallengeCount } from '../../api/auth';
 import {
   HiOutlineHome,
   HiOutlineUserGroup,
@@ -57,6 +59,19 @@ const adminItems = [
 export default function Sidebar({ isOpen, toggle }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const location = useLocation();
+  const [pendingChallenges, setPendingChallenges] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetch = () =>
+      getPendingChallengeCount()
+        .then((res) => setPendingChallenges(res.data.count || 0))
+        .catch(() => {});
+    fetch();
+    const interval = setInterval(fetch, 60_000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, [user, location.pathname]); // also refresh when navigating
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
@@ -78,6 +93,9 @@ export default function Sidebar({ isOpen, toggle }) {
           >
             <item.icon className="sidebar-icon" />
             {isOpen && <span className="sidebar-label">{item.label}</span>}
+            {item.path === '/challenges' && pendingChallenges > 0 && (
+              <span className="sidebar-badge">{pendingChallenges > 99 ? '99+' : pendingChallenges}</span>
+            )}
           </NavLink>
         ))}
 
