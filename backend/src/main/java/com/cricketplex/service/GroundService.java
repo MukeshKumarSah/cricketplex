@@ -40,11 +40,13 @@ public class GroundService {
             result.put("standard", seats.getStandard());
             result.put("economy", seats.getEconomy());
             result.put("standing", seats.getStanding());
+            result.put("defaultPitch", seats.getDefaultPitch());
         } else {
             result.put("premium", 500);
             result.put("standard", 1000);
             result.put("economy", 1500);
             result.put("standing", 2000);
+            result.put("defaultPitch", "STANDARD");
         }
         int total = ((Number) result.get("premium")).intValue()
                 + ((Number) result.get("standard")).intValue()
@@ -138,6 +140,21 @@ public class GroundService {
         result.put("id", fixture.getId());
         result.put("pitchType", fixture.getPitchType());
         return result;
+    }
+
+    @Transactional
+    public Map<String, Object> updateDefaultPitch(User user, String pitchType) {
+        Team team = getTeam(user);
+        List<String> validPitches = List.of("STANDARD", "DUSTY", "GREEN", "FLAT", "UNEVEN", "DRY", "SLOW", "BOUNCY");
+        String normalized = pitchType.toUpperCase();
+        if (!validPitches.contains(normalized)) {
+            throw new IllegalArgumentException("Invalid pitch type: " + pitchType);
+        }
+        StadiumSeats seats = stadiumSeatsRepository.findByTeam(team)
+                .orElseGet(() -> StadiumSeats.builder().team(team).build());
+        seats.setDefaultPitch(normalized);
+        stadiumSeatsRepository.save(seats);
+        return Map.of("defaultPitch", normalized);
     }
 
     @Transactional(readOnly = true)

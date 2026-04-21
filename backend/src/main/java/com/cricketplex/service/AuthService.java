@@ -92,6 +92,7 @@ public class AuthService {
                 .teamSetupDone(user.getTeamSetupDone())
                 .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
                 .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
+                .theme(user.getTheme())
                 .build();
     }
 
@@ -111,6 +112,7 @@ public class AuthService {
                         .teamSetupDone(user.getTeamSetupDone())
                         .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
                         .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
+                        .theme(user.getTheme())
                         .build())
                 .build();
     }

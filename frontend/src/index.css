@@ -14,10 +14,95 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ══════════════════════════════════════════════
+   CSS DESIGN TOKENS
+   ══════════════════════════════════════════════ */
+:root {
+  /* Background */
+  --bg:              #0b0d14;
+  --bg-gradient:     radial-gradient(ellipse 90% 30% at 50% 0%, rgba(16,185,129,0.055) 0%, transparent 65%);
+
+  /* Surfaces */
+  --surface:         rgba(255, 255, 255, 0.035);
+  --surface-2:       rgba(255, 255, 255, 0.025);
+  --surface-hover:   rgba(255, 255, 255, 0.065);
+
+  /* Borders */
+  --border:          rgba(255, 255, 255, 0.08);
+  --border-hover:    rgba(255, 255, 255, 0.15);
+
+  /* Typography */
+  --text-1:          #f1f5f9;
+  --text-2:          #94a3b8;
+  --text-3:          rgba(255, 255, 255, 0.35);
+
+  /* Accent — emerald */
+  --accent:          #10b981;
+  --accent-alt:      #34d399;
+  --accent-surface:  rgba(16, 185, 129, 0.1);
+  --accent-border:   rgba(16, 185, 129, 0.22);
+
+  /* Structural */
+  --sidebar-bg:      rgba(11, 13, 20, 0.88);
+  --topbar-bg:       rgba(11, 13, 20, 0.85);
+  --dropdown-bg:     rgba(11, 13, 20, 0.97);
+  --input-bg:        rgba(255, 255, 255, 0.04);
+  --input-border:    rgba(255, 255, 255, 0.1);
+  --input-focus:     rgba(16, 185, 129, 0.35);
+
+  /* Elevation */
+  --shadow-sm:       none;
+  --shadow:          0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg:       0 8px 32px rgba(0, 0, 0, 0.5);
+  --backdrop:        blur(16px);
+
+  /* Scrollbar */
+  --scrollbar:       rgba(255, 255, 255, 0.12);
+  --scrollbar-hover: rgba(255, 255, 255, 0.22);
+}
+
+html[data-theme="light"] {
+  --bg:              #f1f5f9;
+  --bg-gradient:     none;
+
+  --surface:         #ffffff;
+  --surface-2:       #f8fafc;
+  --surface-hover:   #f1f5f9;
+
+  --border:          #e2e8f0;
+  --border-hover:    #cbd5e1;
+
+  --text-1:          #0f172a;
+  --text-2:          #475569;
+  --text-3:          #94a3b8;
+
+  --accent:          #059669;
+  --accent-alt:      #10b981;
+  --accent-surface:  rgba(5, 150, 105, 0.08);
+  --accent-border:   rgba(5, 150, 105, 0.25);
+
+  --sidebar-bg:      #ffffff;
+  --topbar-bg:       rgba(255, 255, 255, 0.95);
+  --dropdown-bg:     #ffffff;
+  --input-bg:        #f8fafc;
+  --input-border:    #e2e8f0;
+  --input-focus:     rgba(5, 150, 105, 0.3);
+
+  --shadow-sm:       0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow:          0 1px 3px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.07);
+  --shadow-lg:       0 4px 12px rgba(0, 0, 0, 0.1), 0 8px 28px rgba(0, 0, 0, 0.08);
+  --backdrop:        none;
+
+  --scrollbar:       #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     sans-serif;
-  background: #0f172a;
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
   color: #f1f5f9;
   line-height: 1.6;
 }
@@ -36,12 +121,16 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: var(--scrollbar);
   border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
 }
 
 .loading-screen {
@@ -49,7 +138,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--bg);
+  color: var(--text-2);
   font-size: 1.1rem;
 }

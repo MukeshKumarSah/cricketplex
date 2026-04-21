@@ -98,7 +98,8 @@ public class SettingsService {
                         "name", user.getName(),
                         "username", user.getUsername(),
                         "email", user.getEmail(),
-                        "profilePicUrl", fileStorageService.buildFileUrl(user.getProfilePicUrl())
+                        "profilePicUrl", fileStorageService.buildFileUrl(user.getProfilePicUrl()),
+                        "theme", user.getTheme()
                 ),
                 "team", team != null ? Map.of(
                         "teamName", team.getTeamName(),
@@ -109,6 +110,16 @@ public class SettingsService {
                         "academyLevel", team.getAcademyLevel()
                 ) : Map.of()
         );
+    }
+
+    @Transactional
+    public String updateTheme(User user, String theme) {
+        if (!"dark".equals(theme) && !"light".equals(theme)) {
+            throw new IllegalArgumentException("Invalid theme value");
+        }
+        user.setTheme(theme);
+        userRepository.save(user);
+        return theme;
     }
 
     /* ─── Dashboard Stats: Morale & Fans ─── */

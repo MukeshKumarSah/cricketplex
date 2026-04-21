@@ -216,13 +216,13 @@ export default function Challenges() {
       {/* Tabs */}
       <div className="challenges-tabs">
         <button
-          className={`challenges-tab ${activeTab === 'received' ? 'active' : ''}`}
+          className={`challenges-tab tab-received ${activeTab === 'received' ? 'active' : ''}`}
           onClick={() => setActiveTab('received')}
         >
           Received ({received.filter((c) => c.status === 'PENDING').length})
         </button>
         <button
-          className={`challenges-tab ${activeTab === 'sent' ? 'active' : ''}`}
+          className={`challenges-tab tab-sent ${activeTab === 'sent' ? 'active' : ''}`}
           onClick={() => setActiveTab('sent')}
         >
           Sent ({sent.filter((c) => c.status === 'PENDING').length})

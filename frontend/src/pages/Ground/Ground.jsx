@@ -12,6 +12,7 @@ import {
   updateStadiumSeats,
   getUpcomingHomeMatches,
   updateMatchPitch,
+  updateDefaultPitch,
 } from '../../api/auth';
 import './Ground.css';
 
@@ -34,7 +35,7 @@ const pitchOptions = [
 ];
 
 const formatBadge = (fmt) => {
-  const map = { T20: '#22d3ee', ODI: '#a3e635', FC: '#fbbf24' };
+  const map = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
   return { color: map[fmt] || '#94a3b8', label: fmt };
 };
 
@@ -44,6 +45,8 @@ export default function Ground() {
   const [seatsSaving, setSeatsSaving] = useState(false);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [defaultPitch, setDefaultPitch] = useState('STANDARD');
+  const [defaultPitchSaving, setDefaultPitchSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +57,7 @@ export default function Ground() {
         ]);
         const s = seatsRes.data;
         setSeats({ premium: s.premium, standard: s.standard, economy: s.economy, standing: s.standing });
+        if (s.defaultPitch) setDefaultPitch(s.defaultPitch);
         setMatches(matchesRes.data);
       } catch {
         toast.error('Failed to load ground data');
@@ -83,6 +87,19 @@ export default function Ground() {
       toast.error('Failed to update seats');
     } finally {
       setSeatsSaving(false);
+    }
+  };
+
+  const handleDefaultPitchChange = async (pitch) => {
+    setDefaultPitch(pitch);
+    setDefaultPitchSaving(true);
+    try {
+      await updateDefaultPitch(pitch);
+      toast.success('Default pitch saved');
+    } catch {
+      toast.error('Failed to save default pitch');
+    } finally {
+      setDefaultPitchSaving(false);
     }
   };
 
@@ -177,6 +194,35 @@ export default function Ground() {
         )}
       </div>
 
+      {/* ── Default Pitch ── */}
+      <div className="ground-card">
+        <div className="ground-card-head">
+          <h2>Default Pitch</h2>
+          {defaultPitchSaving && <span className="ground-total-badge">Saving…</span>}
+        </div>
+        <p className="ground-default-pitch-hint">
+          Matches where you haven't manually set a pitch will automatically use this type.
+        </p>
+        <div className="pitch-default-row">
+          <div className="pitch-select-wrap">
+            <select
+              value={defaultPitch}
+              onChange={(e) => handleDefaultPitchChange(e.target.value)}
+              disabled={defaultPitchSaving}
+            >
+              {pitchOptions.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.icon} {p.label} — {p.desc}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="pitch-hint">
+            {pitchOptions.find((p) => p.key === defaultPitch)?.desc}
+          </span>
+        </div>
+      </div>
+
       {/* ── Pitch Setup ── */}
       <div className="ground-card">
         <div className="ground-card-head">
@@ -196,7 +242,7 @@ export default function Ground() {
                     <div className="match-info-top">
                       <span
                         className="match-format-tag"
-                        style={{ background: badge.color + '18', color: badge.color, borderColor: badge.color + '40' }}
+                        style={{ background: badge.color + '28', color: badge.color, borderColor: badge.color + '55' }}
                       >
                         {badge.label}
                       </span>

@@ -110,8 +110,17 @@ public class MatchEngine {
         String condition = (String) weather.get("condition");
         int temperature = (int) weather.get("temperature");
 
-        // Pitch
+        // Pitch — use home team's default if fixture is still on STANDARD
         String pitchType = fixture.getPitchType();
+        if ("STANDARD".equals(pitchType)) {
+            stadiumSeatsRepository.findByTeam(homeTeam)
+                    .ifPresent(seats -> {
+                        if (seats.getDefaultPitch() != null && !seats.getDefaultPitch().isBlank()) {
+                            fixture.setPitchType(seats.getDefaultPitch());
+                        }
+                    });
+            pitchType = fixture.getPitchType();
+        }
 
         // Determine toss
         Random rng = new Random((fixtureId.toString() + fixture.getMatchDate()).hashCode());

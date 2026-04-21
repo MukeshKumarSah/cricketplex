@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   getSettings,
   uploadProfilePic,
@@ -13,6 +14,7 @@ import './Settings.css';
 
 export default function Settings() {
   const { user, updateUser } = useAuth();
+  const { theme, switchTheme } = useTheme();
   const profileInputRef = useRef(null);
   const teamPicInputRef = useRef(null);
 
@@ -308,6 +310,29 @@ export default function Settings() {
               {pwSaving ? 'Changing...' : 'Change Password'}
             </button>
           </form>
+        </section>
+
+        {/* Appearance */}
+        <section className="settings-card">
+          <h2>Appearance</h2>
+          <div className="theme-options">
+            <button
+              className={`theme-option${theme === 'dark' ? ' active' : ''}`}
+              onClick={() => switchTheme('dark')}
+              type="button"
+            >
+              <span className="theme-option-icon">🌙</span>
+              <span className="theme-option-label">Dark</span>
+            </button>
+            <button
+              className={`theme-option${theme === 'light' ? ' active' : ''}`}
+              onClick={() => switchTheme('light')}
+              type="button"
+            >
+              <span className="theme-option-icon">☀️</span>
+              <span className="theme-option-label">Light</span>
+            </button>
+          </div>
         </section>
 
         {/* Tutorial */}

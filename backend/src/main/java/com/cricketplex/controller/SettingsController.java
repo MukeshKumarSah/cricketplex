@@ -96,6 +96,14 @@ public class SettingsController {
         return ResponseEntity.ok(buildTrophyResponse(team.getId()));
     }
 
+    @PutMapping("/theme")
+    public ResponseEntity<?> updateTheme(@AuthenticationPrincipal UserPrincipal principal,
+                                         @RequestBody Map<String, String> body) {
+        User user = getUser(principal);
+        String saved = settingsService.updateTheme(user, body.get("theme"));
+        return ResponseEntity.ok(Map.of("success", true, "theme", saved));
+    }
+
     @GetMapping("/trophies/{teamId}")
     public ResponseEntity<?> getTeamTrophies(@PathVariable UUID teamId) {
         return ResponseEntity.ok(buildTrophyResponse(teamId));

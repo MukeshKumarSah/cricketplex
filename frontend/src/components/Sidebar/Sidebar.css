@@ -1,66 +1,57 @@
-/* ── Sidebar ── */
+﻿/* ── Sidebar ── */
 
 .sidebar {
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
-  background: #1e293b;
-  border-right: 1px solid #334155;
+  background: var(--sidebar-bg);
+  backdrop-filter: var(--backdrop);
+  -webkit-backdrop-filter: var(--backdrop);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
   z-index: 60;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
-.sidebar.open {
-  width: 260px;
-}
+.sidebar.open { width: 260px; }
+.sidebar.collapsed { width: 64px; }
 
-.sidebar.collapsed {
-  width: 64px;
-}
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
 
-/* Scrollbar for nav */
-.sidebar-nav::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-
-/* Brand — sticky */
+/* ── Brand ── */
 .sidebar-brand {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1.25rem 1rem;
-  border-bottom: 1px solid #334155;
-  min-height: 64px;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  min-height: 56px;
   flex-shrink: 0;
 }
 
-.sidebar-logo {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
+.sidebar-logo { font-size: 1.5rem; flex-shrink: 0; }
 
 .sidebar-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #22d3ee;
+  font-size: 1.1rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-alt) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   white-space: nowrap;
 }
 
-/* Nav — scrollable */
+/* ── Nav ── */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0.75rem 0.5rem;
+  gap: 1px;
+  padding: 0.6rem 0.5rem;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -70,36 +61,31 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border-radius: 8px;
-  color: #94a3b8;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  color: var(--text-2);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.18s, color 0.18s;
   white-space: nowrap;
 }
 
 .sidebar-link:hover {
-  background: #334155;
-  color: #f1f5f9;
+  background: var(--surface-hover);
+  color: var(--text-1);
 }
 
 .sidebar-link.active {
-  background: rgba(34, 211, 238, 0.1);
-  color: #22d3ee;
+  background: var(--accent-surface);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
 }
 
-.sidebar-icon {
-  font-size: 1.25rem;
-  flex-shrink: 0;
-}
-
-.sidebar-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.sidebar-icon { font-size: 1.15rem; flex-shrink: 0; }
+.sidebar-label { overflow: hidden; text-overflow: ellipsis; }
 
 .sidebar-badge {
   background: #ef4444;
@@ -117,7 +103,6 @@
   flex-shrink: 0;
 }
 
-/* When sidebar is collapsed the badge sits just outside the icon */
 .sidebar.collapsed .sidebar-badge {
   position: absolute;
   top: 6px;
@@ -125,40 +110,13 @@
   margin-left: 0;
 }
 
-/* Collapsed: center icons */
-.sidebar.collapsed .sidebar-brand {
-  justify-content: center;
-  padding: 1.25rem 0;
-}
+.sidebar.collapsed .sidebar-brand { justify-content: center; padding: 1rem 0; }
+.sidebar.collapsed .sidebar-link  { justify-content: center; padding: 0.6rem; box-shadow: none; }
 
-.sidebar.collapsed .sidebar-link {
-  justify-content: center;
-  padding: 0.65rem;
-}
+/* ── Admin divider ── */
+.sidebar-divider { padding: 0.7rem 1rem 0.25rem; margin-top: 0.3rem; }
+.sidebar-divider span { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #f97316; }
+.sidebar-divider-collapsed { height: 1px; background: var(--border); margin: 0.5rem 0.75rem; }
 
-/* ── Admin Divider ── */
-.sidebar-divider {
-  padding: 0.8rem 1rem 0.3rem;
-  margin-top: 0.4rem;
-}
-.sidebar-divider span {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #f97316;
-}
-.sidebar-divider-collapsed {
-  height: 1px;
-  background: #334155;
-  margin: 0.5rem 0.75rem;
-}
-
-/* Admin link orange accent */
-.sidebar-link-admin.active {
-  background: rgba(249, 115, 22, 0.1);
-  color: #f97316;
-}
-.sidebar-link-admin:hover {
-  color: #fb923c;
-}
+.sidebar-link-admin.active { background: rgba(249, 115, 22, 0.1); color: #f97316; }
+.sidebar-link-admin:hover { color: #fb923c; }

@@ -26,5 +26,6 @@ public class AuthResponse {
         private Boolean teamSetupDone;
         private String profilePicUrl;
         private String teamId;
+        private String theme;
     }
 }

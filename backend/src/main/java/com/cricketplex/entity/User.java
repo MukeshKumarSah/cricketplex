@@ -54,6 +54,10 @@ public class User {
 
     @Column(nullable = false)
     @Builder.Default
+    private String theme = "dark";
+
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean teamSetupDone = false;
 
     private LocalDateTime lastActiveAt;

@@ -61,6 +61,17 @@ public class GroundController {
         return ResponseEntity.ok(groundService.getRecentHomeAttendance(user));
     }
 
+    @PutMapping("/default-pitch")
+    public ResponseEntity<?> updateDefaultPitch(@AuthenticationPrincipal UserPrincipal principal,
+                                                @RequestBody Map<String, String> request) {
+        User user = getUser(principal);
+        String pitchType = request.get("pitchType");
+        if (pitchType == null || pitchType.isBlank()) {
+            throw new IllegalArgumentException("pitchType is required");
+        }
+        return ResponseEntity.ok(groundService.updateDefaultPitch(user, pitchType));
+    }
+
     private User getUser(UserPrincipal principal) {
         return userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

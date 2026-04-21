@@ -3,13 +3,13 @@
 .ground-page {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
-  padding-bottom: 2rem;
+  gap: 1.1rem;
+  padding-bottom: 1.5rem;
 }
 
 .ground-loading {
   text-align: center;
-  color: #64748b;
+  color: var(--text-3);
   padding: 4rem 0;
   font-size: 1.05rem;
 }
@@ -19,12 +19,13 @@
   display: flex;
   align-items: center;
   gap: 1.2rem;
-  padding: 1.75rem 2rem;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+  padding: 1.1rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .ground-header::before {
   content: '';
@@ -43,30 +44,31 @@
 }
 .ground-header-icon {
   font-size: 2rem;
-  color: #22d3ee;
+  color: var(--accent);
   flex-shrink: 0;
 }
 .ground-header h1 {
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
   margin: 0;
 }
 .ground-header p {
-  font-size: 0.92rem;
-  color: #94a3b8;
+  font-size: 0.85rem;
+  color: var(--text-3);
   margin: 0.2rem 0 0;
 }
 
 /*  Card  */
 .ground-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.9rem;
+  box-shadow: var(--shadow-sm);
 }
 .ground-card-head {
   display: flex;
@@ -76,40 +78,40 @@
 .ground-card-head h2 {
   font-size: 1.08rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-1);
   margin: 0;
 }
 .ground-total-badge {
   font-size: 0.82rem;
-  color: #94a3b8;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid #334155;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.25rem 0.75rem;
 }
 .ground-total-badge strong {
-  color: #22d3ee;
+  color: var(--accent);
 }
 
 /*  Seat Grid  */
 .seat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.85rem;
+  gap: 0.6rem;
 }
 .seat-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 1.1rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   transition: border-color 0.15s, background 0.15s;
 }
 .seat-card:hover {
-  border-color: #475569;
-  background: rgba(255,255,255,0.03);
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
 }
 .seat-card-top {
   display: flex;
@@ -122,10 +124,11 @@
 .seat-card-label {
   font-weight: 700;
   font-size: 0.95rem;
+  color: var(--text-1);
 }
 .seat-card-desc {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--text-3);
   margin: 0;
   line-height: 1.35;
 }
@@ -144,16 +147,16 @@
   justify-content: center;
   font-size: 0.95rem;
   border-radius: 8px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: #94a3b8;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-3);
   cursor: pointer;
   transition: all 0.15s;
 }
 .seat-btn:hover:not(:disabled) {
-  border-color: #22d3ee;
-  color: #22d3ee;
-  background: rgba(34,211,238,0.06);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-surface);
 }
 .seat-btn:disabled {
   opacity: 0.35;
@@ -165,6 +168,7 @@
   font-weight: 700;
   min-width: 4.5rem;
   text-align: center;
+  color: var(--text-1);
 }
 
 /*  Save Row  */
@@ -185,7 +189,7 @@
   transition: all 0.15s;
 }
 .ground-save-btn:hover:not(:disabled) {
-  box-shadow: 0 2px 16px 0 rgba(34,211,238,0.18);
+  box-shadow: 0 2px 16px 0 rgba(34,211,238,0.25);
 }
 .ground-save-btn:disabled {
   opacity: 0.6;
@@ -194,7 +198,7 @@
 
 /*  Match List  */
 .ground-empty {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 0.95rem;
   text-align: center;
   padding: 2rem 0;
@@ -210,15 +214,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1rem 1.25rem;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid #334155;
+  padding: 0.7rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 12px;
   transition: border-color 0.15s, background 0.15s;
 }
 .match-row:hover {
-  border-color: #475569;
-  background: rgba(255,255,255,0.03);
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
 }
 .match-info {
   display: flex;
@@ -242,20 +246,20 @@
 }
 .match-comp {
   font-size: 0.78rem;
-  color: #64748b;
+  color: var(--text-3);
 }
 .match-opponent {
   font-size: 1.02rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
 }
 .match-date {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-3);
   font-family: monospace;
 }
 .match-time {
-  color: #22d3ee;
+  color: var(--accent);
 }
 
 /*  Pitch Picker  */
@@ -269,7 +273,7 @@
 .match-pitch-picker label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -277,9 +281,9 @@
   padding: 0.4rem 0.8rem;
   font-size: 0.92rem;
   border-radius: 8px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: #e2e8f0;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-1);
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s;
@@ -287,13 +291,35 @@
 }
 .pitch-select-wrap select:focus {
   outline: none;
-  border-color: #22d3ee;
+  border-color: var(--accent);
 }
 .pitch-hint {
   font-size: 0.72rem;
-  color: #475569;
+  color: var(--text-3);
   max-width: 180px;
   text-align: right;
+}
+
+/*  Light theme overrides — fix neon inline colors  */
+html[data-theme="light"] .seat-card-label,
+html[data-theme="light"] .seat-card-count {
+  color: var(--text-1) !important;
+}
+html[data-theme="light"] .match-format-tag {
+  filter: brightness(0.72);
+}
+
+/*  Default Pitch  */
+.ground-default-pitch-hint {
+  font-size: 0.82rem;
+  color: var(--text-3);
+  margin: 0;
+}
+.pitch-default-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-start;
 }
 
 /*  Responsive  */

@@ -1,0 +1,2 @@
+ALTER TABLE stadium_seats
+    ADD COLUMN default_pitch VARCHAR(20) NOT NULL DEFAULT 'STANDARD';

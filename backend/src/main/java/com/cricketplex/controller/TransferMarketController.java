@@ -524,8 +524,11 @@ public class TransferMarketController {
         for (TransferListing l : sales) {
             Player p = l.getPlayer();
             Map<String, Object> m = new LinkedHashMap<>();
+            m.put("playerId", p.getId());
             m.put("playerName", p.getFirstName() + " " + p.getLastName());
+            m.put("sellerTeamId", l.getSellerTeam().getId());
             m.put("soldFrom", l.getSellerTeam().getTeamName());
+            m.put("buyerTeamId", l.getBuyerTeam() != null ? l.getBuyerTeam().getId() : null);
             m.put("soldTo", l.getBuyerTeam() != null ? l.getBuyerTeam().getTeamName() : null);
             m.put("initialPrice", l.getListingFee() * 5);
             m.put("finalPrice", l.getSalePrice());

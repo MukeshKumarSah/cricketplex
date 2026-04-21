@@ -396,10 +396,6 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
               </div>
             )}
             <div className="tm-price-row">
-              <span className="tm-price-label">Min Next Bid</span>
-              <span className="tm-price-value">${l.minNextBid?.toLocaleString()}</span>
-            </div>
-            <div className="tm-price-row">
               <span className="tm-price-label">Bids</span>
               <span className="tm-price-value">{l.bidCount}</span>
             </div>
@@ -409,7 +405,7 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
             </div>
             <div className="tm-price-row">
               <span className="tm-price-label">Seller</span>
-              <span className="tm-seller-link" onClick={(e) => { e.stopPropagation(); navigate(`/team/${l.sellerTeamId}`); }}>{l.sellerTeam}</span>
+              <span className="tm-seller-link" onClick={(e) => { e.stopPropagation(); navigate(l.isOwn ? '/' : `/team/${l.sellerTeamId}`); }}>{l.sellerTeam}</span>
             </div>
           </div>
 
@@ -519,6 +515,7 @@ function MyListingsSection({ listings, handleCancel, navigate }) {
 }
 
 function ActivitySection({ sales, loading, onLoad }) {
+  const navigate = useNavigate();
   useEffect(() => { onLoad(); }, [onLoad]);
 
   if (loading) return <div className="tm-loading">Loading recent sales…</div>;
@@ -539,9 +536,21 @@ function ActivitySection({ sales, loading, onLoad }) {
         <tbody>
           {sales.map((s, i) => (
             <tr key={i}>
-              <td>{s.playerName}</td>
-              <td>{s.soldFrom}</td>
-              <td>{s.soldTo}</td>
+              <td>
+                {s.playerId
+                  ? <span className="tm-seller-link" onClick={() => navigate(`/player/${s.playerId}`)}>{s.playerName}</span>
+                  : s.playerName}
+              </td>
+              <td>
+                {s.sellerTeamId
+                  ? <span className="tm-seller-link" onClick={() => navigate(`/team/${s.sellerTeamId}`)}>{s.soldFrom}</span>
+                  : s.soldFrom}
+              </td>
+              <td>
+                {s.buyerTeamId
+                  ? <span className="tm-seller-link" onClick={() => navigate(`/team/${s.buyerTeamId}`)}>{s.soldTo}</span>
+                  : (s.soldTo ?? '—')}
+              </td>
               <td>${s.initialPrice?.toLocaleString()}</td>
               <td>${s.finalPrice?.toLocaleString()}</td>
             </tr>

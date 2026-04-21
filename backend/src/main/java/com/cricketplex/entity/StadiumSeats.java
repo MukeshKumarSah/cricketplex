@@ -41,6 +41,10 @@ public class StadiumSeats {
     @Builder.Default
     private Integer standing = 2000;
 
+    @Column(name = "default_pitch", nullable = false, length = 20)
+    @Builder.Default
+    private String defaultPitch = "STANDARD";
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

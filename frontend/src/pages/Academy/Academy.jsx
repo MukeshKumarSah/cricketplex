@@ -47,6 +47,7 @@ export default function Academy() {
   const [lastPull, setLastPull] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [upgrading, setUpgrading] = useState(false);
+  const [historySubTab, setHistorySubTab] = useState('pull-history');
   const [confirmModal, setConfirmModal] = useState(null);
   const [canPull, setCanPull] = useState(true);
   const [nextWindow, setNextWindow] = useState(null);
@@ -119,9 +120,9 @@ export default function Academy() {
   };
 
   useEffect(() => {
-    if (tab === 'pull-history' && !pullHistory) loadPullHistory();
-    if (tab === 'training-history' && !trainingHistory) loadTrainingHistory();
-  }, [tab]);
+    if (tab === 'history' && historySubTab === 'pull-history' && !pullHistory) loadPullHistory();
+    if (tab === 'history' && historySubTab === 'training-history' && !trainingHistory) loadTrainingHistory();
+  }, [tab, historySubTab]);
 
   const fmt = (n) => '$' + Number(n).toLocaleString();
 
@@ -177,36 +178,55 @@ export default function Academy() {
   const tabs = [
     { key: 'pulls', label: 'Pulls' },
     { key: 'training', label: 'Training' },
-    { key: 'pull-history', label: 'Pull History' },
-    { key: 'training-history', label: 'Training History' },
+    { key: 'history', label: 'History' },
   ];
 
   return (
     <div className="ac-page">
+      {/* Header */}
       <div className="ac-header">
         <h1 className="ac-title">Academy</h1>
-        <div className="ac-level-badge">Level {overview.academyLevel}</div>
-        <div className="ac-level-controls">
-          {overview.academyLevel > 1 && (
-            <button className="ac-level-btn downgrade" onClick={handleDowngrade} disabled={upgrading}
-              title={`Downgrade to Level ${overview.academyLevel - 1} (+${fmt(DOWNGRADE_REFUND[overview.academyLevel])} refund)`}>
-              ▼ Downgrade (+{fmt(DOWNGRADE_REFUND[overview.academyLevel])})
-            </button>
-          )}
-          {overview.academyLevel < 4 && (
-            <button className="ac-level-btn upgrade" onClick={handleUpgrade} disabled={upgrading}
-              title={`Upgrade to Level ${overview.academyLevel + 1} (${LEVEL_SPOTS[overview.academyLevel + 1]} spots, costs ${fmt(UPGRADE_COST[overview.academyLevel + 1])})`}>
-              ▲ Upgrade to L{overview.academyLevel + 1} ({fmt(UPGRADE_COST[overview.academyLevel + 1])})
-            </button>
-          )}
-        </div>
-        {overview.academyLevel < 4 && (
-          <span className="ac-level-hint">
-            Next: {LEVEL_SPOTS[overview.academyLevel + 1]} focused spots
-          </span>
-        )}
+        <p className="ac-subtitle">Develop young talent and grow your facilities</p>
       </div>
 
+      {/* Management Card */}
+      <div className="ac-management-card">
+        <div className="ac-mgmt-info">
+          <div className="ac-mgmt-level-block">
+            <span className="ac-mgmt-level-num">{overview.academyLevel}</span>
+            <span className="ac-mgmt-level-label">Level Academy</span>
+          </div>
+          <div className="ac-mgmt-divider" />
+          <div className="ac-mgmt-stat">
+            <span className="ac-mgmt-stat-val">{overview.usedFocusedSpots} / {overview.maxFocusedSpots}</span>
+            <span className="ac-mgmt-stat-label">Focused Spots</span>
+          </div>
+          <div className="ac-mgmt-divider" />
+          <div className="ac-mgmt-stat">
+            <span className="ac-mgmt-stat-val">{fmt(overview.funds)}</span>
+            <span className="ac-mgmt-stat-label">Funds</span>
+          </div>
+        </div>
+        <div className="ac-mgmt-actions">
+          {overview.academyLevel < 4 && (
+            <button className="ac-upgrade-btn" onClick={handleUpgrade} disabled={upgrading}>
+              ▲ Upgrade to Level {overview.academyLevel + 1}
+              <span className="ac-btn-cost">{fmt(UPGRADE_COST[overview.academyLevel + 1])}</span>
+            </button>
+          )}
+          {overview.academyLevel > 1 && (
+            <button className="ac-downgrade-btn" onClick={handleDowngrade} disabled={upgrading}>
+              ▼ Downgrade to Level {overview.academyLevel - 1}
+              <span className="ac-btn-refund">+{fmt(DOWNGRADE_REFUND[overview.academyLevel])} refund</span>
+            </button>
+          )}
+          {overview.academyLevel === 4 && (
+            <span className="ac-max-badge">⭐ Max Level</span>
+          )}
+        </div>
+      </div>
+
+      {/* Main Tabs */}
       <div className="ac-tabs">
         {tabs.map(t => (
           <button key={t.key} className={`ac-tab ${tab === t.key ? 'active' : ''}`}
@@ -232,12 +252,25 @@ export default function Academy() {
         />
       )}
 
-      {tab === 'pull-history' && (
-        <PullHistorySection data={pullHistory} navigate={navigate} />
-      )}
-
-      {tab === 'training-history' && (
-        <TrainingHistorySection data={trainingHistory} navigate={navigate} />
+      {tab === 'history' && (
+        <div className="ac-section">
+          <div className="ac-history-subtabs">
+            <button
+              className={`ac-history-subtab subtab-pull ${historySubTab === 'pull-history' ? 'active' : ''}`}
+              onClick={() => setHistorySubTab('pull-history')}
+            >
+              Pull History
+            </button>
+            <button
+              className={`ac-history-subtab subtab-training ${historySubTab === 'training-history' ? 'active' : ''}`}
+              onClick={() => setHistorySubTab('training-history')}
+            >
+              Training Logs
+            </button>
+          </div>
+          {historySubTab === 'pull-history' && <PullHistorySection data={pullHistory} navigate={navigate} />}
+          {historySubTab === 'training-history' && <TrainingHistorySection data={trainingHistory} navigate={navigate} />}
+        </div>
       )}
 
       {confirmModal && (

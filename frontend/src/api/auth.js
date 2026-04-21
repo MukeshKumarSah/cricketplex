@@ -28,6 +28,7 @@ export const changePassword = (data) => API.put('/settings/password', data);
 export const getDashboardStats = () => API.get('/settings/dashboard-stats');
 export const getMyTrophies = () => API.get('/settings/trophies');
 export const getTeamTrophies = (teamId) => API.get(`/settings/trophies/${teamId}`);
+export const updateTheme = (theme) => API.put('/settings/theme', { theme });
 
 // Ground Management
 export const getStadiumSeats = () => API.get('/ground/seats');
@@ -35,6 +36,8 @@ export const updateStadiumSeats = (data) => API.put('/ground/seats', data);
 export const getUpcomingHomeMatches = () => API.get('/ground/matches');
 export const updateMatchPitch = (matchId, pitchType) =>
   API.put(`/ground/matches/${matchId}/pitch`, { pitchType });
+export const updateDefaultPitch = (pitchType) =>
+  API.put('/ground/default-pitch', { pitchType });
 export const getAttendanceHistory = () => API.get('/ground/attendance-history');
 
 // Team List
