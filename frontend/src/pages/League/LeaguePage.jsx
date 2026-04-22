@@ -164,7 +164,7 @@ export default function LeaguePage() {
                         {row.teamProfilePicUrl ? (
                           <img
                             className="lp-team-logo"
-                            src={`http://localhost:8080/api/files/${row.teamProfilePicUrl}`}
+                            src={`/api/files/${row.teamProfilePicUrl}`}
                             alt={row.teamName}
                           />
                         ) : (
@@ -243,7 +243,7 @@ export default function LeaguePage() {
                           {/* Home */}
                           <div className="lp-ft-team">
                             {m.homeTeam.teamProfilePicUrl ? (
-                              <img className="lp-ft-logo" src={`http://localhost:8080/api/files/${m.homeTeam.teamProfilePicUrl}`} alt={m.homeTeam.teamName} />
+                              <img className="lp-ft-logo" src={`/api/files/${m.homeTeam.teamProfilePicUrl}`} alt={m.homeTeam.teamName} />
                             ) : (
                               <span className="lp-ft-initials">{m.homeTeam.teamName?.slice(0, 2).toUpperCase()}</span>
                             )}
@@ -254,7 +254,7 @@ export default function LeaguePage() {
                           {/* Away */}
                           <div className="lp-ft-team">
                             {m.awayTeam.teamProfilePicUrl ? (
-                              <img className="lp-ft-logo" src={`http://localhost:8080/api/files/${m.awayTeam.teamProfilePicUrl}`} alt={m.awayTeam.teamName} />
+                              <img className="lp-ft-logo" src={`/api/files/${m.awayTeam.teamProfilePicUrl}`} alt={m.awayTeam.teamName} />
                             ) : (
                               <span className="lp-ft-initials">{m.awayTeam.teamName?.slice(0, 2).toUpperCase()}</span>
                             )}

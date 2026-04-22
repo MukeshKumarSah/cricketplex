@@ -132,7 +132,7 @@ export default function TeamProfile() {
           {team.teamProfilePicUrl ? (
             <img
               className="tp-header-logo"
-              src={`http://localhost:8080/api/files/${team.teamProfilePicUrl}`}
+              src={`/api/files/${team.teamProfilePicUrl}`}
               alt={team.teamName}
             />
           ) : (
@@ -298,14 +298,14 @@ export default function TeamProfile() {
                               <div className="tp-mrow-fixture">
                                 <div className="tp-mrow-team">
                                   {m.homeTeamPicUrl
-                                    ? <img className="tp-mrow-logo" src={`http://localhost:8080/api/files/${m.homeTeamPicUrl}`} alt="" />
+                                    ? <img className="tp-mrow-logo" src={`/api/files/${m.homeTeamPicUrl}`} alt="" />
                                     : <span className="tp-mrow-initials">{m.homeTeamName?.slice(0, 2).toUpperCase()}</span>}
                                   <span className={`tp-mrow-name ${String(m.homeTeamId) === teamId ? 'tp-mrow-mine' : ''}`}>{m.homeTeamName}</span>
                                 </div>
                                 <span className="tp-mrow-vs">vs</span>
                                 <div className="tp-mrow-team">
                                   {m.awayTeamPicUrl
-                                    ? <img className="tp-mrow-logo" src={`http://localhost:8080/api/files/${m.awayTeamPicUrl}`} alt="" />
+                                    ? <img className="tp-mrow-logo" src={`/api/files/${m.awayTeamPicUrl}`} alt="" />
                                     : <span className="tp-mrow-initials">{m.awayTeamName?.slice(0, 2).toUpperCase()}</span>}
                                   <span className={`tp-mrow-name ${String(m.awayTeamId) === teamId ? 'tp-mrow-mine' : ''}`}>{m.awayTeamName}</span>
                                 </div>

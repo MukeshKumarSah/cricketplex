@@ -358,7 +358,7 @@ export default function LineupSetup() {
       <div className="lu-match-info">
         <div className="lu-mi-teams">
           {matchInfo.homeTeamPicUrl ? (
-            <img className="lu-mi-logo" src={`http://localhost:8080/api/files/${matchInfo.homeTeamPicUrl}`} alt="" />
+            <img className="lu-mi-logo" src={`/api/files/${matchInfo.homeTeamPicUrl}`} alt="" />
           ) : (
             <span className="lu-mi-initials">{matchInfo.homeTeamName?.slice(0, 2).toUpperCase()}</span>
           )}
@@ -366,7 +366,7 @@ export default function LineupSetup() {
           <span className="lu-mi-vs">vs</span>
           <span className="lu-mi-team-name">{matchInfo.awayTeamName}</span>
           {matchInfo.awayTeamPicUrl ? (
-            <img className="lu-mi-logo" src={`http://localhost:8080/api/files/${matchInfo.awayTeamPicUrl}`} alt="" />
+            <img className="lu-mi-logo" src={`/api/files/${matchInfo.awayTeamPicUrl}`} alt="" />
           ) : (
             <span className="lu-mi-initials">{matchInfo.awayTeamName?.slice(0, 2).toUpperCase()}</span>
           )}

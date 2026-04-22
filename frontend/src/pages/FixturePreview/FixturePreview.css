@@ -6,19 +6,20 @@
 
 .fp-loading {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-3);
   padding: 64px 0;
-  font-size: 15px;
+  font-size: 0.95rem;
 }
 
-/* ── Header ───────────────────────── */
+/* -- Header -- */
 .fp-header {
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px;
   margin-bottom: 20px;
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .fp-header-meta {
@@ -31,14 +32,13 @@
 }
 
 .fp-format-badge {
-  background: #22d3ee22;
-  color: #22d3ee;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 3px 10px;
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid;
 }
 
 .fp-league-link {
@@ -52,7 +52,7 @@
 }
 
 .fp-round {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 12px;
 }
 
@@ -83,26 +83,26 @@
   height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #1e293b;
+  border: 2px solid var(--border-hover);
 }
 
 .fp-team-initials {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #1e293b;
-  color: #94a3b8;
+  background: var(--surface-2);
+  color: var(--text-3);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 1px;
-  border: 2px solid #334155;
+  border: 2px solid var(--border);
 }
 
 .fp-team-name {
-  color: #f1f5f9;
+  color: var(--text-1);
   font-size: 14px;
   font-weight: 600;
   text-align: center;
@@ -113,8 +113,8 @@
 }
 
 .fp-bot {
-  background: #334155;
-  color: #94a3b8;
+  background: var(--surface-2);
+  color: var(--text-3);
   font-size: 9px;
   font-weight: 700;
   padding: 2px 6px;
@@ -132,7 +132,7 @@
 .fp-vs {
   font-size: 22px;
   font-weight: 800;
-  color: #475569;
+  color: var(--text-3);
   letter-spacing: 2px;
 }
 
@@ -145,20 +145,20 @@
   letter-spacing: 0.5px;
 }
 .fp-status-tag[data-status='SCHEDULED'] {
-  background: #334155;
-  color: #94a3b8;
+  background: var(--surface-2);
+  color: var(--text-3);
 }
 .fp-status-tag[data-status='IN_PROGRESS'] {
-  background: #dc262622;
+  background: rgba(220,38,38,0.13);
   color: #f87171;
   animation: fpPulse 1.5s infinite;
 }
 .fp-status-tag[data-status='COMPLETED'] {
-  background: #16a34a22;
+  background: rgba(22,163,74,0.13);
   color: #4ade80;
 }
 .fp-status-tag[data-status='FC_DAY1_COMPLETE'] {
-  background: #f59e0b22;
+  background: rgba(245,158,11,0.13);
   color: #fbbf24;
 }
 
@@ -171,7 +171,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #94a3b8;
+  color: var(--text-2);
   font-size: 13px;
 }
 .fp-header-details span {
@@ -185,7 +185,7 @@
   flex-shrink: 0;
 }
 
-/* ── Cards grid ───────────────────── */
+/* -- Cards grid -- */
 .fp-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -194,16 +194,17 @@
 }
 
 .fp-card {
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
 .fp-card-title {
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-3);
   margin: 0 0 14px 0;
   display: flex;
   align-items: center;
@@ -213,14 +214,14 @@
 }
 .fp-card-icon {
   font-size: 16px;
-  color: #22d3ee;
+  color: var(--accent);
 }
 
 /* Pitch */
 .fp-pitch-type {
   display: inline-block;
-  background: #22d3ee18;
-  color: #22d3ee;
+  background: var(--accent-surface);
+  color: var(--accent);
   font-size: 15px;
   font-weight: 700;
   padding: 4px 12px;
@@ -228,7 +229,7 @@
   margin-bottom: 8px;
 }
 .fp-pitch-desc {
-  color: #94a3b8;
+  color: var(--text-2);
   font-size: 13px;
   line-height: 1.5;
   margin: 0;
@@ -249,28 +250,28 @@
   gap: 2px;
 }
 .fp-weather-condition {
-  color: #f1f5f9;
+  color: var(--text-1);
   font-size: 15px;
   font-weight: 600;
 }
 .fp-weather-temp {
-  color: #94a3b8;
+  color: var(--text-2);
   font-size: 13px;
 }
 .fp-weather-unavailable {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 13px;
   margin: 0;
   font-style: italic;
 }
 
-/* ── Rivalry card ─────────────────── */
+/* -- Rivalry card -- */
 .fp-rivalry-card {
   margin-bottom: 20px;
 }
 
 .fp-no-rivalry {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 13px;
   margin: 0;
   font-style: italic;
@@ -295,18 +296,18 @@
 }
 .fp-rival-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-3);
   text-align: center;
   max-width: 100px;
 }
 
 .fp-rival-home .fp-rival-count { color: #22d3ee; }
 .fp-rival-away .fp-rival-count { color: #f59e0b; }
-.fp-rival-draw .fp-rival-count { color: #64748b; }
+.fp-rival-draw .fp-rival-count { color: var(--text-3); }
 
 .fp-rival-total {
   text-align: center;
-  color: #64748b;
+  color: var(--text-3);
   font-size: 12px;
   margin-bottom: 16px;
 }
@@ -314,7 +315,7 @@
 /* Recent results */
 .fp-recent-title {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 10px 0;
@@ -326,8 +327,9 @@
   gap: 10px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #0f172a;
+  background: var(--surface-2);
   margin-bottom: 6px;
+  border: 1px solid var(--border);
 }
 
 .fp-recent-row-clickable {
@@ -336,19 +338,20 @@
 }
 
 .fp-recent-row-clickable:hover {
-  background: #1e293b;
+  background: var(--surface-hover);
 }
 
 .fp-recent-date {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 11px;
   min-width: 70px;
   flex-shrink: 0;
 }
 
 .fp-recent-format {
-  background: #1e293b;
-  color: #94a3b8;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
@@ -357,14 +360,14 @@
 }
 
 .fp-recent-summary {
-  color: #cbd5e1;
+  color: var(--text-1);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ── Action buttons ───────────────── */
+/* -- Action buttons -- */
 .fp-actions {
   display: flex;
   justify-content: center;
@@ -397,14 +400,14 @@
 }
 
 .fp-btn-accent {
-  background: #22d3ee;
-  color: #0a0f1a;
+  background: var(--accent);
+  color: #fff;
 }
 .fp-btn-accent:hover {
-  background: #06b6d4;
+  background: #059669;
 }
 
-/* ── Responsive ───────────────────── */
+/* -- Responsive -- */
 @media (max-width: 540px) {
   .fp-cards {
     grid-template-columns: 1fr;

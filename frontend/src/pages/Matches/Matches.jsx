@@ -191,7 +191,7 @@ export default function Matches() {
                         {m.homeTeamPicUrl ? (
                           <img
                             className="matches-team-logo"
-                            src={`http://localhost:8080/api/files/${m.homeTeamPicUrl}`}
+                            src={`/api/files/${m.homeTeamPicUrl}`}
                             alt={m.homeTeamName}
                           />
                         ) : (
@@ -211,7 +211,7 @@ export default function Matches() {
                         {m.awayTeamPicUrl ? (
                           <img
                             className="matches-team-logo"
-                            src={`http://localhost:8080/api/files/${m.awayTeamPicUrl}`}
+                            src={`/api/files/${m.awayTeamPicUrl}`}
                             alt={m.awayTeamName}
                           />
                         ) : (

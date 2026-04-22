@@ -32,7 +32,9 @@ import java.util.stream.Collectors;
 public class DevController {
 
     /** Must stay in sync with FixtureService / SeasonalUpdateService. */
-    private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
+    @org.springframework.beans.factory.annotation.Value("${app.season1-start}")
+    private String season1StartStr;
+    private LocalDate getSeason1Start() { return LocalDate.parse(season1StartStr); }
     private static final int SEASON_DAYS = 56;
 
     /** Parallel threads for simulation. Kept low to avoid deadlocks on shared team/player rows. */
@@ -65,6 +67,7 @@ public class DevController {
         }
 
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate SEASON_1_START = getSeason1Start();
         long daysSince = ChronoUnit.DAYS.between(SEASON_1_START, today);
         int currentSeason = 1 + (int) Math.max(0, daysSince / SEASON_DAYS);
         LocalDate seasonStart = SEASON_1_START.plusDays((long)(currentSeason - 1) * SEASON_DAYS);

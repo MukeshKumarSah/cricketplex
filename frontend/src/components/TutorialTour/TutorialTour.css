@@ -2,10 +2,10 @@
 
 /* Popover container */
 .driver-popover.tour-popover {
-  background: #1a1a2e;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-hover);
   border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(99, 102, 241, 0.12);
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(99, 102, 241, 0.1);
   padding: 0;
   max-width: 380px;
   font-family: inherit;
@@ -16,7 +16,7 @@
 .driver-popover.tour-popover .driver-popover-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-1);
   padding: 18px 20px 4px;
   margin: 0;
   background: transparent;
@@ -26,7 +26,7 @@
 .driver-popover.tour-popover .driver-popover-description {
   font-size: 0.88rem;
   line-height: 1.55;
-  color: #94a3b8;
+  color: var(--text-2);
   padding: 6px 20px 14px;
   margin: 0;
 }
@@ -34,7 +34,7 @@
 /* Progress text */
 .driver-popover.tour-popover .driver-popover-progress-text {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-3);
   padding: 0 20px;
   margin: 0 0 6px;
 }
@@ -42,7 +42,7 @@
 /* Footer / button area */
 .driver-popover.tour-popover .driver-popover-footer {
   padding: 10px 16px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -72,40 +72,38 @@
 
 /* Previous button */
 .driver-popover.tour-popover .driver-popover-prev-btn {
-  background: rgba(255, 255, 255, 0.06);
-  color: #94a3b8;
+  background: var(--surface-hover);
+  color: var(--text-2);
+  border: 1px solid var(--border);
 }
 .driver-popover.tour-popover .driver-popover-prev-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: var(--border);
+  color: var(--text-1);
 }
 
 /* Close button */
 .driver-popover.tour-popover .driver-popover-close-btn {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 1.1rem;
   top: 12px;
   right: 12px;
 }
 .driver-popover.tour-popover .driver-popover-close-btn:hover {
-  color: #e2e8f0;
+  color: var(--text-1);
 }
 
-/* Arrow */
-.driver-popover.tour-popover .driver-popover-arrow {
-  border-color: #1a1a2e;
+/* Arrow — must match popover background per side */
+.driver-popover.tour-popover .driver-popover-arrow-side-left .driver-popover-arrow {
+  border-left-color: var(--dropdown-bg);
 }
-.driver-popover.tour-popover .driver-popover-arrow-side-left {
-  border-left-color: #1a1a2e;
+.driver-popover.tour-popover .driver-popover-arrow-side-right .driver-popover-arrow {
+  border-right-color: var(--dropdown-bg);
 }
-.driver-popover.tour-popover .driver-popover-arrow-side-right {
-  border-right-color: #1a1a2e;
+.driver-popover.tour-popover .driver-popover-arrow-side-top .driver-popover-arrow {
+  border-top-color: var(--dropdown-bg);
 }
-.driver-popover.tour-popover .driver-popover-arrow-side-top {
-  border-top-color: #1a1a2e;
-}
-.driver-popover.tour-popover .driver-popover-arrow-side-bottom {
-  border-bottom-color: #1a1a2e;
+.driver-popover.tour-popover .driver-popover-arrow-side-bottom .driver-popover-arrow {
+  border-bottom-color: var(--dropdown-bg);
 }
 
 /* Overlay highlight ring */

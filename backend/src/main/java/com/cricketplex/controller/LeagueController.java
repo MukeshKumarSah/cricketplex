@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/leagues")
@@ -23,6 +24,7 @@ public class LeagueController {
     private final FixtureRepository fixtureRepository;
     private final MatchResultRepository matchResultRepository;
     private final BallEventRepository ballEventRepository;
+    private final LineupPlayerRepository lineupPlayerRepository;
     private final FixtureService fixtureService;
     private final MatchEngine matchEngine;
 
@@ -254,19 +256,25 @@ public class LeagueController {
             return ResponseEntity.ok(empty);
         }
 
+        // Build true "matches played" per player from lineup data
+        List<UUID> completedFixtureIds = completedResults.stream()
+                .map(mr -> mr.getFixture().getId()).collect(Collectors.toList());
+        Map<UUID, Set<UUID>> lineupMatchIds = new LinkedHashMap<>();
+        lineupPlayerRepository.findPlayerFixturePairsByFixtures(completedFixtureIds)
+                .forEach(row -> lineupMatchIds
+                        .computeIfAbsent((UUID) row[0], k -> new LinkedHashSet<>())
+                        .add((UUID) row[1]));
+
         // Track batting stats per player
         Map<UUID, BatAgg> batMap = new LinkedHashMap<>();
         // Track bowling stats per player
         Map<UUID, BowlAgg> bowlMap = new LinkedHashMap<>();
         // Track fielding stats per player
         Map<UUID, FieldAgg> fieldMap = new LinkedHashMap<>();
-        // Track matches per player per team
-        Map<UUID, Set<UUID>> playerMatches = new LinkedHashMap<>();
         // Track dot balls per batsman across innings
         Map<UUID, Integer> batsmanDots = new LinkedHashMap<>();
 
         for (MatchResult mr : completedResults) {
-            UUID matchId = mr.getFixture().getId();
             for (Innings inn : mr.getInningsList()) {
                 // Count dot balls per batsman from ball events
                 List<BallEvent> events = ballEventRepository
@@ -281,7 +289,6 @@ public class LeagueController {
                 // Batting
                 for (BattingScorecard bc : inn.getBattingCards()) {
                     UUID pid = bc.getPlayer().getId();
-                    playerMatches.computeIfAbsent(pid, k -> new HashSet<>()).add(matchId);
                     BatAgg agg = batMap.computeIfAbsent(pid, k -> new BatAgg(bc.getPlayer()));
                     agg.innings++;
                     agg.runs += bc.getRunsScored();
@@ -302,7 +309,6 @@ public class LeagueController {
                 // Bowling
                 for (BowlingScorecard bwc : inn.getBowlingCards()) {
                     UUID pid = bwc.getPlayer().getId();
-                    playerMatches.computeIfAbsent(pid, k -> new HashSet<>()).add(matchId);
                     BowlAgg agg = bowlMap.computeIfAbsent(pid, k -> new BowlAgg(bwc.getPlayer()));
                     agg.innings++;
                     agg.overs += bwc.getOvers();
@@ -326,7 +332,6 @@ public class LeagueController {
 
                     if (bc.getFielder() != null) {
                         UUID fid = bc.getFielder().getId();
-                        playerMatches.computeIfAbsent(fid, k -> new HashSet<>()).add(matchId);
                         FieldAgg fagg = fieldMap.computeIfAbsent(fid, k -> new FieldAgg(bc.getFielder()));
 
                         if ("CAUGHT".equals(dismissal) || "C&B".equals(dismissal)) {
@@ -346,7 +351,7 @@ public class LeagueController {
         // Build batting response sorted by runs DESC
         List<Map<String, Object>> batting = new ArrayList<>();
         for (BatAgg agg : batMap.values()) {
-            int matches = playerMatches.getOrDefault(agg.player.getId(), Set.of()).size();
+            int matches = lineupMatchIds.getOrDefault(agg.player.getId(), Set.of()).size();
             int dismissals = agg.innings - agg.notOuts;
             double avg = dismissals > 0 ? (double) agg.runs / dismissals : (agg.runs > 0 ? agg.runs : 0);
             double sr = agg.balls > 0 ? (double) agg.runs / agg.balls * 100.0 : 0;
@@ -380,7 +385,7 @@ public class LeagueController {
         List<Map<String, Object>> bowling = new ArrayList<>();
         for (BowlAgg agg : bowlMap.values()) {
             if (agg.innings == 0) continue;
-            int matches = playerMatches.getOrDefault(agg.player.getId(), Set.of()).size();
+            int matches = lineupMatchIds.getOrDefault(agg.player.getId(), Set.of()).size();
             int totalBalls = oversToTotalBalls(agg.overs);
             double economy = totalBalls > 0 ? agg.runs / (totalBalls / 6.0) : 0;
             double avg = agg.wickets > 0 ? (double) agg.runs / agg.wickets : 0;
@@ -411,9 +416,9 @@ public class LeagueController {
         // Build fielding response sorted by total dismissals DESC
         List<Map<String, Object>> fielding = new ArrayList<>();
         for (FieldAgg agg : fieldMap.values()) {
-            int matches = playerMatches.getOrDefault(agg.player.getId(), Set.of()).size();
             int total = agg.fielderCatches + agg.keeperCatches + agg.keeperStumpings + agg.runouts;
             if (total == 0) continue;
+            int matches = lineupMatchIds.getOrDefault(agg.player.getId(), Set.of()).size();
 
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("playerId", agg.player.getId());

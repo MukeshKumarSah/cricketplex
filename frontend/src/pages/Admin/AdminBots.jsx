@@ -144,7 +144,7 @@ export default function AdminBots() {
                       <div className="tl-team-info">
                         {team.teamProfilePicUrl ? (
                           <img
-                            src={`http://localhost:8080/api/files/${team.teamProfilePicUrl}`}
+                            src={`/api/files/${team.teamProfilePicUrl}`}
                             alt=""
                             className="tl-team-avatar"
                           />

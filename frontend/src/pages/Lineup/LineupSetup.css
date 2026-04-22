@@ -1,4 +1,4 @@
-/* ── Lineup Setup Page ── */
+/* -- Lineup Setup Page -- */
 
 .lu-page {
   display: flex;
@@ -9,20 +9,21 @@
 
 .lu-loading {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-3);
   padding: 3rem;
   font-size: 1rem;
 }
 
-/* ═══ Match Info Header ═══ */
+/* --- Match Info Header --- */
 .lu-match-info {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.5rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .lu-mi-teams {
@@ -37,32 +38,32 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #475569;
+  border: 1px solid var(--border);
 }
 
 .lu-mi-initials {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #334155;
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-3);
 }
 
 .lu-mi-team-name {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
 }
 
 .lu-mi-vs {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
 }
 
@@ -86,19 +87,19 @@
 .lu-mi-league-link {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #0ea5e9;
+  color: var(--accent);
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .lu-mi-league-link:hover {
-  color: #38bdf8;
+  opacity: 0.8;
   text-decoration: underline;
 }
 
 .lu-mi-detail {
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: var(--text-3);
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -106,12 +107,12 @@
 
 .lu-mi-weather {
   font-size: 0.82rem;
-  color: #e2e8f0;
+  color: var(--text-2);
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid #334155;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.3rem 0.6rem;
   margin-top: 0.2rem;
@@ -122,24 +123,25 @@
 }
 
 .lu-mi-weather-na {
-  color: #64748b;
+  color: var(--text-3);
   font-style: italic;
   background: transparent;
   border-color: transparent;
 }
 
-/* ═══ Section Container ═══ */
+/* --- Section Container --- */
 .lu-section {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .lu-section-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-1);
   margin: 0 0 1rem;
   display: flex;
   align-items: center;
@@ -148,10 +150,10 @@
 
 .lu-section-title svg {
   font-size: 1.15rem;
-  color: #0ea5e9;
+  color: var(--accent);
 }
 
-/* ═══ Batting Lineup Grid ═══ */
+/* --- Batting Lineup Grid --- */
 .lu-batting-grid {
   display: flex;
   flex-direction: column;
@@ -162,11 +164,11 @@
   grid-template-columns: 36px 1fr 60px 110px 60px 80px;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: #0f172a;
+  background: var(--surface-2);
   border-radius: 8px 8px 0 0;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -177,7 +179,7 @@
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   align-items: center;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  border-bottom: 1px solid var(--border);
   min-height: 40px;
 }
 
@@ -186,13 +188,13 @@
 }
 
 .lu-empty-slot {
-  background: rgba(15, 23, 42, 0.3);
+  opacity: 0.6;
 }
 
 .lu-br-pos {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-3);
   text-align: center;
 }
 
@@ -203,7 +205,7 @@
 .lu-br-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -213,16 +215,16 @@
   width: 100%;
   padding: 0.3rem 0.5rem;
   font-size: 0.78rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--input-bg);
+  color: var(--text-2);
   cursor: pointer;
 }
 
 .lu-player-select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--accent);
 }
 
 .lu-br-role {
@@ -286,9 +288,9 @@
 
 .lu-move-btn {
   background: none;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #64748b;
+  color: var(--text-3);
   padding: 0.15rem;
   cursor: pointer;
   display: flex;
@@ -298,8 +300,8 @@
 }
 
 .lu-move-btn:hover:not(:disabled) {
-  border-color: #0ea5e9;
-  color: #0ea5e9;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .lu-move-btn:disabled {
@@ -322,7 +324,7 @@
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* ─── Captain & Keeper Row ─── */
+/* --- Captain & Keeper Row --- */
 .lu-ck-row {
   display: flex;
   gap: 1.5rem;
@@ -339,7 +341,7 @@
 .lu-ck-item label {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -347,19 +349,19 @@
 .lu-ck-item select {
   padding: 0.35rem 0.6rem;
   font-size: 0.82rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--input-bg);
+  color: var(--text-1);
   cursor: pointer;
 }
 
 .lu-ck-item select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--accent);
 }
 
-/* ═══ Toss Section ═══ */
+/* --- Toss Section --- */
 .lu-toss-row {
   display: flex;
   gap: 2rem;
@@ -375,7 +377,7 @@
 .lu-toss-group label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -389,26 +391,26 @@
   padding: 0.4rem 1rem;
   font-size: 0.82rem;
   font-weight: 600;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--surface-2);
+  color: var(--text-3);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .lu-toss-btn:hover {
-  border-color: #475569;
-  color: #e2e8f0;
+  border-color: var(--border-hover);
+  color: var(--text-2);
 }
 
 .lu-toss-btn.active {
-  background: rgba(14, 165, 233, 0.15);
-  border-color: #0ea5e9;
-  color: #0ea5e9;
+  background: var(--accent-surface);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
-/* ═══ Bowling Plan ═══ */
+/* --- Bowling Plan --- */
 .lu-bowling-tabs {
   display: flex;
   gap: 0.35rem;
@@ -420,22 +422,22 @@
   padding: 0.4rem 0.85rem;
   font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #0f172a;
-  color: #94a3b8;
+  background: var(--surface-2);
+  color: var(--text-3);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .lu-bowl-tab:hover {
-  border-color: #475569;
-  color: #e2e8f0;
+  border-color: var(--border-hover);
+  color: var(--text-2);
 }
 
 .lu-bowl-tab.active {
-  background: #0ea5e9;
-  border-color: #0ea5e9;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -448,7 +450,7 @@
 
 .lu-template-note {
   font-size: 0.82rem;
-  color: #64748b;
+  color: var(--text-3);
   margin: 0;
 }
 
@@ -467,7 +469,7 @@
 .lu-bowler-num {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #0ea5e9;
+  color: var(--accent);
   width: 30px;
   text-align: center;
 }
@@ -477,16 +479,16 @@
   max-width: 360px;
   padding: 0.35rem 0.6rem;
   font-size: 0.82rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--input-border);
   border-radius: 6px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--input-bg);
+  color: var(--text-1);
   cursor: pointer;
 }
 
 .lu-bowler-slot select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--accent);
 }
 
 /* Template preview */
@@ -497,7 +499,7 @@
 .lu-preview-title {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.5rem;
@@ -514,8 +516,8 @@
   flex-direction: column;
   align-items: center;
   padding: 0.3rem;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 6px;
   gap: 0.1rem;
 }
@@ -523,20 +525,20 @@
 .lu-over-num {
   font-size: 0.6rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-3);
 }
 
 .lu-over-bowler {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
 
-/* Custom Bowling — 5 per row */
+/* Custom Bowling � 5 per row */
 .lu-custom-bowling {
   display: flex;
   flex-direction: column;
@@ -555,32 +557,32 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.4rem 0.3rem;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
 .lu-co-num {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-3);
 }
 
 .lu-co-bowler {
   width: 100%;
   padding: 0.2rem 0.25rem;
   font-size: 0.72rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--input-border);
   border-radius: 5px;
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--input-bg);
+  color: var(--text-1);
   cursor: pointer;
   text-align: center;
 }
 
 .lu-co-bowler:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--accent);
 }
 
 .lu-co-agg {
@@ -593,10 +595,10 @@
   height: 22px;
   font-size: 0.6rem;
   font-weight: 700;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  background: #1e293b;
-  color: #64748b;
+  background: var(--surface-2);
+  color: var(--text-3);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -606,13 +608,13 @@
 }
 
 .lu-co-agg-btn:hover {
-  border-color: #475569;
-  color: #e2e8f0;
+  border-color: var(--border-hover);
+  color: var(--text-2);
 }
 
 .lu-co-agg-btn.active {
-  background: #0ea5e9;
-  border-color: #0ea5e9;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -634,7 +636,7 @@
   }
 }
 
-/* ═══ FC Bowling: 100-over grid ═══ */
+/* --- FC Bowling: 100-over grid --- */
 .lu-fc-bowling {
   display: flex;
   flex-direction: column;
@@ -652,17 +654,17 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.6rem;
-  background: #0f172a;
-  border: 2px solid #1e293b;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .lu-fc-row:hover {
-  background: #1e293b;
+  border-color: var(--border-hover);
 }
 .lu-fc-row.lu-fc-active {
-  background: #1e293b;
+  border-color: var(--accent-border);
 }
 .lu-fc-row.lu-fc-eraser {
   opacity: 0.7;
@@ -682,7 +684,7 @@
 .lu-fc-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-2);
   min-width: 28px;
 }
 
@@ -691,15 +693,15 @@
   min-width: 0;
   padding: 0.25rem 0.4rem;
   font-size: 0.75rem;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--text-1);
   cursor: pointer;
 }
 .lu-fc-select:focus {
   outline: none;
-  border-color: #0ea5e9;
+  border-color: var(--accent);
 }
 
 .lu-fc-agg-btns {
@@ -712,11 +714,12 @@
   font-weight: 700;
   min-width: 36px;
   text-align: right;
+  color: var(--text-2);
 }
 
 .lu-fc-remove-btn {
   background: none;
-  border: 1px solid #475569;
+  border: 1px solid var(--border);
   color: #ef4444;
   font-size: 1rem;
   font-weight: 700;
@@ -733,14 +736,14 @@
   flex-shrink: 0;
 }
 .lu-fc-remove-btn:hover {
-  background: #ef444420;
+  background: rgba(239, 68, 68, 0.1);
   border-color: #ef4444;
 }
 
 .lu-fc-add-btn {
-  background: #1e293b;
-  border: 2px dashed #334155;
-  color: #94a3b8;
+  background: var(--surface-2);
+  border: 2px dashed var(--border);
+  color: var(--text-3);
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
   font-size: 0.78rem;
@@ -749,12 +752,12 @@
   transition: all 0.15s;
 }
 .lu-fc-add-btn:hover {
-  border-color: #22d3ee;
-  color: #22d3ee;
-  background: #22d3ee10;
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-surface);
 }
 
-/* 10×10 grid */
+/* 10�10 grid */
 .lu-fc-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -767,8 +770,8 @@
   align-items: center;
   justify-content: center;
   padding: 0.3rem 0.15rem;
-  background: #0f172a;
-  border: 2px solid #1e293b;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.1s;
@@ -776,7 +779,7 @@
   user-select: none;
 }
 .lu-fc-cell:hover {
-  border-color: #475569;
+  border-color: var(--border-hover);
   transform: scale(1.05);
 }
 .lu-fc-cell.lu-fc-filled {
@@ -784,13 +787,13 @@
 }
 .lu-fc-cell.lu-fc-err {
   border-color: #ef4444 !important;
-  box-shadow: 0 0 6px #ef444480;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
 .lu-fc-num {
   font-size: 0.6rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-3);
   line-height: 1;
 }
 
@@ -819,18 +822,18 @@
   align-items: center;
   gap: 1rem;
   padding: 0.4rem 0.6rem;
-  background: #0f172a;
+  background: var(--surface-2);
   border-radius: 8px;
   font-size: 0.78rem;
 }
 
 .lu-fc-assigned {
-  color: #94a3b8;
+  color: var(--text-2);
   font-weight: 600;
 }
 
 .lu-fc-hint {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 0.72rem;
   font-style: italic;
 }
@@ -841,7 +844,7 @@
   }
 }
 
-/* ═══ FC Strategy Section ═══ */
+/* --- FC Strategy Section --- */
 .lu-fc-strategy {
   display: flex;
   flex-direction: column;
@@ -859,7 +862,7 @@
   min-width: 200px;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-2);
   padding-top: 0.5rem;
 }
 
@@ -871,9 +874,9 @@
 }
 
 .lu-fc-strat-input input {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #f8fafc;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-1);
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -882,12 +885,12 @@
 
 .lu-fc-strat-input input:focus {
   outline: none;
-  border-color: #34d399;
+  border-color: var(--accent);
 }
 
 .lu-fc-strat-hint {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-3);
   font-style: italic;
 }
 
@@ -899,18 +902,18 @@
 .lu-fc-strat-btn {
   padding: 0.45rem 1rem;
   border-radius: 8px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #94a3b8;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-3);
   font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .lu-fc-strat-btn.active {
-  background: #065f46;
-  border-color: #34d399;
-  color: #34d399;
+  background: var(--accent-surface);
+  border-color: var(--accent-border);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -927,7 +930,7 @@
   }
 }
 
-/* ═══ Squad Player Pool ═══ */
+/* --- Squad Player Pool --- */
 .lu-pool-table {
   overflow-x: auto;
 }
@@ -937,11 +940,11 @@
   grid-template-columns: 1fr 60px 45px 45px 45px 45px 45px 45px 120px 60px;
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
-  background: #0f172a;
+  background: var(--surface-2);
   border-radius: 8px 8px 0 0;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   min-width: 700px;
@@ -958,11 +961,11 @@
 }
 
 .lu-sortable:hover {
-  color: #e2e8f0;
+  color: var(--text-1);
 }
 
 .lu-sort-active {
-  color: #0ea5e9;
+  color: var(--accent);
 }
 
 .lu-pool-row {
@@ -971,24 +974,24 @@
   gap: 0.4rem;
   padding: 0.4rem 0.75rem;
   align-items: center;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s;
   min-width: 700px;
 }
 
 .lu-pool-row:hover {
-  background: rgba(14, 165, 233, 0.04);
+  background: var(--surface-hover);
 }
 
 .lu-pool-selected {
-  background: rgba(14, 165, 233, 0.06);
-  border-left: 3px solid #0ea5e9;
+  background: var(--accent-surface);
+  border-left: 3px solid var(--accent);
 }
 
 .lu-pr-name {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1002,7 +1005,7 @@
 .lu-pr-stat {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-2);
   text-align: center;
 }
 
@@ -1012,7 +1015,7 @@
 
 .lu-pr-style {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1033,7 +1036,7 @@
   letter-spacing: 0.04em;
 }
 
-/* ═══ Save Bar ═══ */
+/* --- Save Bar --- */
 .lu-save-bar {
   display: flex;
   align-items: center;
@@ -1046,7 +1049,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #94a3b8;
+  color: var(--text-3);
   font-size: 0.85rem;
   cursor: pointer;
   user-select: none;
@@ -1054,7 +1057,7 @@
 .lu-default-check input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #0ea5e9;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -1062,7 +1065,7 @@
   padding: 0.6rem 2rem;
   font-size: 0.9rem;
   font-weight: 700;
-  background: #0ea5e9;
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -1071,7 +1074,7 @@
 }
 
 .lu-save-btn:hover:not(:disabled) {
-  background: #0284c7;
+  opacity: 0.88;
 }
 
 .lu-save-btn:disabled {
@@ -1079,7 +1082,7 @@
   cursor: default;
 }
 
-/* ═══ Responsive ═══ */
+/* --- Responsive --- */
 @media (max-width: 768px) {
   .lu-batting-head,
   .lu-batting-row {

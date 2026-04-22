@@ -148,7 +148,7 @@ export default function Search() {
               >
                 <div className="search-card-avatar">
                   {m.profilePicUrl ? (
-                    <img src={`http://localhost:8080/api/files/${m.profilePicUrl}`} alt={m.name} />
+                    <img src={`/api/files/${m.profilePicUrl}`} alt={m.name} />
                   ) : (
                     <span className="search-card-initials">
                       {m.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -206,7 +206,7 @@ export default function Search() {
               >
                 <div className="search-card-avatar">
                   {t.teamProfilePicUrl ? (
-                    <img src={`http://localhost:8080/api/files/${t.teamProfilePicUrl}`} alt={t.teamName} />
+                    <img src={`/api/files/${t.teamProfilePicUrl}`} alt={t.teamName} />
                   ) : (
                     <span className="search-card-initials">
                       {t.teamName?.slice(0, 2).toUpperCase()}

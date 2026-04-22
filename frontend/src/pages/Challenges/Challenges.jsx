@@ -247,7 +247,7 @@ export default function Challenges() {
                   <div className="challenge-team">
                     {c.challengerTeamPic ? (
                       <img
-                        src={`http://localhost:8080/api/files/${c.challengerTeamPic}`}
+                        src={`/api/files/${c.challengerTeamPic}`}
                         alt=""
                         className="challenge-team-logo"
                       />
@@ -262,7 +262,7 @@ export default function Challenges() {
                   <div className="challenge-team">
                     {c.challengedTeamPic ? (
                       <img
-                        src={`http://localhost:8080/api/files/${c.challengedTeamPic}`}
+                        src={`/api/files/${c.challengedTeamPic}`}
                         alt=""
                         className="challenge-team-logo"
                       />

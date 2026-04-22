@@ -1,3 +1,7 @@
+/* -------------------------------------------
+   LEAGUE PAGE � CSS Variables
+   ------------------------------------------- */
+
 .lp-page {
   display: flex;
   flex-direction: column;
@@ -7,49 +11,51 @@
 
 .lp-loading {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-3);
   padding: 3rem;
   font-size: 1rem;
 }
 
-/* ── Header ── */
+/* -- Header -- */
 .lp-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.75rem 2rem;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .lp-header-icon {
   font-size: 2rem;
-  color: #0ea5e9;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
 .lp-header h1 {
   font-size: 1.45rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
   margin: 0;
 }
 
 .lp-subtitle {
   font-size: 0.88rem;
-  color: #94a3b8;
+  color: var(--text-2);
   margin: 0.25rem 0 0;
 }
 
-/* ── Tabs ── */
+/* -- Tabs -- */
 .lp-tabs {
   display: flex;
   gap: 0.5rem;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .lp-tab {
@@ -62,7 +68,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-3);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -70,12 +76,12 @@
 }
 
 .lp-tab:hover {
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-2);
+  background: var(--surface-hover);
 }
 
 .lp-tab.active {
-  background: #0ea5e9;
+  background: var(--accent);
   color: #fff;
 }
 
@@ -83,15 +89,16 @@
   font-size: 1.15rem;
 }
 
-/* ── Content ── */
+/* -- Content -- */
 .lp-content {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
-/* ── Points Table ── */
+/* -- Points Table -- */
 .lp-standings {
   overflow-x: auto;
 }
@@ -103,18 +110,18 @@
 }
 
 .lp-table thead {
-  background: #0f172a;
+  background: var(--surface-2);
 }
 
 .lp-table th {
   padding: 0.85rem 1rem;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-3);
   font-weight: 600;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
@@ -130,12 +137,12 @@
 .lp-table td {
   padding: 0.75rem 1rem;
   text-align: center;
-  color: #e2e8f0;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  color: var(--text-1);
+  border-bottom: 1px solid var(--border);
 }
 
 .lp-table tbody tr:hover {
-  background: rgba(14, 165, 233, 0.05);
+  background: var(--surface-hover);
 }
 
 .lp-table tbody tr:last-child td {
@@ -145,7 +152,7 @@
 /* Position column */
 .lp-td-pos {
   font-weight: 700;
-  color: #0ea5e9;
+  color: var(--accent);
 }
 
 /* Team cell */
@@ -164,34 +171,34 @@
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #475569;
+  border: 1px solid var(--border);
 }
 
 .lp-team-initials {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #334155;
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-3);
   flex-shrink: 0;
 }
 
 .lp-team-name {
   font-weight: 500;
-  color: #f1f5f9;
+  color: var(--text-1);
   white-space: nowrap;
 }
 
 .lp-bot-badge {
   font-size: 0.65rem;
   font-weight: 700;
-  color: #0ea5e9;
-  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent);
+  background: var(--accent-surface);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
   letter-spacing: 0.04em;
@@ -200,26 +207,27 @@
 /* Points column */
 .lp-td-pts {
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
 }
 
 /* NRR column */
 .lp-td-nrr {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--text-2);
 }
 
-/* ── Fixtures ── */
+/* -- Fixtures -- */
 .lp-fixtures {
   padding: 1rem;
 }
 
 .lp-fixture-table {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Table header */
@@ -228,11 +236,11 @@
   grid-template-columns: 1fr 180px;
   gap: 1rem;
   padding: 0.65rem 1.25rem;
-  background: #0f172a;
-  border-bottom: 1px solid #334155;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
   font-size: 0.72rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -243,22 +251,22 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.45rem 1.25rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-  border-top: 1px solid rgba(51, 65, 85, 0.3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .lp-ft-round-label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .lp-ft-round-meta {
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-3);
 }
 
 .lp-ft-round-time {
@@ -272,7 +280,7 @@
   gap: 1rem;
   padding: 0.7rem 1.25rem;
   align-items: center;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.35);
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -282,7 +290,7 @@
 }
 
 .lp-ft-row:hover {
-  background: rgba(14, 165, 233, 0.06);
+  background: var(--surface-hover);
 }
 
 /* Fixture column */
@@ -306,7 +314,7 @@
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #475569;
+  border: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -314,20 +322,20 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #334155;
+  background: var(--surface-2);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.6rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-3);
   flex-shrink: 0;
 }
 
 .lp-ft-name {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #cbd5e1;
+  color: var(--text-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -336,8 +344,8 @@
 .lp-ft-bot {
   font-size: 0.55rem;
   font-weight: 700;
-  color: #0ea5e9;
-  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent);
+  background: var(--accent-surface);
   padding: 0.05rem 0.3rem;
   border-radius: 3px;
   letter-spacing: 0.04em;
@@ -347,7 +355,7 @@
 .lp-ft-vs {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
   flex-shrink: 0;
 }
@@ -361,7 +369,7 @@
 .lp-ft-result {
   font-size: 0.78rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-2);
 }
 
 .lp-ft-pill {
@@ -382,9 +390,9 @@
 }
 
 .lp-ft-pill-scheduled {
-  color: #64748b;
-  background: rgba(100, 116, 139, 0.1);
-  border-color: rgba(100, 116, 139, 0.2);
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--border);
 }
 
 @keyframes lp-pulse {
@@ -392,14 +400,14 @@
   50% { opacity: 0.5; }
 }
 
-/* ── Coming Soon Placeholder ── */
+/* -- Coming Soon Placeholder -- */
 .lp-coming-soon {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  color: #64748b;
+  color: var(--text-3);
   gap: 0.75rem;
 }
 
@@ -413,7 +421,7 @@
   font-size: 1rem;
 }
 
-/* ── Stats Tab ── */
+/* -- Stats Tab -- */
 .lp-stats {
   padding: 1rem;
 }
@@ -422,8 +430,8 @@
   display: flex;
   gap: 0.4rem;
   margin-bottom: 1rem;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.35rem;
 }
@@ -434,7 +442,7 @@
   border: none;
   border-radius: 7px;
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-3);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -442,18 +450,18 @@
 }
 
 .lp-stat-tab:hover {
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-2);
+  background: var(--surface-hover);
 }
 
 .lp-stat-tab.active {
-  background: #22d3ee;
-  color: #0f172a;
+  background: var(--accent);
+  color: #fff;
 }
 
 .lp-stat-table-wrap {
   overflow-x: auto;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 10px;
 }
 
@@ -465,29 +473,29 @@
 }
 
 .lp-stat-table thead {
-  background: #0f172a;
+  background: var(--surface-2);
 }
 
 .lp-stat-table th {
   padding: 0.7rem 0.55rem;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-3);
   font-weight: 600;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border);
 }
 
 .lp-stat-table td {
   padding: 0.55rem 0.55rem;
   text-align: center;
-  color: #cbd5e1;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
 }
 
 .lp-stat-table tbody tr:hover {
-  background: rgba(14, 165, 233, 0.05);
+  background: var(--surface-hover);
 }
 
 .lp-stat-table tbody tr:last-child td {
@@ -497,19 +505,19 @@
 .lp-st-pos {
   width: 40px;
   font-weight: 700;
-  color: #0ea5e9 !important;
+  color: var(--accent) !important;
 }
 
 .lp-st-player {
   text-align: left !important;
   font-weight: 500;
-  color: #f1f5f9 !important;
+  color: var(--text-1) !important;
   min-width: 140px;
 }
 
 .lp-st-team {
   text-align: left !important;
-  color: #94a3b8 !important;
+  color: var(--text-3) !important;
   font-size: 0.75rem;
   min-width: 100px;
 }

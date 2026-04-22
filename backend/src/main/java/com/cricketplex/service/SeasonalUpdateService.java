@@ -61,7 +61,9 @@ public class SeasonalUpdateService {
 
     private static final String PRIZE_KEY = "last_seasonal_prize_season";
     private static final String TRANSITION_KEY = "last_seasonal_transition_season";
-    private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
+    @org.springframework.beans.factory.annotation.Value("${app.season1-start}")
+    private String season1StartStr;
+    private LocalDate getSeason1Start() { return LocalDate.parse(season1StartStr); }
     private static final int SEASON_DAYS = 56;
 
     private static final long[] PRIZE_BY_POSITION = {
@@ -94,7 +96,7 @@ public class SeasonalUpdateService {
     @Transactional
     public void applyMissedUpdates() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
-        long daysSinceStart = ChronoUnit.DAYS.between(SEASON_1_START, today);
+        long daysSinceStart = ChronoUnit.DAYS.between(getSeason1Start(), today);
         if (daysSinceStart < 52) return;
 
         int latestPrizeSeason = 1 + (int) ((daysSinceStart - 52) / SEASON_DAYS);

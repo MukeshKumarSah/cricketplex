@@ -48,10 +48,9 @@ public class FitnessRecoveryService {
 
     @Scheduled(cron = "0 15 0 * * *", zone = "UTC")
     public void scheduledRecovery() {
-        applyMissedDays();
+        txTemplate.executeWithoutResult(status -> applyMissedDays());
     }
 
-    @Transactional
     public void applyMissedDays() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         AppState state = appStateRepository.findById(KEY).orElse(null);

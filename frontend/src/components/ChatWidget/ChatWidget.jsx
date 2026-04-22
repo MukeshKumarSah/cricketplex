@@ -3,6 +3,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
+import { WS_URL } from '../../api/config';
 import {
   HiOutlineChatBubbleLeftRight,
   HiOutlineXMark,
@@ -74,7 +75,7 @@ export default function ChatWidget() {
     if (!user) return;
 
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(WS_URL),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/chat/${user.id}`, (message) => {

@@ -21,6 +21,7 @@ public class StatsController {
     private final PlayerRepository playerRepository;
     private final BattingScorecardRepository battingScorecardRepository;
     private final BowlingScorecardRepository bowlingScorecardRepository;
+    private final LineupPlayerRepository lineupPlayerRepository;
 
     @GetMapping
     public ResponseEntity<?> getTeamStats(
@@ -68,6 +69,19 @@ public class StatsController {
         Map<UUID, List<BattingScorecard>> fldByPlayer = filteredFld.stream()
                 .collect(Collectors.groupingBy(bs -> bs.getFielder().getId(), LinkedHashMap::new, Collectors.toList()));
 
+        // Build true "matches played" per player from lineup data
+        Set<UUID> allFixtureIds = new LinkedHashSet<>();
+        filteredBat.forEach(bs -> allFixtureIds.add(bs.getInnings().getMatchResult().getFixture().getId()));
+        filteredBowl.forEach(bs -> allFixtureIds.add(bs.getInnings().getMatchResult().getFixture().getId()));
+        Map<UUID, Set<UUID>> playerMatchIds = new LinkedHashMap<>();
+        if (!allFixtureIds.isEmpty()) {
+            lineupPlayerRepository
+                    .findPlayerFixturePairsByTeamAndFixtures(team.getId(), allFixtureIds)
+                    .forEach(row -> playerMatchIds
+                            .computeIfAbsent((UUID) row[0], k -> new LinkedHashSet<>())
+                            .add((UUID) row[1]));
+        }
+
         // Build per-player stats
         List<Map<String, Object>> battingStats = new ArrayList<>();
         List<Map<String, Object>> bowlingStats = new ArrayList<>();
@@ -79,12 +93,13 @@ public class StatsController {
             base.put("id", pid);
             base.put("name", p.getFirstName() + " " + p.getLastName());
             base.put("role", p.getRole());
+            int totalMatches = playerMatchIds.getOrDefault(pid, Set.of()).size();
 
             // Batting
             List<BattingScorecard> pBat = batByPlayer.getOrDefault(pid, List.of());
             if (!pBat.isEmpty()) {
                 Map<String, Object> row = new LinkedHashMap<>(base);
-                row.putAll(buildBattingStats(pBat));
+                row.putAll(buildBattingStats(pBat, totalMatches));
                 battingStats.add(row);
             }
 
@@ -92,7 +107,7 @@ public class StatsController {
             List<BowlingScorecard> pBowl = bowlByPlayer.getOrDefault(pid, List.of());
             if (!pBowl.isEmpty()) {
                 Map<String, Object> row = new LinkedHashMap<>(base);
-                row.putAll(buildBowlingStats(pBowl));
+                row.putAll(buildBowlingStats(pBowl, totalMatches));
                 bowlingStats.add(row);
             }
 
@@ -100,7 +115,7 @@ public class StatsController {
             List<BattingScorecard> pFld = fldByPlayer.getOrDefault(pid, List.of());
             if (!pFld.isEmpty()) {
                 Map<String, Object> row = new LinkedHashMap<>(base);
-                row.putAll(buildFieldingStats(pFld));
+                row.putAll(buildFieldingStats(pFld, totalMatches));
                 fieldingStats.add(row);
             }
         }
@@ -126,16 +141,14 @@ public class StatsController {
         return f.getFormat() != null ? f.getFormat() : "T20";
     }
 
-    private Map<String, Object> buildBattingStats(List<BattingScorecard> cards) {
+    private Map<String, Object> buildBattingStats(List<BattingScorecard> cards, int matchCount) {
         Map<String, Object> s = new LinkedHashMap<>();
-        Set<UUID> matchIds = new LinkedHashSet<>();
         int totalRuns = 0, totalBalls = 0, totalFours = 0, totalSixes = 0;
         int highest = 0;
         boolean highestNotOut = false;
         int innings = 0, notOuts = 0, fifties = 0, hundreds = 0;
 
         for (BattingScorecard bc : cards) {
-            matchIds.add(bc.getInnings().getMatchResult().getId());
             innings++;
             boolean isNotOut = bc.getDismissalType() == null || bc.getDismissalType().isEmpty();
             if (isNotOut) notOuts++;
@@ -156,7 +169,7 @@ public class StatsController {
         double avg = dismissals > 0 ? Math.round(totalRuns * 100.0 / dismissals) / 100.0 : totalRuns;
         double sr = totalBalls > 0 ? Math.round(totalRuns * 10000.0 / totalBalls) / 100.0 : 0;
 
-        s.put("matches", matchIds.size());
+        s.put("matches", matchCount);
         s.put("innings", innings);
         s.put("notOuts", notOuts);
         s.put("runs", totalRuns);
@@ -170,15 +183,13 @@ public class StatsController {
         return s;
     }
 
-    private Map<String, Object> buildBowlingStats(List<BowlingScorecard> cards) {
+    private Map<String, Object> buildBowlingStats(List<BowlingScorecard> cards, int matchCount) {
         Map<String, Object> s = new LinkedHashMap<>();
-        Set<UUID> matchIds = new LinkedHashSet<>();
         int totalBalls = 0, totalRuns = 0, totalWickets = 0, totalMaidens = 0;
         int bestWickets = 0, bestRuns = Integer.MAX_VALUE;
         int fiveWickets = 0, threeWickets = 0;
 
         for (BowlingScorecard bc : cards) {
-            matchIds.add(bc.getInnings().getMatchResult().getId());
             totalBalls += oversToBalls(bc.getOvers());
             totalRuns += bc.getRunsConceded();
             totalWickets += bc.getWickets();
@@ -196,7 +207,7 @@ public class StatsController {
         double avg = totalWickets > 0 ? Math.round(totalRuns * 100.0 / totalWickets) / 100.0 : 0;
         double sr = totalWickets > 0 ? Math.round(totalBalls * 100.0 / totalWickets) / 100.0 : 0;
 
-        s.put("matches", matchIds.size());
+        s.put("matches", matchCount);
         s.put("innings", cards.size());
         s.put("overs", ballsToOvers(totalBalls));
         s.put("runs", totalRuns);
@@ -211,13 +222,11 @@ public class StatsController {
         return s;
     }
 
-    private Map<String, Object> buildFieldingStats(List<BattingScorecard> cards) {
+    private Map<String, Object> buildFieldingStats(List<BattingScorecard> cards, int matchCount) {
         Map<String, Object> s = new LinkedHashMap<>();
-        Set<UUID> matchIds = new LinkedHashSet<>();
         int catches = 0, stumpings = 0, runOuts = 0, caughtBehind = 0;
 
         for (BattingScorecard bc : cards) {
-            matchIds.add(bc.getInnings().getMatchResult().getId());
             String dt = bc.getDismissalType();
             if (dt == null) continue;
             switch (dt) {
@@ -228,7 +237,7 @@ public class StatsController {
             }
         }
 
-        s.put("matches", matchIds.size());
+        s.put("matches", matchCount);
         s.put("catches", catches + caughtBehind);
         s.put("stumpings", stumpings);
         s.put("runOuts", runOuts);

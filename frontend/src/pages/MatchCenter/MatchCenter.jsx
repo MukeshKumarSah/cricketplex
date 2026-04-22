@@ -11,8 +11,7 @@ import {
   HiOutlineUserGroup,
 } from 'react-icons/hi2';
 import './MatchCenter.css';
-
-const API_BASE = 'http://localhost:8080/api/files/';
+import { fileUrl } from '../../api/config';
 
 /* ─── helpers ─── */
 function buildBatsmenMap(balls) {
@@ -676,7 +675,7 @@ export default function MatchCenter() {
           <div className="mc-teams-row">
             <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.homeTeamId}`)}>
               {result.homeTeamPicUrl ? (
-                <img src={`${API_BASE}${result.homeTeamPicUrl}`} alt="" className="mc-team-logo" />
+                <img src={fileUrl(result.homeTeamPicUrl)} alt="" className="mc-team-logo" />
               ) : (
                 <span className="mc-team-initials">{result.homeTeamName?.slice(0, 2).toUpperCase()}</span>
               )}
@@ -685,7 +684,7 @@ export default function MatchCenter() {
             <span className="mc-vs">vs</span>
             <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.awayTeamId}`)}>
               {result.awayTeamPicUrl ? (
-                <img src={`${API_BASE}${result.awayTeamPicUrl}`} alt="" className="mc-team-logo" />
+                <img src={fileUrl(result.awayTeamPicUrl)} alt="" className="mc-team-logo" />
               ) : (
                 <span className="mc-team-initials">{result.awayTeamName?.slice(0, 2).toUpperCase()}</span>
               )}
@@ -1589,6 +1588,8 @@ export default function MatchCenter() {
    ════════════════════════════════════════════════════════════════ */
 
 function ManhattanChart({ data, format }) {
+  const [hovered, setHovered] = useState(null); // { inningsIdx, overNum, x, y, runs, wkts }
+
   if (!data || data.length === 0) return <div className="mc-empty">No data yet.</div>;
   const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c'];
   const ORDINAL = ['1st', '2nd', '3rd', '4th'];
@@ -1614,6 +1615,7 @@ function ManhattanChart({ data, format }) {
         const label = data.length > 2
           ? `${d.battingTeam} — ${ORDINAL[d.inningsIdx] || ''} Innings`
           : `${d.battingTeam}`;
+        const hovHere = hovered?.inningsIdx === d.inningsIdx ? hovered : null;
 
         return (
           <div key={idx} className="mc-chart-wrap">
@@ -1622,7 +1624,9 @@ function ManhattanChart({ data, format }) {
               <span className="mc-manhattan-summary">{totalRuns}/{totalWkts} ({overs} ov)</span>
             </div>
             <div className={isScrollable ? 'mc-chart-scroll' : undefined}>
-              <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
+              <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart"
+                style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}
+                onMouseLeave={() => setHovered(null)}>
                 {[0, Math.ceil(maxRun / 4), Math.ceil(maxRun / 2), Math.ceil(maxRun * 3 / 4), maxRun].map((v) => (
                   <g key={v}>
                     <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
@@ -1633,16 +1637,22 @@ function ManhattanChart({ data, format }) {
                   const bw = barW * 0.7;
                   const x = PAD + o * barW + barW * 0.15;
                   const wkts = d.wicketsPerOver?.[o] || 0;
+                  const isHov = hovHere?.overNum === o;
                   return (
-                    <g key={o}>
+                    <g key={o}
+                      onMouseEnter={() => setHovered({ inningsIdx: d.inningsIdx, overNum: o, x: x + bw / 2, y: scaleY(r), runs: r, wkts })}
+                      style={{ cursor: 'default' }}>
                       <rect x={x} y={scaleY(r)} width={bw}
-                        height={H - PAD - scaleY(r)} fill={color} opacity={0.85} rx={1} />
+                        height={H - PAD - scaleY(r)} fill={color}
+                        opacity={isHov ? 1 : 0.75} rx={1} />
                       {wkts > 0 && (
                         <g>
                           <circle cx={x + bw / 2} cy={scaleY(r) - 8} r={5} fill="#ef4444" opacity={0.9} />
                           <text x={x + bw / 2} y={scaleY(r) - 4.5} fill="#fff" fontSize="7" fontWeight="700" textAnchor="middle">{wkts}</text>
                         </g>
                       )}
+                      {/* invisible hit area for small bars */}
+                      <rect x={x} y={PAD} width={bw} height={H - PAD * 2} fill="transparent" />
                     </g>
                   );
                 })}
@@ -1651,6 +1661,21 @@ function ManhattanChart({ data, format }) {
                     <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
                   )
                 ))}
+                {/* Hover tooltip */}
+                {hovHere && (() => {
+                  const wktText = hovHere.wkts > 0 ? `, ${hovHere.wkts} wkt${hovHere.wkts > 1 ? 's' : ''}` : '';
+                  const text = `Over ${hovHere.overNum + 1}: ${hovHere.runs} runs${wktText}`;
+                  const tw = text.length * 5.2 + 14;
+                  const rawX = hovHere.x - tw / 2;
+                  const tx = Math.min(Math.max(rawX, PAD), W - PAD - tw);
+                  const ty = Math.max(hovHere.y - 24, PAD);
+                  return (
+                    <g style={{ pointerEvents: 'none' }}>
+                      <rect x={tx} y={ty} width={tw} height={16} rx={3} fill="#0f172a" opacity={0.88} />
+                      <text x={tx + tw / 2} y={ty + 10.5} fill="#f1f5f9" fontSize="8" textAnchor="middle">{text}</text>
+                    </g>
+                  );
+                })()}
               </svg>
             </div>
           </div>
@@ -1687,7 +1712,7 @@ function WormChart({ data, format }) {
           {data.map((d, idx) => {
             if (d.cumulative.length === 0) return null;
             const points = d.cumulative.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
-            return <polyline key={idx} points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="2.5" strokeLinejoin="round" strokeDasharray={data.length > 2 ? DASHES[idx % DASHES.length] : 'none'} />;
+            return <polyline key={idx} points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="1.5" strokeLinejoin="round" strokeDasharray={data.length > 2 ? DASHES[idx % DASHES.length] : 'none'} />;
           })}
           {Array.from({ length: maxOvers }, (_, i) => (
             (i % labelStep === 0) && (
@@ -1738,7 +1763,7 @@ function RunRateChart({ data, format }) {
             const points = d.runRatePerOver.map((v, o) => `${scaleX(o)},${scaleY(v)}`).join(' ');
             return (
               <g key={idx}>
-                <polyline points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="2" strokeLinejoin="round" strokeDasharray={DASHES[idx % DASHES.length]} />
+                <polyline points={points} fill="none" stroke={COLORS[idx % COLORS.length]} strokeWidth="1.5" strokeLinejoin="round" strokeDasharray={DASHES[idx % DASHES.length]} />
                 {showDots && d.runRatePerOver.map((v, o) => (
                   <circle key={o} cx={scaleX(o)} cy={scaleY(v)} r={2.5} fill={COLORS[idx % COLORS.length]} />
                 ))}

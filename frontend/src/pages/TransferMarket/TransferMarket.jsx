@@ -7,13 +7,13 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import toast from 'react-hot-toast';
 import './TransferMarket.css';
+import { WS_URL } from '../../api/config';
 
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 'WK' };
 const ROLE_OPTIONS = ['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'KEEPER'];
 const BAT_HAND_OPTIONS = ['RH', 'LH'];
 const BOWL_TYPE_OPTIONS = ['FS', 'WS', 'F', 'M', 'FM', 'MF'];
 const BOWL_TYPE_LABELS = { FS: 'Finger Spin', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast Medium', MF: 'Medium Fast' };
-const WS_URL = 'http://localhost:8080/ws';
 
 function useCountdown(endStr) {
   const [remaining, setRemaining] = useState('');

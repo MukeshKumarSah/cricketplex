@@ -161,7 +161,7 @@ export default function TeamList() {
                         <div className="tl-team-info">
                           {team.teamProfilePicUrl ? (
                             <img
-                              src={`http://localhost:8080/api/files/${team.teamProfilePicUrl}`}
+                              src={`/api/files/${team.teamProfilePicUrl}`}
                               alt=""
                               className="tl-team-avatar"
                             />
@@ -178,7 +178,7 @@ export default function TeamList() {
                           <div className="tl-manager-dot-wrap">
                             {team.managerProfilePicUrl ? (
                               <img
-                                src={`http://localhost:8080/api/files/${team.managerProfilePicUrl}`}
+                                src={`/api/files/${team.managerProfilePicUrl}`}
                                 alt=""
                                 className="tl-manager-avatar"
                               />

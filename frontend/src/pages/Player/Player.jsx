@@ -7,6 +7,7 @@ import {
 } from '../../api/auth';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../../api/config';
 import toast from 'react-hot-toast';
 import './Player.css';
 
@@ -85,7 +86,7 @@ export default function Player() {
   // WebSocket — live bid updates
   useEffect(() => {
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(WS_URL),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe('/topic/transfer', (message) => {

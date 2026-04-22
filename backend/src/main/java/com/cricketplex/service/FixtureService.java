@@ -32,8 +32,10 @@ public class FixtureService {
      */
     private static final ConcurrentHashMap<UUID, Map<UUID, UUID>> pendingSwaps = new ConcurrentHashMap<>();
 
-    /** Season 1 starts on this Sunday. Each season is 8 weeks (56 days). */
-    private static final LocalDate SEASON_1_START = LocalDate.of(2026, 4, 5);
+    /** Season 1 starts on this date. Configurable via app.season1-start property. */
+    @org.springframework.beans.factory.annotation.Value("${app.season1-start}")
+    private String season1StartStr;
+    private LocalDate getSeason1Start() { return LocalDate.parse(season1StartStr); }
     private static final int SEASON_DAYS = 56;
 
     /**
@@ -167,7 +169,7 @@ public class FixtureService {
      *        R8-R14 in season 2 (weeks 1-7).
      */
     private LocalDate computeMatchDate(String format, int round, int season) {
-        LocalDate seasonStart = SEASON_1_START.plusWeeks((long)(season - 1) * 8);
+        LocalDate seasonStart = getSeason1Start().plusWeeks((long)(season - 1) * 8);
 
         switch (format) {
             case "T20": {

@@ -1,25 +1,25 @@
-/* ════════ Player Profile Page ════════ */
+/* -------- Player Profile Page -------- */
 .pp-page {
   padding: 1.5rem 0;
-  max-width: 700px;
-  margin: 0 auto;
+
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 .pp-loading, .pp-empty {
   text-align: center;
-  color: #64748b;
+  color: var(--text-3);
   padding: 3rem 0;
   font-size: 0.9rem;
 }
 
-/* ── Header Card ── */
+/* -- Header Card -- */
 .pp-header {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 .pp-header-top {
   display: flex;
@@ -31,7 +31,7 @@
 .pp-name {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-1);
   margin: 0;
   line-height: 1.2;
 }
@@ -46,19 +46,19 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #22d3ee;
-  background: rgba(34, 211, 238, 0.1);
+  color: var(--accent);
+  background: var(--accent-surface);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
 }
 .pp-team-link {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-3);
   cursor: pointer;
   transition: color 0.2s;
 }
 .pp-team-link:hover {
-  color: #22d3ee;
+  color: var(--accent);
 }
 .pp-rating-badge {
   min-width: 42px;
@@ -88,33 +88,34 @@
 .pp-info-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 .pp-info-val {
   font-size: 0.8rem;
-  color: #cbd5e1;
+  color: var(--text-2);
   font-weight: 500;
 }
 
-/* ── Section ── */
+/* -- Section -- */
 .pp-section {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 .pp-section-title {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin: 0 0 1rem;
 }
 
-/* ── Transfer / Actions ── */
+/* -- Transfer / Actions -- */
 .pp-tm-section {
   display: flex;
   flex-direction: column;
@@ -128,16 +129,16 @@
 .pp-tm-label {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
 }
 .pp-tm-value {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-1);
 }
-.pp-tm-value.highlight { color: #22d3ee; }
+.pp-tm-value.highlight { color: var(--accent); }
 .pp-tm-actions {
   display: flex;
   gap: 0.4rem;
@@ -158,13 +159,13 @@
   color: #0a0f1a;
 }
 .pp-tm-btn.fire {
-  background: #1e293b;
+  background: var(--surface-2);
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.25);
 }
 .pp-tm-btn.fire:hover { border-color: #ef4444; }
 .pp-tm-btn.retire {
-  background: #1e293b;
+  background: var(--surface-2);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
@@ -174,22 +175,22 @@
   color: #0a0f1a;
 }
 .pp-tm-btn.confirm-no {
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
+  background: var(--surface-2);
+  color: var(--text-3);
+  border: 1px solid var(--border);
 }
 .pp-tm-confirm {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.7rem 0.9rem;
 }
 .pp-tm-confirm-text {
   font-size: 0.78rem;
-  color: #cbd5e1;
+  color: var(--text-2);
 }
 .pp-tm-confirm-btns {
   display: flex;
@@ -202,7 +203,7 @@
 }
 .pp-tm-auction-note {
   font-size: 0.68rem;
-  color: #475569;
+  color: var(--text-3);
   font-style: italic;
 }
 .pp-tm-listed-badge {
@@ -219,9 +220,9 @@
   display: flex;
   gap: 1rem;
   font-size: 0.72rem;
-  color: #64748b;
+  color: var(--text-3);
 }
-.pp-tm-fee-row strong { color: #cbd5e1; }
+.pp-tm-fee-row strong { color: var(--text-2); }
 .pp-tm-bids {
   display: flex;
   flex-direction: column;
@@ -232,13 +233,13 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.3rem 0.6rem;
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.78rem;
 }
-.pp-tm-bid-team { color: #cbd5e1; font-weight: 600; }
-.pp-tm-bid-amount { font-family: 'JetBrains Mono', monospace; color: #22d3ee; font-weight: 700; }
+.pp-tm-bid-team { color: var(--text-2); font-weight: 600; }
+.pp-tm-bid-amount { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 700; }
 .pp-tm-bid-tag {
   font-size: 0.55rem;
   font-weight: 700;
@@ -254,9 +255,9 @@
   align-items: center;
 }
 .pp-tm-bid-input {
-  background: #111827;
-  color: #e2e8f0;
-  border: 1px solid #1e293b;
+  background: var(--input-bg);
+  color: var(--text-1);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 0.4rem 0.7rem;
   font-size: 0.8rem;
@@ -264,21 +265,21 @@
   width: 160px;
   outline: none;
 }
-.pp-tm-bid-input:focus { border-color: #22d3ee; }
-.pp-tm-bid-input::placeholder { color: #334155; }
+.pp-tm-bid-input:focus { border-color: var(--accent); }
+.pp-tm-bid-input::placeholder { color: var(--text-3); }
 .pp-tm-funds {
   font-size: 0.68rem;
-  color: #475569;
+  color: var(--text-3);
 }
 
-/* ── Skills Grid (same as squad) ── */
+/* -- Skills Grid -- */
 .pp-skills-grid {
   display: grid;
   grid-template-columns: 1fr 1px 1fr;
   gap: 0 1rem;
 }
 .pp-skills-divider {
-  background: #334155;
+  background: var(--border);
   width: 1px;
   align-self: stretch;
 }
@@ -297,7 +298,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.62rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   width: 36px;
@@ -308,7 +309,7 @@
 .pp-rating-track {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -321,14 +322,14 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-2);
   width: 24px;
   min-width: 24px;
   text-align: right;
   flex-shrink: 0;
 }
 
-/* ── Format Tabs ── */
+/* -- Format Tabs -- */
 .pp-format-tabs {
   display: flex;
   gap: 0.5rem;
@@ -337,28 +338,30 @@
 .pp-fmt-tab {
   padding: 0.35rem 1rem;
   border-radius: 6px;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   background: transparent;
-  color: #64748b;
+  color: var(--text-3);
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 .pp-fmt-tab:hover {
-  border-color: #475569;
-  color: #94a3b8;
+  border-color: var(--border-hover);
+  color: var(--text-2);
 }
 .pp-fmt-tab.active {
-  background: rgba(34, 211, 238, 0.06);
+  background: var(--accent-surface);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
-/* ── Type Toggle ── */
+/* -- Type Toggle -- */
 .pp-type-toggle {
   display: flex;
   gap: 0;
   margin-bottom: 1rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
   width: fit-content;
@@ -366,7 +369,7 @@
 .pp-type-btn {
   padding: 0.3rem 0.9rem;
   background: transparent;
-  color: #64748b;
+  color: var(--text-3);
   font-size: 0.72rem;
   font-weight: 600;
   border: none;
@@ -374,22 +377,22 @@
   transition: all 0.2s;
 }
 .pp-type-btn + .pp-type-btn {
-  border-left: 1px solid #334155;
+  border-left: 1px solid var(--border);
 }
 .pp-type-btn.active {
-  background: rgba(34, 211, 238, 0.1);
-  color: #22d3ee;
+  background: var(--accent-surface);
+  color: var(--accent);
 }
 .pp-type-single {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-3);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* ── Stat Block ── */
+/* -- Stat Block -- */
 .pp-stat-block {
   margin-bottom: 1.25rem;
 }
@@ -399,12 +402,12 @@
 .pp-stat-heading {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 0.6rem;
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border);
 }
 .pp-stat-grid {
   display: flex;
@@ -413,8 +416,8 @@
   overflow-x: auto;
 }
 .pp-stat-cell {
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem 0.65rem;
   min-width: 0;
@@ -425,27 +428,27 @@
   gap: 0.15rem;
 }
 .pp-stat-cell.highlight {
-  border-color: rgba(34, 211, 238, 0.2);
-  background: rgba(34, 211, 238, 0.04);
+  border-color: var(--accent-border);
+  background: var(--accent-surface);
 }
 .pp-stat-val {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-1);
 }
 .pp-stat-cell.highlight .pp-stat-val {
-  color: #22d3ee;
+  color: var(--accent);
 }
 .pp-stat-label {
   font-size: 0.58rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
-/* ── Last 5 ── */
+/* -- Last 5 -- */
 .pp-last5-list {
   display: flex;
   flex-direction: column;
@@ -457,14 +460,14 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.55rem 0.75rem;
-  background: #111827;
-  border: 1px solid #1e293b;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
 }
 .pp-last5-row:hover {
-  border-color: #334155;
+  border-color: var(--border-hover);
 }
 .pp-last5-meta {
   display: flex;
@@ -475,14 +478,14 @@
 .pp-last5-vs {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .pp-last5-date {
   font-size: 0.65rem;
-  color: #475569;
+  color: var(--text-3);
 }
 .pp-last5-perf {
   display: flex;
@@ -515,12 +518,12 @@
 
 .pp-no-stats {
   text-align: center;
-  color: #475569;
+  color: var(--text-3);
   padding: 2rem 0;
   font-size: 0.85rem;
 }
 
-/* ── Responsive ── */
+/* -- Responsive -- */
 @media (max-width: 600px) {
   .pp-page {
     padding: 1rem 0;

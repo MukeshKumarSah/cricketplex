@@ -10,6 +10,8 @@ import {
 } from 'react-icons/hi2';
 import './FixturePreview.css';
 
+const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
+
 const PITCH_META = {
   STANDARD: { label: 'Standard', desc: 'Balanced conditions for both bat and ball' },
   DUSTY:    { label: 'Dusty', desc: 'Favours spinners, turns sharply later in the game' },
@@ -62,7 +64,10 @@ export default function FixturePreview() {
       {/* Match Header */}
       <div className="fp-header">
         <div className="fp-header-meta">
-          <span className="fp-format-badge">{data.format}</span>
+          <span
+            className="fp-format-badge"
+            style={(() => { const c = FORMAT_COLORS[data.format] || '#94a3b8'; return { color: c, background: c + '18', borderColor: c + '40' }; })()}
+          >{data.format}</span>
           {data.leagueLabel && (
             <span
               className="fp-league-link"
@@ -78,7 +83,7 @@ export default function FixturePreview() {
         <div className="fp-teams-row">
           <div className="fp-team fp-team-home" onClick={() => navigate(`/team/${home.id}`)}>
             {home.teamProfilePicUrl ? (
-              <img className="fp-team-logo" src={`http://localhost:8080/api/files/${home.teamProfilePicUrl}`} alt="" />
+              <img className="fp-team-logo" src={`/api/files/${home.teamProfilePicUrl}`} alt="" />
             ) : (
               <span className="fp-team-initials">{home.teamName?.slice(0, 2).toUpperCase()}</span>
             )}
@@ -95,7 +100,7 @@ export default function FixturePreview() {
 
           <div className="fp-team fp-team-away" onClick={() => navigate(`/team/${away.id}`)}>
             {away.teamProfilePicUrl ? (
-              <img className="fp-team-logo" src={`http://localhost:8080/api/files/${away.teamProfilePicUrl}`} alt="" />
+              <img className="fp-team-logo" src={`/api/files/${away.teamProfilePicUrl}`} alt="" />
             ) : (
               <span className="fp-team-initials">{away.teamName?.slice(0, 2).toUpperCase()}</span>
             )}
