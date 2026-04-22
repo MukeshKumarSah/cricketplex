@@ -538,7 +538,7 @@
   max-width: 100%;
 }
 
-/* Custom Bowling — 5 per row */
+/* Custom Bowling - 5 per row */
 .lu-custom-bowling {
   display: flex;
   flex-direction: column;
@@ -757,7 +757,7 @@
   background: var(--accent-surface);
 }
 
-/* 10×10 grid */
+/* 10-10 grid */
 .lu-fc-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);

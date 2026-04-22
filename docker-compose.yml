@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: cricketplex
       POSTGRES_PASSWORD: cricketplex_secret
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -26,8 +26,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9010:9000"
+      - "9011:9001"
     volumes:
       - miniodata:/data
     healthcheck:
@@ -58,7 +58,7 @@ services:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
       APP_SEASON1_START: ${APP_SEASON1_START:-2026-04-26}
     ports:
-      - "8080:8080"
+      - "8090:8080"
 
   frontend:
     build:
@@ -69,7 +69,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "3000:80"
 
 volumes:
   pgdata:

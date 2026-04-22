@@ -7,10 +7,12 @@ import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.TeamRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.*;
 
@@ -122,6 +124,19 @@ public class BotTeamService {
     private final TeamService teamService;
     private final FixtureRepository fixtureRepository;
     private final FixtureService fixtureService;
+    private final TransactionTemplate txTemplate;
+
+    @PostConstruct
+    public void autoInitBotTeams() {
+        long existingBots = teamRepository.countByIsBot(true);
+        if (existingBots > 0) {
+            log.info("Bot teams already exist ({}), skipping auto-init.", existingBots);
+            return;
+        }
+        log.info("No bot teams found — running initial bot team generation...");
+        txTemplate.executeWithoutResult(status -> generateBotTeams());
+        log.info("Bot team auto-init complete.");
+    }
 
     /**
      * Generate bot teams for all 18 countries.

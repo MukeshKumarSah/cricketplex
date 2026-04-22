@@ -25,4 +25,6 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     long countByCountryIgnoreCaseAndIsBot(String country, boolean isBot);
 
     List<Team> findByIsBotTrue();
+
+    long countByIsBot(boolean isBot);
 }
