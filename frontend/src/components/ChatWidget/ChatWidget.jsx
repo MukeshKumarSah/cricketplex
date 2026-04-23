@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { useAuth } from '../../context/AuthContext';
@@ -42,7 +42,7 @@ export default function ChatWidget() {
   const isAdmin = user?.role === 'ADMIN';
 
   /** Render avatar — shows pic if available, otherwise letter initial */
-  const Avatar = ({ picUrl, name, isGroupIcon, size = 36 }) => (
+  const Avatar = React.memo(({ picUrl, name, isGroupIcon, size = 36 }) => (
     <div className="cw-conv-avatar" style={{ width: size, height: size, minWidth: size }}>
       {picUrl ? (
         <img src={picUrl} alt="" className="cw-avatar-img" />
@@ -52,7 +52,7 @@ export default function ChatWidget() {
         <span>{(name || '?')[0].toUpperCase()}</span>
       )}
     </div>
-  );
+  ));
 
   // Fetch unread count periodically
   const fetchUnread = useCallback(async () => {

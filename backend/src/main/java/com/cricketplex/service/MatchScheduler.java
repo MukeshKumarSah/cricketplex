@@ -99,13 +99,14 @@ public class MatchScheduler {
                 fixtureRepository.findScheduledWithLeague("SCHEDULED", today)
             );
 
-            if (candidates == null || candidates.isEmpty()) return;
+            if (candidates == null || candidates.isEmpty()) {
+                log.debug("MatchScheduler: no league SCHEDULED candidates for {} or earlier", today);
+            } else {
+                log.info("MatchScheduler: {} SCHEDULED candidates for {} or earlier", candidates.size(), today);
 
-            log.info("MatchScheduler: {} SCHEDULED candidates for {} or earlier", candidates.size(), today);
-
-            for (Fixture f : candidates) {
-                try {
-                    if (f.getLeague() == null) continue;
+                for (Fixture f : candidates) {
+                    try {
+                        if (f.getLeague() == null) continue;
 
                     String startTimeStr = f.getLeague().getMatchStartTime();
                     if (startTimeStr == null) startTimeStr = "14:00";
@@ -145,16 +146,17 @@ public class MatchScheduler {
 
                     // Override COMPLETED → IN_PROGRESS for live ball-by-ball viewing
                     // For FC Day 1, leave as FC_DAY1_COMPLETE (don't override)
-                    txTemplate.executeWithoutResult(status -> {
-                        Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
-                        if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
-                            fresh.setStatus("IN_PROGRESS");
-                            fixtureRepository.save(fresh);
-                            log.info("Set fixture {} to IN_PROGRESS for live viewing", f.getId());
-                        }
-                    });
-                } catch (Exception e) {
-                    log.error("Failed to auto-simulate fixture {}: {}", f.getId(), e.getMessage());
+                        txTemplate.executeWithoutResult(status -> {
+                            Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
+                            if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                                fresh.setStatus("IN_PROGRESS");
+                                fixtureRepository.save(fresh);
+                                log.info("Set fixture {} to IN_PROGRESS for live viewing", f.getId());
+                            }
+                        });
+                    } catch (Exception e) {
+                        log.error("Failed to auto-simulate fixture {}: {}", f.getId(), e.getMessage());
+                    }
                 }
             }
 
@@ -205,6 +207,9 @@ public class MatchScheduler {
             if (fcDay1Done != null) {
                 for (Fixture f : fcDay1Done) {
                     try {
+                        // Only attempt Day 2 if Day 2 hasn't been tried yet (fcDay == 1)
+                        if (f.getFcDay() != null && f.getFcDay() != 1) continue;
+
                         // Day 2 starts the day AFTER matchDate
                         LocalDate day2Date = f.getMatchDate().plusDays(1);
                         if (today.isBefore(day2Date)) continue;

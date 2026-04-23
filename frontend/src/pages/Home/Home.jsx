@@ -45,7 +45,12 @@ import {
 export default function Home() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => localStorage.getItem('sidebarOpen') === 'true'
+  );
+  useEffect(() => {
+  localStorage.setItem('sidebarOpen', sidebarOpen);
+}, [sidebarOpen]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const [season, setSeason] = useState(null);

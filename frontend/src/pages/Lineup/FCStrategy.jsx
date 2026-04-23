@@ -15,6 +15,11 @@ export default function FCStrategy() {
   const [declareInn2Lead, setDeclareInn2Lead] = useState('');
   const [followOn, setFollowOn] = useState(true);
   const [declareInn3Lead, setDeclareInn3Lead] = useState('');
+  const canSetInn1 = state?.canSetInn1 ?? true;
+  const canSetInn2 = state?.canSetInn2 ?? true;
+  const canSetFollowOn = state?.canSetFollowOn ?? true;
+  const canSetInn3 = state?.canSetInn3 ?? true;
+  const inn3DependsOnFollowOn = state?.inn3DependsOnFollowOn ?? false;
 
   useEffect(() => {
     getFCState(fixtureId)
@@ -33,12 +38,12 @@ export default function FCStrategy() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveFCStrategy(fixtureId, {
-        declareInn1: declareInn1 ? parseInt(declareInn1, 10) : null,
-        declareInn2Lead: declareInn2Lead ? parseInt(declareInn2Lead, 10) : null,
-        followOn,
-        declareInn3Lead: declareInn3Lead ? parseInt(declareInn3Lead, 10) : null,
-      });
+      const payload = {};
+      if (canSetInn1) payload.declareInn1 = declareInn1 ? parseInt(declareInn1, 10) : null;
+      if (canSetInn2) payload.declareInn2Lead = declareInn2Lead ? parseInt(declareInn2Lead, 10) : null;
+      if (canSetFollowOn) payload.followOn = followOn;
+      if (canSetInn3) payload.declareInn3Lead = declareInn3Lead ? parseInt(declareInn3Lead, 10) : null;
+      await saveFCStrategy(fixtureId, payload);
       toast.success('Day 2 strategy updated!');
       navigate(`/match/${fixtureId}/preview`);
     } catch (e) {
@@ -108,9 +113,14 @@ export default function FCStrategy() {
                 placeholder="Score total (e.g. 350)"
                 value={declareInn1}
                 onChange={(e) => setDeclareInn1(e.target.value)}
+                disabled={!canSetInn1}
                 className="fcs-input"
               />
-              <span className="fcs-hint">Declare when your team reaches this total. Leave empty for no declaration.</span>
+              <span className="fcs-hint">
+                {canSetInn1
+                  ? 'Declare when your team reaches this total. Leave empty for no declaration.'
+                  : 'Not applicable: your team did not bat in innings 1.'}
+              </span>
             </div>
           </div>
           <div className="fcs-row">
@@ -122,9 +132,14 @@ export default function FCStrategy() {
                 placeholder="Lead runs (e.g. 150)"
                 value={declareInn2Lead}
                 onChange={(e) => setDeclareInn2Lead(e.target.value)}
+                disabled={!canSetInn2}
                 className="fcs-input"
               />
-              <span className="fcs-hint">Declare when your team leads by this many runs.</span>
+              <span className="fcs-hint">
+                {canSetInn2
+                  ? 'Declare when your team leads by this many runs.'
+                  : 'Not applicable: your team did not bat in innings 2.'}
+              </span>
             </div>
           </div>
           <div className="fcs-row">
@@ -134,17 +149,19 @@ export default function FCStrategy() {
                 <button
                   className={`fcs-toggle-btn ${followOn ? 'active' : ''}`}
                   onClick={() => setFollowOn(true)}
+                  disabled={!canSetFollowOn}
                 >
                   Yes — Enforce
                 </button>
                 <button
                   className={`fcs-toggle-btn ${!followOn ? 'active' : ''}`}
                   onClick={() => setFollowOn(false)}
+                  disabled={!canSetFollowOn}
                 >
                   No — Bat Again
                 </button>
               </div>
-              <span className="fcs-hint">If your team leads by 200+, enforce follow-on or bat again.</span>
+              <span className="fcs-hint">{canSetFollowOn ? 'If your team leads by 200+, enforce follow-on or bat again.' : 'Not applicable: follow-on decision belongs to innings-1 batting side.'}</span>
             </div>
           </div>
           <div className="fcs-row">
@@ -156,9 +173,16 @@ export default function FCStrategy() {
                 placeholder="Lead runs (e.g. 250)"
                 value={declareInn3Lead}
                 onChange={(e) => setDeclareInn3Lead(e.target.value)}
+                disabled={!canSetInn3}
                 className="fcs-input"
               />
-              <span className="fcs-hint">Declare when your team&apos;s overall lead reaches this.</span>
+              <span className="fcs-hint">
+                {!canSetInn3
+                  ? 'Not applicable: your team is not batting in innings 3.'
+                  : inn3DependsOnFollowOn
+                    ? 'Applies only if your team bats in innings 3 (depends on follow-on choice).'
+                    : 'Declare when your team\'s overall lead reaches this.'}
+              </span>
             </div>
           </div>
         </div>

@@ -106,7 +106,8 @@ export default function TeamProfile() {
         .catch(() => toast.error('Failed to load ground info'))
         .finally(() => setGroundLoading(false));
     }
-  }, [activeTab, teamId, matches, squad, leagues, ground]);
+  }, [activeTab, teamId, matchSeason]); // Only re-fetch matches when season changes, not when toggling between matches/squad/leagues/ground. Squad/Leagues/Ground data is cached after first load.
+  // }, [activeTab, teamId, matches, squad, leagues, ground]);
 
   if (loading) {
     return (

@@ -268,6 +268,7 @@ public class LineupService {
             int maxPlayers = 11;
             int count = 0;
             Set<String> playerIdSet = new HashSet<>();
+            Map<String, Player> lineupPlayerMap = new HashMap<>();
             for (Map<String, Object> pm : players) {
                 if (count >= maxPlayers) break;
                 String pid = (String) pm.get("playerId");
@@ -275,6 +276,7 @@ public class LineupService {
                 playerIdSet.add(pid);
                 Player player = playerRepository.findById(UUID.fromString(pid)).orElse(null);
                 if (player == null || !player.getTeam().getId().equals(myTeam.getId())) continue;
+                lineupPlayerMap.put(pid, player);
 
                 LineupPlayer lp = LineupPlayer.builder()
                         .lineup(lineup)
@@ -293,20 +295,37 @@ public class LineupService {
                 int maxOvers = "T20".equalsIgnoreCase(format) ? 20 : "ODI".equalsIgnoreCase(format) ? 50 : 100;
                 int maxPerBowler = "T20".equalsIgnoreCase(format) ? 4 : "ODI".equalsIgnoreCase(format) ? 10 : 30;
                 Map<String, Integer> bowlerOverCounts = new HashMap<>();
+                String keeperLineupId = keeperId;
+                if (keeperLineupId == null && lineup.getKeeper() != null) {
+                    keeperLineupId = lineup.getKeeper().getId().toString();
+                }
 
+                Map<Integer, Map<String, Object>> ordersByOver = new TreeMap<>();
                 for (Map<String, Object> bo : bowlingOrders) {
+                    if (bo == null || bo.get("overNumber") == null) continue;
                     int overNum = ((Number) bo.get("overNumber")).intValue();
                     if (overNum < 1 || overNum > maxOvers) continue;
+                    ordersByOver.put(overNum, bo); // last write wins for duplicate over numbers
+                }
+
+                String previousBowlerId = null;
+                for (Map.Entry<Integer, Map<String, Object>> entry : ordersByOver.entrySet()) {
+                    int overNum = entry.getKey();
+                    Map<String, Object> bo = entry.getValue();
                     String bid = (String) bo.get("bowlerId");
                     if (bid == null) continue;
                     // Bowler must be in playing 11
                     if (!playerIdSet.contains(bid)) continue;
+                    // Keeper cannot bowl
+                    if (keeperLineupId != null && keeperLineupId.equals(bid)) continue;
+                    // No consecutive overs for same bowler (strict by over number, not UI entry order)
+                    if (previousBowlerId != null && previousBowlerId.equals(bid)) continue;
 
                     int currentCount = bowlerOverCounts.getOrDefault(bid, 0);
                     if (currentCount >= maxPerBowler) continue;
                     bowlerOverCounts.put(bid, currentCount + 1);
 
-                    Player bowler = playerRepository.findById(UUID.fromString(bid)).orElse(null);
+                    Player bowler = lineupPlayerMap.getOrDefault(bid, playerRepository.findById(UUID.fromString(bid)).orElse(null));
                     if (bowler == null) continue;
 
                     BowlingOrder order = BowlingOrder.builder()
@@ -316,6 +335,7 @@ public class LineupService {
                             .aggression(bo.getOrDefault("aggression", "N").toString())
                             .build();
                     lineup.getBowlingOrders().add(order);
+                    previousBowlerId = bid;
                 }
             }
         }

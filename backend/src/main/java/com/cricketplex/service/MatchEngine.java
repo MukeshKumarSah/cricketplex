@@ -46,6 +46,8 @@ public class MatchEngine {
 
     private final MatchResultRepository matchResultRepository;
     private final MatchLineupRepository matchLineupRepository;
+    private final MatchFCStrategyRepository matchFCStrategyRepository;
+    private final DefaultLineupRepository defaultLineupRepository;
     private final PlayerRepository playerRepository;
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
@@ -1478,10 +1480,50 @@ public class MatchEngine {
         return team.getOwner() != null;
     }
 
+    private Map<UUID, MatchFCStrategy> loadFCStrategies(Fixture fixture) {
+        Map<UUID, MatchFCStrategy> byTeam = new HashMap<>();
+        for (MatchFCStrategy strategy : matchFCStrategyRepository.findByFixtureId(fixture.getId())) {
+            byTeam.put(strategy.getTeam().getId(), strategy);
+        }
+        return byTeam;
+    }
+
+    private Integer getDeclareInn1(Fixture fixture, Map<UUID, MatchFCStrategy> strategiesByTeam, Team team) {
+        MatchFCStrategy strategy = strategiesByTeam.get(team.getId());
+        return strategy != null ? strategy.getDeclareInn1() : fixture.getFcDeclareInn1();
+    }
+
+    private Integer getDeclareInn2Lead(Fixture fixture, Map<UUID, MatchFCStrategy> strategiesByTeam, Team team) {
+        MatchFCStrategy strategy = strategiesByTeam.get(team.getId());
+        return strategy != null ? strategy.getDeclareInn2Lead() : fixture.getFcDeclareInn2Lead();
+    }
+
+    private Integer getDeclareInn3Lead(Fixture fixture, Map<UUID, MatchFCStrategy> strategiesByTeam, Team team) {
+        MatchFCStrategy strategy = strategiesByTeam.get(team.getId());
+        return strategy != null ? strategy.getDeclareInn3Lead() : fixture.getFcDeclareInn3Lead();
+    }
+
+    private Boolean getFollowOn(Fixture fixture, Map<UUID, MatchFCStrategy> strategiesByTeam, Team team) {
+        MatchFCStrategy strategy = strategiesByTeam.get(team.getId());
+        return strategy != null ? strategy.getFollowOn() : fixture.getFcFollowOn();
+    }
+
     private MatchResult saveFCDay1Complete(Fixture fixture, MatchResult result) {
         result.setResultType("PENDING");
         fixture.setFcDay(1);
         fixture.setStatus("FC_DAY1_COMPLETE");
+        fixtureRepository.save(fixture);
+        return matchResultRepository.save(result);
+    }
+
+    /**
+     * Save FC match when Day 2 overs are exhausted but match not complete.
+     * Increments fcDay to 2 so scheduler doesn't retry Day 2 indefinitely.
+     */
+    private MatchResult saveFCDay2Paused(Fixture fixture, MatchResult result) {
+        result.setResultType("PENDING");
+        fixture.setFcDay(2);  // Mark Day 2 as attempted
+        fixture.setStatus("FC_DAY1_COMPLETE");  // Keep status but fcDay prevents retry
         fixtureRepository.save(fixture);
         return matchResultRepository.save(result);
     }
@@ -1506,15 +1548,16 @@ public class MatchEngine {
     }
 
     /** Compute 3rd-innings declaration target. Returns {canDeclare ? 1 : 0, declareAtRuns}. */
-    private long[] computeInn3Declaration(Fixture fixture, List<Innings> inningsList,
-                                          Team battingTeam, Team battingFirst, Team battingSecond) {
+    private long[] computeInn3Declaration(Fixture fixture, Map<UUID, MatchFCStrategy> strategiesByTeam,
+                                          List<Innings> inningsList, Team battingTeam, Team battingFirst, Team battingSecond) {
         int i1 = inningsList.get(0).getTotalRuns();
         int i2 = inningsList.get(1).getTotalRuns();
         boolean fo = battingTeam.getId().equals(battingSecond.getId());
         boolean human = isHumanTeam(battingTeam);
-        if (human && fixture.getFcDeclareInn3Lead() != null && fixture.getFcDeclareInn3Lead() > 0) {
-            int da = fo ? (i1 - i2 + fixture.getFcDeclareInn3Lead())
-                        : (i2 - i1 + fixture.getFcDeclareInn3Lead());
+        Integer declareLead = getDeclareInn3Lead(fixture, strategiesByTeam, battingTeam);
+        if (human && declareLead != null && declareLead > 0) {
+            int da = fo ? (i1 - i2 + declareLead)
+                        : (i2 - i1 + declareLead);
             return new long[]{1, Math.max(1, da)};
         }
         if (!human) {
@@ -1642,6 +1685,7 @@ public class MatchEngine {
                                           MatchLineup bat1Lineup, MatchLineup bat2Lineup,
                                           int dayOversLimit, Random rng, String pitchType,
                                           String condition, int temperature, String format) {
+        Map<UUID, MatchFCStrategy> strategiesByTeam = loadFCStrategies(fixture);
         List<Innings> inningsList = result.getInningsList();
         int totalMatchOvers = inningsList.stream().mapToInt(this::getOversUsed).sum();
         int dayOversUsed = 0;
@@ -1665,16 +1709,18 @@ public class MatchEngine {
                 int chaseTarget = 0;
 
                 if (inningsNum == 1) {
-                    if (isHumanTeam(last.getBattingTeam()) && fixture.getFcDeclareInn1() != null && fixture.getFcDeclareInn1() > 0) {
-                        canDeclare = true; declareAt = fixture.getFcDeclareInn1();
+                    Integer declare = getDeclareInn1(fixture, strategiesByTeam, last.getBattingTeam());
+                    if (isHumanTeam(last.getBattingTeam()) && declare != null && declare > 0) {
+                        canDeclare = true; declareAt = declare;
                     }
                 } else if (inningsNum == 2) {
                     int i1r = inningsList.get(0).getTotalRuns();
-                    if (isHumanTeam(last.getBattingTeam()) && fixture.getFcDeclareInn2Lead() != null && fixture.getFcDeclareInn2Lead() > 0) {
-                        canDeclare = true; declareAt = i1r + fixture.getFcDeclareInn2Lead();
+                    Integer declareLead = getDeclareInn2Lead(fixture, strategiesByTeam, last.getBattingTeam());
+                    if (isHumanTeam(last.getBattingTeam()) && declareLead != null && declareLead > 0) {
+                        canDeclare = true; declareAt = i1r + declareLead;
                     }
                 } else if (inningsNum == 3) {
-                    long[] dc = computeInn3Declaration(fixture, inningsList, last.getBattingTeam(), battingFirst, battingSecond);
+                    long[] dc = computeInn3Declaration(fixture, strategiesByTeam, inningsList, last.getBattingTeam(), battingFirst, battingSecond);
                     canDeclare = dc[0] > 0; declareAt = (int) dc[1];
                 } else if (inningsNum == 4) {
                     isChasing = true;
@@ -1693,7 +1739,7 @@ public class MatchEngine {
                 totalMatchOvers += newOvers;
 
                 if (dayOversUsed >= dayOversLimit || last.getResumeState() != null) {
-                    return saveFCDay1Complete(fixture, result);
+                    return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
                 }
                 if (inningsNum == 4) {
                     return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng);
@@ -1715,24 +1761,27 @@ public class MatchEngine {
                 case 1:
                     bat = battingFirst; bowl = battingSecond;
                     batL = bat1Lineup; bowlL = bat2Lineup;
-                    if (isHumanTeam(bat) && fixture.getFcDeclareInn1() != null && fixture.getFcDeclareInn1() > 0) {
-                        canDeclare = true; declareAt = fixture.getFcDeclareInn1();
+                    Integer declareInn1 = getDeclareInn1(fixture, strategiesByTeam, bat);
+                    if (isHumanTeam(bat) && declareInn1 != null && declareInn1 > 0) {
+                        canDeclare = true; declareAt = declareInn1;
                     }
                     break;
                 case 2:
                     bat = battingSecond; bowl = battingFirst;
                     batL = bat2Lineup; bowlL = bat1Lineup;
-                    if (isHumanTeam(bat) && fixture.getFcDeclareInn2Lead() != null && fixture.getFcDeclareInn2Lead() > 0) {
+                    Integer declareInn2Lead = getDeclareInn2Lead(fixture, strategiesByTeam, bat);
+                    if (isHumanTeam(bat) && declareInn2Lead != null && declareInn2Lead > 0) {
                         canDeclare = true;
-                        declareAt = inningsList.get(0).getTotalRuns() + fixture.getFcDeclareInn2Lead();
+                        declareAt = inningsList.get(0).getTotalRuns() + declareInn2Lead;
                     }
                     break;
                 case 3: {
                     int i1 = inningsList.get(0).getTotalRuns();
                     int i2 = inningsList.get(1).getTotalRuns();
                     int lead = i1 - i2;
+                    Boolean followOnChoice = getFollowOn(fixture, strategiesByTeam, battingFirst);
                     boolean followOn = lead >= 200
-                            && (fixture.getFcFollowOn() != null ? fixture.getFcFollowOn() : true);
+                            && (followOnChoice != null ? followOnChoice : true);
                     if (followOn) {
                         bat = battingSecond; bowl = battingFirst;
                         batL = bat2Lineup; bowlL = bat1Lineup;
@@ -1740,7 +1789,7 @@ public class MatchEngine {
                         bat = battingFirst; bowl = battingSecond;
                         batL = bat1Lineup; bowlL = bat2Lineup;
                     }
-                    long[] dc = computeInn3Declaration(fixture, inningsList, bat, battingFirst, battingSecond);
+                    long[] dc = computeInn3Declaration(fixture, strategiesByTeam, inningsList, bat, battingFirst, battingSecond);
                     canDeclare = dc[0] > 0; declareAt = (int) dc[1];
                     break;
                 }
@@ -1793,7 +1842,7 @@ public class MatchEngine {
             dayOversUsed += oversUsed;
 
             if (dayOversUsed >= dayOversLimit || inn.getResumeState() != null) {
-                return saveFCDay1Complete(fixture, result);
+                return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
             }
         }
 
@@ -2174,6 +2223,14 @@ public class MatchEngine {
         Optional<MatchLineup> existing = matchLineupRepository.findByFixtureIdAndTeamId(fixture.getId(), team.getId());
         if (existing.isPresent()) return existing.get();
 
+        Optional<DefaultLineup> savedDefault = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format);
+        if (savedDefault.isPresent()) {
+            MatchLineup fromDefault = buildLineupFromDefault(fixture, team, format, savedDefault.get());
+            if (fromDefault != null) {
+                return fromDefault;
+            }
+        }
+
         // Auto-generate lineup for any team without one (bot or user who forgot)
         log.info("No lineup found for team {} — auto-generating", team.getTeamName());
 
@@ -2254,6 +2311,214 @@ public class MatchEngine {
         }
 
         return matchLineupRepository.save(lineup);
+    }
+
+    @SuppressWarnings("unchecked")
+    private MatchLineup buildLineupFromDefault(Fixture fixture, Team team, String format, DefaultLineup defaultLineup) {
+        Map<String, Object> data = defaultLineup.getLineupData();
+        if (data == null) return null;
+
+        List<Player> squad = playerRepository.findByTeam(team);
+        if (squad.size() < 11) return null;
+
+        Map<String, Player> squadById = new HashMap<>();
+        for (Player p : squad) squadById.put(p.getId().toString(), p);
+
+        List<Map<String, Object>> rawPlayers = (List<Map<String, Object>>) data.get("players");
+        if (rawPlayers == null || rawPlayers.isEmpty()) return null;
+        rawPlayers.sort(Comparator.comparingInt(p -> ((Number) p.getOrDefault("battingPosition", 999)).intValue()));
+
+        MatchLineup lineup = MatchLineup.builder()
+                .fixture(fixture)
+                .team(team)
+                .bowlingPlan(Objects.toString(data.getOrDefault("bowlingPlan", "BALANCED"), "BALANCED"))
+                .build();
+        lineup.setBatOrBowl((String) data.get("batOrBowl"));
+        lineup.setTossChoice((String) data.get("tossChoice"));
+
+        Map<String, Player> replacementByOriginalId = new HashMap<>();
+        Set<UUID> usedPlayerIds = new HashSet<>();
+        List<Player> selected = new ArrayList<>();
+
+        int targetSlots = Math.min(11, rawPlayers.size());
+        for (int i = 0; i < targetSlots; i++) {
+            Map<String, Object> slot = rawPlayers.get(i);
+            String playerId = Objects.toString(slot.get("playerId"), null);
+            Player chosen = playerId == null ? null : squadById.get(playerId);
+
+            if (chosen == null || usedPlayerIds.contains(chosen.getId())) {
+                String requiredRole = resolveRole(playerId);
+                chosen = pickReplacementByRole(squad, usedPlayerIds, requiredRole);
+                if (chosen == null) {
+                    chosen = pickBestRemainingPlayer(squad, usedPlayerIds);
+                }
+                if (chosen == null) break;
+                if (playerId != null) {
+                    replacementByOriginalId.put(playerId, chosen);
+                }
+            }
+
+            usedPlayerIds.add(chosen.getId());
+            selected.add(chosen);
+
+            int battingPosition = ((Number) slot.getOrDefault("battingPosition", i + 1)).intValue();
+            String batAgg = Objects.toString(slot.getOrDefault("batAggression", chosen.getBatAggression()), "N");
+
+            LineupPlayer lp = LineupPlayer.builder()
+                    .lineup(lineup)
+                    .player(chosen)
+                    .battingPosition(battingPosition)
+                    .batAggression(batAgg)
+                    .build();
+            lineup.getPlayers().add(lp);
+        }
+
+        while (lineup.getPlayers().size() < 11) {
+            Player next = pickBestRemainingPlayer(squad, usedPlayerIds);
+            if (next == null) break;
+            usedPlayerIds.add(next.getId());
+            selected.add(next);
+            LineupPlayer lp = LineupPlayer.builder()
+                    .lineup(lineup)
+                    .player(next)
+                    .battingPosition(lineup.getPlayers().size() + 1)
+                    .batAggression(next.getBatAggression())
+                    .build();
+            lineup.getPlayers().add(lp);
+        }
+        lineup.getPlayers().sort(Comparator.comparingInt(LineupPlayer::getBattingPosition));
+        for (int i = 0; i < lineup.getPlayers().size(); i++) {
+            lineup.getPlayers().get(i).setBattingPosition(i + 1);
+        }
+
+        Map<UUID, Player> selectedById = new HashMap<>();
+        for (Player p : selected) selectedById.put(p.getId(), p);
+
+        String captainId = Objects.toString(data.get("captainId"), null);
+        Player captain = captainId == null ? null : squadById.get(captainId);
+        if (captain == null && captainId != null) captain = replacementByOriginalId.get(captainId);
+        if (captain == null) captain = selected.stream().max(Comparator.comparingInt(Player::getRating)).orElse(null);
+        lineup.setCaptain(captain);
+
+        String keeperId = Objects.toString(data.get("keeperId"), null);
+        Player keeper = keeperId == null ? null : squadById.get(keeperId);
+        if (keeper == null && keeperId != null) keeper = replacementByOriginalId.get(keeperId);
+        if (keeper == null || !selectedById.containsKey(keeper.getId())) {
+            keeper = selected.stream()
+                    .filter(p -> "KEEPER".equals(p.getRole()))
+                    .max(Comparator.comparingInt(Player::getKeeperRating))
+                    .orElse(selected.stream()
+                            .max(Comparator.comparingInt(Player::getKeeperRating))
+                            .orElse(null));
+        }
+        lineup.setKeeper(keeper);
+
+        List<Map<String, Object>> rawBowling = (List<Map<String, Object>>) data.get("bowlingOrders");
+        int planOvers = "FC".equalsIgnoreCase(format) ? 100 : getMaxOvers(format);
+        if (rawBowling != null) {
+            rawBowling.sort(Comparator.comparingInt(b -> ((Number) b.getOrDefault("overNumber", 999)).intValue()));
+            for (Map<String, Object> bo : rawBowling) {
+                int overNumber = ((Number) bo.getOrDefault("overNumber", 0)).intValue();
+                if (overNumber < 1 || overNumber > planOvers) continue;
+
+                String originalBowlerId = Objects.toString(bo.get("bowlerId"), null);
+                Player bowler = null;
+                if (originalBowlerId != null) {
+                    Player direct = squadById.get(originalBowlerId);
+                    if (direct != null && selectedById.containsKey(direct.getId())) {
+                        bowler = direct;
+                    } else {
+                        Player replacement = replacementByOriginalId.get(originalBowlerId);
+                        if (replacement != null && selectedById.containsKey(replacement.getId())) {
+                            bowler = replacement;
+                        } else {
+                            String requiredRole = resolveRole(originalBowlerId);
+                            bowler = pickSelectedByRole(selected, requiredRole);
+                        }
+                    }
+                }
+                if (bowler == null) {
+                    bowler = selected.stream()
+                            .max(Comparator.comparingInt(Player::getBowlRating))
+                            .orElse(null);
+                }
+                if (bowler == null) continue;
+
+                BowlingOrder order = BowlingOrder.builder()
+                        .lineup(lineup)
+                        .overNumber(overNumber)
+                        .bowler(bowler)
+                        .aggression(Objects.toString(bo.getOrDefault("aggression", bowler.getBowlAggression()), "N"))
+                        .build();
+                lineup.getBowlingOrders().add(order);
+            }
+        }
+
+        if (lineup.getBowlingOrders().isEmpty()) {
+            List<Player> topBowlers = selected.stream()
+                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating()))
+                    .limit(5)
+                    .toList();
+            if (topBowlers.isEmpty()) return null;
+            for (int over = 1; over <= planOvers; over++) {
+                Player bowler = topBowlers.get((over - 1) % topBowlers.size());
+                lineup.getBowlingOrders().add(BowlingOrder.builder()
+                        .lineup(lineup)
+                        .overNumber(over)
+                        .bowler(bowler)
+                        .aggression(bowler.getBowlAggression())
+                        .build());
+            }
+        }
+
+        lineup.getBowlingOrders().sort(Comparator.comparingInt(BowlingOrder::getOverNumber));
+        return matchLineupRepository.save(lineup);
+    }
+
+    private String resolveRole(String playerId) {
+        if (playerId == null) return null;
+        try {
+            return playerRepository.findById(UUID.fromString(playerId)).map(Player::getRole).orElse(null);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private Player pickReplacementByRole(List<Player> squad, Set<UUID> usedIds, String role) {
+        if (role == null || role.isBlank()) return null;
+        Comparator<Player> comparator = switch (role) {
+            case "BATSMAN" -> Comparator.comparingInt(Player::getBatRating);
+            case "BOWLER" -> Comparator.comparingInt(Player::getBowlRating);
+            case "KEEPER" -> Comparator.comparingInt(Player::getKeeperRating);
+            case "ALL_ROUNDER" -> Comparator.comparingInt(p -> p.getBatRating() + p.getBowlRating());
+            default -> Comparator.comparingInt(Player::getRating);
+        };
+        return squad.stream()
+                .filter(p -> !usedIds.contains(p.getId()) && role.equalsIgnoreCase(p.getRole()))
+                .max(comparator)
+                .orElse(null);
+    }
+
+    private Player pickBestRemainingPlayer(List<Player> squad, Set<UUID> usedIds) {
+        return squad.stream()
+                .filter(p -> !usedIds.contains(p.getId()))
+                .max(Comparator.comparingInt(Player::getRating))
+                .orElse(null);
+    }
+
+    private Player pickSelectedByRole(List<Player> selected, String role) {
+        if (role == null || role.isBlank()) return null;
+        Comparator<Player> comparator = switch (role) {
+            case "BATSMAN" -> Comparator.comparingInt(Player::getBatRating);
+            case "BOWLER" -> Comparator.comparingInt(Player::getBowlRating);
+            case "KEEPER" -> Comparator.comparingInt(Player::getKeeperRating);
+            case "ALL_ROUNDER" -> Comparator.comparingInt(p -> p.getBatRating() + p.getBowlRating());
+            default -> Comparator.comparingInt(Player::getRating);
+        };
+        return selected.stream()
+                .filter(p -> role.equalsIgnoreCase(p.getRole()))
+                .max(comparator)
+                .orElse(null);
     }
 
     /**

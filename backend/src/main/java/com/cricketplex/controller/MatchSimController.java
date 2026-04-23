@@ -34,6 +34,7 @@ public class MatchSimController {
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
     private final MatchLineupRepository matchLineupRepository;
+    private final MatchFCStrategyRepository matchFCStrategyRepository;
     private final WeatherService weatherService;
 
     /**
@@ -129,30 +130,75 @@ public class MatchSimController {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Cannot update strategy now"));
         }
 
-        if (request.containsKey("declareInn1")) {
-            Object val = request.get("declareInn1");
-            fixture.setFcDeclareInn1(val != null ? ((Number) val).intValue() : null);
-        }
-        if (request.containsKey("declareInn2Lead")) {
-            Object val = request.get("declareInn2Lead");
-            fixture.setFcDeclareInn2Lead(val != null ? ((Number) val).intValue() : null);
-        }
-        if (request.containsKey("followOn")) {
-            Object val = request.get("followOn");
-            fixture.setFcFollowOn(val != null ? (Boolean) val : null);
-        }
-        if (request.containsKey("declareInn3Lead")) {
-            Object val = request.get("declareInn3Lead");
-            fixture.setFcDeclareInn3Lead(val != null ? ((Number) val).intValue() : null);
+        MatchFCStrategy strategy = matchFCStrategyRepository.findByFixtureIdAndTeamId(fixtureId, myTeam.getId())
+                .orElse(MatchFCStrategy.builder()
+                        .fixture(fixture)
+                        .team(myTeam)
+                        .build());
+
+        Optional<MatchResult> resultOpt = matchResultRepository.findByFixtureIdWithInnings(fixtureId);
+        boolean hasBattingOrder = resultOpt.isPresent() && !resultOpt.get().getInningsList().isEmpty();
+        boolean canSetInn1 = true;
+        boolean canSetInn2 = true;
+        boolean canSetFollowOn = true;
+        boolean canSetInn3 = true;
+
+        if (hasBattingOrder) {
+            List<Innings> innings = resultOpt.get().getInningsList();
+            Team battingFirst = innings.get(0).getBattingTeam();
+            Team battingSecond = innings.get(0).getBowlingTeam();
+            boolean isBattingFirst = battingFirst.getId().equals(myTeam.getId());
+            boolean isBattingSecond = battingSecond.getId().equals(myTeam.getId());
+
+            canSetInn1 = isBattingFirst;
+            canSetInn2 = isBattingSecond;
+            canSetFollowOn = isBattingFirst;
+
+            if (innings.size() >= 3) {
+                canSetInn3 = innings.get(2).getBattingTeam().getId().equals(myTeam.getId());
+            } else if (innings.size() >= 2) {
+                int lead = innings.get(0).getTotalRuns() - innings.get(1).getTotalRuns();
+                canSetInn3 = lead < 200 ? isBattingFirst : true; // with follow-on option, either side may become innings 3 batter
+            } else {
+                canSetInn3 = true;
+            }
+
+            if (!isBattingFirst) {
+                strategy.setDeclareInn1(null);
+                strategy.setFollowOn(null);
+            }
+            if (!isBattingSecond) {
+                strategy.setDeclareInn2Lead(null);
+            }
+            if (!canSetInn3) {
+                strategy.setDeclareInn3Lead(null);
+            }
         }
 
-        fixtureRepository.save(fixture);
+        if (canSetInn1 && request.containsKey("declareInn1")) {
+            Object val = request.get("declareInn1");
+            strategy.setDeclareInn1(val != null ? ((Number) val).intValue() : null);
+        }
+        if (canSetInn2 && request.containsKey("declareInn2Lead")) {
+            Object val = request.get("declareInn2Lead");
+            strategy.setDeclareInn2Lead(val != null ? ((Number) val).intValue() : null);
+        }
+        if (canSetFollowOn && request.containsKey("followOn")) {
+            Object val = request.get("followOn");
+            strategy.setFollowOn(val != null ? (Boolean) val : null);
+        }
+        if (canSetInn3 && request.containsKey("declareInn3Lead")) {
+            Object val = request.get("declareInn3Lead");
+            strategy.setDeclareInn3Lead(val != null ? ((Number) val).intValue() : null);
+        }
+
+        matchFCStrategyRepository.save(strategy);
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("success", true);
-        resp.put("declareInn1", fixture.getFcDeclareInn1());
-        resp.put("declareInn2Lead", fixture.getFcDeclareInn2Lead());
-        resp.put("followOn", fixture.getFcFollowOn());
-        resp.put("declareInn3Lead", fixture.getFcDeclareInn3Lead());
+        resp.put("declareInn1", strategy.getDeclareInn1());
+        resp.put("declareInn2Lead", strategy.getDeclareInn2Lead());
+        resp.put("followOn", strategy.getFollowOn());
+        resp.put("declareInn3Lead", strategy.getDeclareInn3Lead());
         return ResponseEntity.ok(resp);
     }
 
@@ -163,27 +209,80 @@ public class MatchSimController {
     public ResponseEntity<?> getFCState(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID fixtureId) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Team myTeam = teamRepository.findByOwner(user).orElse(null);
+        if (myTeam == null) {
+            return ResponseEntity.badRequest().body(Map.of("found", false, "message", "No team found"));
+        }
 
         Fixture fixture = fixtureRepository.findById(fixtureId).orElse(null);
         if (fixture == null) {
             return ResponseEntity.ok(Map.of("found", false));
         }
 
+        boolean isHome = fixture.getHomeTeam().getId().equals(myTeam.getId());
+        boolean isAway = fixture.getAwayTeam().getId().equals(myTeam.getId());
+        if (!isHome && !isAway) {
+            return ResponseEntity.badRequest().body(Map.of("found", false, "message", "Not your match"));
+        }
+
+        MatchFCStrategy strategy = matchFCStrategyRepository.findByFixtureIdAndTeamId(fixtureId, myTeam.getId()).orElse(null);
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("found", true);
         resp.put("fixtureId", fixtureId);
         resp.put("status", fixture.getStatus());
         resp.put("fcDay", fixture.getFcDay());
-        resp.put("declareInn1", fixture.getFcDeclareInn1());
-        resp.put("declareInn2Lead", fixture.getFcDeclareInn2Lead());
-        resp.put("followOn", fixture.getFcFollowOn());
-        resp.put("declareInn3Lead", fixture.getFcDeclareInn3Lead());
+        resp.put("declareInn1", strategy != null ? strategy.getDeclareInn1() : fixture.getFcDeclareInn1());
+        resp.put("declareInn2Lead", strategy != null ? strategy.getDeclareInn2Lead() : fixture.getFcDeclareInn2Lead());
+        resp.put("followOn", strategy != null ? strategy.getFollowOn() : fixture.getFcFollowOn());
+        resp.put("declareInn3Lead", strategy != null ? strategy.getDeclareInn3Lead() : fixture.getFcDeclareInn3Lead());
+        resp.put("myTeamId", myTeam.getId());
+        resp.put("canSetInn1", true);
+        resp.put("canSetInn2", true);
+        resp.put("canSetFollowOn", true);
+        resp.put("canSetInn3", true);
+        resp.put("inn3DependsOnFollowOn", false);
 
         // Include Day 1 innings summary if available
         Optional<MatchResult> opt = matchResultRepository.findByFixtureId(fixtureId);
         if (opt.isPresent()) {
             MatchResult mr = opt.get();
             List<Map<String, Object>> innSummaries = new ArrayList<>();
+            List<Innings> innings = mr.getInningsList();
+            if (!innings.isEmpty()) {
+                Team battingFirst = innings.get(0).getBattingTeam();
+                Team battingSecond = innings.get(0).getBowlingTeam();
+                boolean isBattingFirst = battingFirst.getId().equals(myTeam.getId());
+                boolean isBattingSecond = battingSecond.getId().equals(myTeam.getId());
+
+                resp.put("battingFirstTeamId", battingFirst.getId());
+                resp.put("battingSecondTeamId", battingSecond.getId());
+                resp.put("canSetInn1", isBattingFirst);
+                resp.put("canSetInn2", isBattingSecond);
+                resp.put("canSetFollowOn", isBattingFirst);
+
+                boolean canSetInn3;
+                boolean inn3DependsOnFollowOn = false;
+                if (innings.size() >= 3) {
+                    canSetInn3 = innings.get(2).getBattingTeam().getId().equals(myTeam.getId());
+                } else if (innings.size() >= 2) {
+                    int lead = innings.get(0).getTotalRuns() - innings.get(1).getTotalRuns();
+                    if (lead >= 200) {
+                        canSetInn3 = true;
+                        inn3DependsOnFollowOn = true;
+                    } else {
+                        canSetInn3 = isBattingFirst;
+                    }
+                } else {
+                    canSetInn3 = true;
+                    inn3DependsOnFollowOn = true;
+                }
+                resp.put("canSetInn3", canSetInn3);
+                resp.put("inn3DependsOnFollowOn", inn3DependsOnFollowOn);
+            }
+
             for (Innings inn : mr.getInningsList()) {
                 Map<String, Object> s = new LinkedHashMap<>();
                 s.put("inningsNumber", inn.getInningsNumber());

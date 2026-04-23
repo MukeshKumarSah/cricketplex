@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getLineupData, saveLineup as saveLineupApi, saveFCStrategy } from '../../api/auth';
+import { getLineupData, getFCState, saveLineup as saveLineupApi, saveFCStrategy } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
   HiOutlineTrophy,
@@ -98,6 +98,21 @@ export default function LineupSetup() {
         setCustomBowling(Array.from({ length: totalOvers }, () => ({ bowlerId: null, aggression: 'N' })));
         if (format === 'FC') setBowlingPlan('CUSTOM');
 
+        if (format === 'FC') {
+          try {
+            const fcRes = await getFCState(fixtureId);
+            const fc = fcRes.data;
+            if (fc?.found) {
+              if (fc.declareInn1 != null) setFcDeclareInn1(String(fc.declareInn1));
+              if (fc.declareInn2Lead != null) setFcDeclareInn2Lead(String(fc.declareInn2Lead));
+              if (fc.followOn != null) setFcFollowOn(fc.followOn);
+              if (fc.declareInn3Lead != null) setFcDeclareInn3Lead(String(fc.declareInn3Lead));
+            }
+          } catch {
+            // FC strategy is optional during lineup load; ignore failures here
+          }
+        }
+
         // Restore saved lineup
         const sl = res.data.savedLineup || res.data.defaultLineup;
         if (sl) {
@@ -180,8 +195,18 @@ export default function LineupSetup() {
     return playing11
       .filter(Boolean)
       .map((id) => squad.find((p) => p.id === id))
-      .filter((p) => p && (p.role === 'BOWLER' || p.role === 'ALL_ROUNDER' || p.bowlType));
-  }, [playing11, squad]);
+      .filter((p) => p && p.id !== keeperId && (p.role === 'BOWLER' || p.role === 'ALL_ROUNDER' || p.bowlType));
+  }, [playing11, squad, keeperId]);
+
+  const activeBowlerIds = useMemo(() => {
+    const ids = new Set(selectedBowlers.filter(Boolean));
+    customBowling.forEach((bo) => { if (bo?.bowlerId) ids.add(bo.bowlerId); });
+    return ids;
+  }, [selectedBowlers, customBowling]);
+
+  const keeperOptions = useMemo(() => {
+    return playing11Players.filter((p) => p && !activeBowlerIds.has(p.id));
+  }, [playing11Players, activeBowlerIds]);
 
   const format = matchInfo?.format;
   const totalOvers = format === 'T20' ? 20 : format === 'ODI' ? 50 : 100;
@@ -200,6 +225,25 @@ export default function LineupSetup() {
     }));
     setCustomBowling(newCb);
   }, [selectedBowlers, bowlingPlan, format]);
+
+  useEffect(() => {
+    if (!keeperId) return;
+    let changed = false;
+    const nextSelected = selectedBowlers.map((id) => {
+      if (id === keeperId) {
+        changed = true;
+        return null;
+      }
+      return id;
+    });
+    if (changed) setSelectedBowlers(nextSelected);
+
+    const keeperUsedInOvers = customBowling.some((bo) => bo.bowlerId === keeperId);
+    if (keeperUsedInOvers) {
+      setCustomBowling((prev) => prev.map((bo) => (bo.bowlerId === keeperId ? { bowlerId: null, aggression: 'N' } : bo)));
+      toast.error('Wicket-keeper removed from bowling orders');
+    }
+  }, [keeperId]);
 
   /* ─── Handlers ─── */
 
@@ -241,6 +285,18 @@ export default function LineupSetup() {
     [newAgg[idx], newAgg[targetIdx]] = [newAgg[targetIdx], newAgg[idx]];
     setPlaying11(newPlaying);
     setBatAggression(newAgg);
+  };
+
+  const canAssignBowlerAtOver = (grid, overIndex, bowlerId) => {
+    if (!bowlerId) return true;
+    const prev = overIndex > 0 ? grid[overIndex - 1]?.bowlerId : null;
+    const next = overIndex < grid.length - 1 ? grid[overIndex + 1]?.bowlerId : null;
+    return bowlerId !== prev && bowlerId !== next;
+  };
+
+  const getPlayerFullName = (playerId) => {
+    const player = squad.find((p) => p.id === playerId);
+    return player ? `${player.firstName} ${player.lastName}` : 'Selected bowler';
   };
 
   const handleSave = async () => {
@@ -494,7 +550,7 @@ export default function LineupSetup() {
             <label>Wicket-Keeper</label>
             <select value={keeperId || ''} onChange={(e) => setKeeperId(e.target.value || null)}>
               <option value="">— Select —</option>
-              {playing11Players.filter(Boolean).map((p) => (
+              {keeperOptions.map((p) => (
                 <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
               ))}
             </select>
@@ -545,7 +601,7 @@ export default function LineupSetup() {
                   value={fcDeclareInn1}
                   onChange={e => setFcDeclareInn1(e.target.value)}
                 />
-                <span className="lu-fc-strat-hint">Declare when your team reaches this total. Leave empty for no declaration.</span>
+                <span className="lu-fc-strat-hint">Used only if your team bats in innings 1. Leave empty for no declaration.</span>
               </div>
             </div>
             <div className="lu-fc-strat-row">
@@ -558,7 +614,7 @@ export default function LineupSetup() {
                   value={fcDeclareInn2Lead}
                   onChange={e => setFcDeclareInn2Lead(e.target.value)}
                 />
-                <span className="lu-fc-strat-hint">Declare when your team leads by this many runs. Leave empty for no declaration.</span>
+                <span className="lu-fc-strat-hint">Used only if your team bats in innings 2. Leave empty for no declaration.</span>
               </div>
             </div>
             <div className="lu-fc-strat-row">
@@ -587,7 +643,7 @@ export default function LineupSetup() {
                   value={fcDeclareInn3Lead}
                   onChange={e => setFcDeclareInn3Lead(e.target.value)}
                 />
-                <span className="lu-fc-strat-hint">Declare when your team&apos;s overall lead reaches this. Leave empty for no declaration.</span>
+                <span className="lu-fc-strat-hint">Used only if your team bats in innings 3 (can depend on follow-on choice). Leave empty for no declaration.</span>
               </div>
             </div>
           </div>
@@ -722,11 +778,18 @@ export default function LineupSetup() {
                         // Assign active bowler
                         const bid = selectedBowlers[activeBrush];
                         if (!bid) { toast.error('Select a bowler for B' + (activeBrush + 1) + ' first'); return; }
+                        if (!canAssignBowlerAtOver(newCb, i, bid)) {
+                          toast.error(`${getPlayerFullName(bid)} cannot bowl consecutive overs`);
+                          return;
+                        }
                         if (newCb[i].bowlerId === bid) {
                           newCb[i] = { bowlerId: null, aggression: 'N' };
                         } else {
                           const cnt = newCb.filter(b => b.bowlerId === bid).length;
-                          if (cnt >= maxPerBowler) { toast.error(`B${activeBrush + 1} has max ${maxPerBowler} overs`); return; }
+                          if (cnt >= maxPerBowler) {
+                            toast.error(`${getPlayerFullName(bid)} has max ${maxPerBowler} overs`);
+                            return;
+                          }
                           newCb[i] = { bowlerId: bid, aggression: 'N' };
                         }
                       }
@@ -848,8 +911,13 @@ export default function LineupSetup() {
                     className="lu-co-bowler"
                     value={bo.bowlerId || ''}
                     onChange={(e) => {
+                      const nextBowlerId = e.target.value || null;
                       const newCb = [...customBowling];
-                      newCb[i] = { ...newCb[i], bowlerId: e.target.value || null };
+                      if (!canAssignBowlerAtOver(newCb, i, nextBowlerId)) {
+                        toast.error(`${getPlayerFullName(nextBowlerId)} cannot bowl consecutive overs`);
+                        return;
+                      }
+                      newCb[i] = { ...newCb[i], bowlerId: nextBowlerId };
                       setCustomBowling(newCb);
                       if (bowlingPlan !== 'CUSTOM') {
                         customBowlingBackup.current = null;
@@ -861,7 +929,8 @@ export default function LineupSetup() {
                     {bowlerCandidates.map((p) => {
                       const count = bowlerOverCounts[p.id] || 0;
                       const isAtMax = count >= maxPerBowler && p.id !== bo.bowlerId;
-                      const isConsecutive = p.id === prevBowler && p.id !== bo.bowlerId;
+                      const nextBowler = i < customBowling.length - 1 ? customBowling[i + 1].bowlerId : null;
+                      const isConsecutive = (p.id === prevBowler || p.id === nextBowler) && p.id !== bo.bowlerId;
                       return (
                         <option key={p.id} value={p.id} disabled={isAtMax || isConsecutive}>
                           {p.lastName} ({count}/{maxPerBowler})
