@@ -66,9 +66,15 @@ export default function Matches() {
     });
   };
 
+  const getRowRoute = (m) => {
+    if (m.status === 'FC_DAY1_COMPLETE') return `/match/${m.id}/fc-strategy`;
+    if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') return `/match/${m.id}/live`;
+    if (m.status === 'COMPLETED') return `/match/${m.id}/scorecard`;
+    return `/match/${m.id}/preview`;
+  };
+
   return (
     <div className="matches-page">
-      {/* Header */}
       <div className="matches-header">
         <HiOutlineTrophy className="matches-header-icon" />
         <div>
@@ -77,7 +83,6 @@ export default function Matches() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="matches-filters">
         <div className="matches-filter-group">
           <HiOutlineFunnel className="matches-filter-icon" />
@@ -102,7 +107,6 @@ export default function Matches() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="matches-tabs">
           <button
             className={`matches-tab ${activeTab === 'upcoming' ? 'active' : ''}`}
@@ -121,7 +125,6 @@ export default function Matches() {
         </div>
       </div>
 
-      {/* Match List */}
       <div className="matches-content">
         {loading ? (
           <div className="matches-loading">Loading matches...</div>
@@ -133,7 +136,6 @@ export default function Matches() {
           </div>
         ) : (
           <div className="matches-list">
-            {/* Table Header */}
             <div className="matches-table-head">
               <span className="mt-col-date">Date</span>
               <span className="mt-col-format">Format</span>
@@ -146,29 +148,22 @@ export default function Matches() {
 
             {displayed.map((m) => {
               const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
-              const rowClick = () => {
-                if (m.status === 'FC_DAY1_COMPLETE') {
-                  navigate(`/match/${m.id}/fc-strategy`);
-                } else if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') {
-                  navigate(`/match/${m.id}/live`);
-                } else if (m.status === 'COMPLETED') {
-                  navigate(`/match/${m.id}/scorecard`);
-                } else {
-                  navigate(`/match/${m.id}/preview`);
-                }
-              };
+              const rowRoute = getRowRoute(m);
+
               return (
-                <div key={m.id} className="matches-row matches-row-clickable" onClick={rowClick}>
-                  {/* Date */}
+                <div
+                  key={m.id}
+                  className="matches-row matches-row-clickable"
+                  onClick={() => navigate(rowRoute)}
+                >
                   <div className="mt-col-date">
                     <span className="matches-date">{formatDate(m.matchDate)}</span>
                     <span className="matches-round">
-                      {m.matchType === 'FRIENDLY' ? 'Friendly' : `R${m.round} · Div ${m.leagueLabel}`}
+                      {m.matchType === 'FRIENDLY' ? 'Friendly' : `R${m.round} - Div ${m.leagueLabel}`}
                     </span>
                     {m.matchStartTimeUtc && <span className="matches-time">{m.matchStartTimeUtc} UTC</span>}
                   </div>
 
-                  {/* Format */}
                   <div className="mt-col-format">
                     <span
                       className="matches-format-tag"
@@ -184,7 +179,6 @@ export default function Matches() {
                     </span>
                   </div>
 
-                  {/* Fixture */}
                   <div className="mt-col-fixture">
                     <div className="matches-fixture">
                       <div className="matches-team matches-team-home">
@@ -221,14 +215,13 @@ export default function Matches() {
                     </div>
                   </div>
 
-                  {/* Weather */}
                   <div className="mt-col-weather">
                     {m.weather?.available ? (
                       <div className="matches-weather">
                         <span className="matches-weather-icon">{m.weather.icon}</span>
                         <div className="matches-weather-info">
                           <span className="matches-weather-condition">{m.weather.condition}</span>
-                          <span className="matches-weather-temp">{m.weather.temperature}°C · {m.weather.humidity}%</span>
+                          <span className="matches-weather-temp">{m.weather.temperature} C - {m.weather.humidity}%</span>
                         </div>
                       </div>
                     ) : (
@@ -236,17 +229,20 @@ export default function Matches() {
                     )}
                   </div>
 
-                  {/* Action / Result */}
                   <div className="mt-col-action">
                     {activeTab === 'upcoming' ? (
                       m.status === 'FC_DAY1_COMPLETE' ? (
-                        <button className="matches-action-btn matches-live-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/fc-strategy`); }}>
+                        <button
+                          className="matches-action-btn matches-live-btn"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/fc-strategy`); }}
+                        >
                           Day 2 Strategy
                         </button>
                       ) : (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
-                        <button className="matches-action-btn matches-live-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/live`); }}>
+                        <button
+                          className="matches-action-btn matches-live-btn"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/live`); }}
+                        >
                           View Live
                         </button>
                       ) : (

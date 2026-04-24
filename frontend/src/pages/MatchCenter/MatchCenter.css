@@ -114,6 +114,16 @@
   align-items: center;
   gap: 0.3rem;
 }
+.mc-meta-link {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.1rem 0.3rem;
+  transition: background 0.15s, color 0.15s;
+}
+.mc-meta-link:hover {
+  background: var(--accent-surface);
+  color: var(--accent);
+}
 .mc-format-badge {
   font-size: 0.65rem;
   font-weight: 700;
@@ -495,8 +505,9 @@
 .mc-comm-filter.active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-surface); }
 
 .mc-comm-feed {
-  max-height: 500px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
+  width: 100%;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -558,9 +569,19 @@
   border-bottom: 2px solid #14532d;
   background: #052e16;
   padding: 0.45rem 0.75rem;
+}
+.mc-comm-ctx-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(230px, 1fr);
+  gap: 0.75rem;
+}
+.mc-comm-ctx-col {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+.mc-comm-ctx-col-right {
+  align-items: flex-end;
 }
 .mc-comm-ctx-row {
   display: flex;
@@ -569,7 +590,7 @@
   font-size: 0.72rem;
   flex-wrap: wrap;
 }
-.mc-comm-ctx-players { justify-content: space-between; }
+.mc-comm-ctx-players { justify-content: flex-start; }
 .mc-comm-ctx-bats { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .mc-comm-ctx-bat { color: #e2e8f0; white-space: nowrap; }
 .mc-comm-ctx-bat strong { color: #f8fafc; }
@@ -587,6 +608,14 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   margin-right: 0.2rem;
+}
+@media (max-width: 860px) {
+  .mc-comm-ctx-grid {
+    grid-template-columns: 1fr;
+  }
+  .mc-comm-ctx-col-right {
+    align-items: flex-start;
+  }
 }
 
 /* --- Milestone celebration cards --- */

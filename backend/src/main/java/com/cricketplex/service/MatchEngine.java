@@ -388,9 +388,14 @@ public class MatchEngine {
                     } else {
                         // Rotate strike on odd runs
                         if (delivery.runs % 2 == 1) {
-                            BatsmanState temp = striker;
-                            striker = nonStriker;
-                            nonStriker = temp;
+                            boolean keepStrike = !delivery.isBye && !delivery.isLegBye
+                                    && tryStrikeFarmingKeepStrike(
+                                    ctx, striker, nonStriker, batCard, legalBallsThisOver, overNumber, false, ctx.rng);
+                            if (!keepStrike) {
+                                BatsmanState temp = striker;
+                                striker = nonStriker;
+                                nonStriker = temp;
+                            }
                         }
                     }
                 }
@@ -401,10 +406,15 @@ public class MatchEngine {
                 }
             }
 
-            // End of over: rotate strike
-            BatsmanState temp = striker;
-            striker = nonStriker;
-            nonStriker = temp;
+            // End of over: rotate strike (unless better batter farms strike successfully)
+            BattingScorecard overEndStrikerCard = batCards.get(striker.player.getId());
+            boolean keepEndOverStrike = tryStrikeFarmingKeepStrike(
+                    ctx, striker, nonStriker, overEndStrikerCard, legalBallsThisOver, overNumber, true, ctx.rng);
+            if (!keepEndOverStrike) {
+                BatsmanState temp = striker;
+                striker = nonStriker;
+                nonStriker = temp;
+            }
 
             // Maiden
             if (maidenPossible && runsThisOver == 0) {
@@ -465,6 +475,8 @@ public class MatchEngine {
         // ── Aggression modifiers ──
         double batAggrMod = getAggressionModifier(batter.lineupPlayer.getBatAggression());
         double bowlAggrMod = getAggressionModifier(bowlerAggression);
+        int ballsFaced = batCard != null && batCard.getBallsFaced() != null ? batCard.getBallsFaced() : 0;
+        double setBatsmanFactor = getSetBatsmanFactor(ctx.format, ballsFaced, batter.lineupPlayer.getBatAggression());
 
         // ── Confidence (0-100) → modifier ──
         double batConfidence = batter.player.getConfidence() / 100.0;
@@ -513,7 +525,8 @@ public class MatchEngine {
                 + batPitchMod                  // batter-specific pitch advantage/penalty
                 + weatherEffect.battingMod
                 + batWeatherMod                // batter-specific weather advantage/penalty
-                + phaseModifier * 2.0;
+                + phaseModifier * 2.0
+                + setBatsmanFactor * 3.5;     // time-at-crease confidence/tempo
         batStrength *= batFatigue;
         batStrength = Math.max(5, Math.min(batStrength, 120));
 
@@ -532,6 +545,7 @@ public class MatchEngine {
         bowlStrength = Math.max(5, Math.min(bowlStrength, 120));
 
         // ── Chase pressure (format-aware thresholds, pitch-adjusted) ──
+        // REDUCED: Halved all pressure values to balance first vs second innings
         // Positive = hard chase (bowler confident, batter pressured)
         // Negative = easy chase (batter comfortable, bowler under pressure)
         double chasePressure = 0;
@@ -544,44 +558,44 @@ public class MatchEngine {
                 // Tough pitches inflate RRR → pressure kicks in earlier
                 // Flat pitches deflate RRR → same rate feels easier
                 double pitchRRRScale = switch (ctx.pitchType != null ? ctx.pitchType : "STANDARD") {
-                    case "DUSTY"  -> 1.25;  // spin dust-bowl — chasing is brutal
-                    case "DRY"    -> 1.20;  // deteriorating — hard to score late
-                    case "GREEN"  -> 1.15;  // seam assistance — run-making tough
-                    case "BOUNCY" -> 1.10;  // variable bounce adds pressure
-                    case "UNEVEN" -> 1.15;  // unpredictable → risky chasing
-                    case "SLOW"   -> 1.10;  // low bounce limits scoring shots
-                    case "FLAT"   -> 0.85;  // batting paradise — chasing easy
+                    case "DUSTY"  -> 1.20;  // Reduced from 1.25
+                    case "DRY"    -> 1.15;  // Reduced from 1.20
+                    case "GREEN"  -> 1.10;  // Reduced from 1.15
+                    case "BOUNCY" -> 1.08;  // Reduced from 1.10
+                    case "UNEVEN" -> 1.10;  // Reduced from 1.15
+                    case "SLOW"   -> 1.05;  // Reduced from 1.10
+                    case "FLAT"   -> 0.90;  // Reduced from 0.85
                     default       -> 1.0;   // STANDARD — no adjustment
                 };
                 double requiredRate = rawRR * pitchRRRScale;
                 if ("T20".equalsIgnoreCase(ctx.format)) {
-                    if (requiredRate > 14) chasePressure = 10;
-                    else if (requiredRate > 12) chasePressure = 7;
-                    else if (requiredRate > 10) chasePressure = 4;
-                    else if (requiredRate > 8) chasePressure = 1;
-                    else if (requiredRate < 5) chasePressure = -3;
-                    else if (requiredRate < 3) chasePressure = -5;
+                    if (requiredRate > 14) chasePressure = 5;      // Halved from 10
+                    else if (requiredRate > 12) chasePressure = 3.5;  // Halved from 7
+                    else if (requiredRate > 10) chasePressure = 2;    // Halved from 4
+                    else if (requiredRate > 8) chasePressure = 0.5;   // Halved from 1
+                    else if (requiredRate < 5) chasePressure = -1.5;  // Halved from -3
+                    else if (requiredRate < 3) chasePressure = -2.5;  // Halved from -5
                 } else if ("ODI".equalsIgnoreCase(ctx.format)) {
-                    if (requiredRate > 10) chasePressure = 10;
-                    else if (requiredRate > 8) chasePressure = 7;
-                    else if (requiredRate > 6) chasePressure = 4;
-                    else if (requiredRate > 5) chasePressure = 1;
-                    else if (requiredRate < 3) chasePressure = -3;
-                    else if (requiredRate < 2) chasePressure = -5;
+                    if (requiredRate > 10) chasePressure = 5;      // Halved from 10
+                    else if (requiredRate > 8) chasePressure = 3.5; // Halved from 7
+                    else if (requiredRate > 6) chasePressure = 2;   // Halved from 4
+                    else if (requiredRate > 5) chasePressure = 0.5; // Halved from 1
+                    else if (requiredRate < 3) chasePressure = -1.5; // Halved from -3
+                    else if (requiredRate < 2) chasePressure = -2.5; // Halved from -5
                 } else if ("FC".equalsIgnoreCase(ctx.format)) {
                     // FC chases are more relaxed: plenty of overs
-                    if (requiredRate > 6) chasePressure = 10;
-                    else if (requiredRate > 5) chasePressure = 6;
-                    else if (requiredRate > 4) chasePressure = 3;
-                    else if (requiredRate > 3) chasePressure = 1;
-                    else if (requiredRate < 1.5) chasePressure = -3;
-                    else if (requiredRate < 1) chasePressure = -5;
+                    if (requiredRate > 6) chasePressure = 5;       // Halved from 10
+                    else if (requiredRate > 5) chasePressure = 3;  // Halved from 6
+                    else if (requiredRate > 4) chasePressure = 1.5;    // Halved from 3
+                    else if (requiredRate > 3) chasePressure = 0.5;    // Halved from 1
+                    else if (requiredRate < 1.5) chasePressure = -1.5;  // Halved from -3
+                    else if (requiredRate < 1) chasePressure = -2.5;    // Halved from -5
                 }
             }
         }
         bowlStrength += chasePressure;
-        // Batter composure: easy chase = calmer batting, hard chase = reckless
-        batStrength -= chasePressure * 0.6;
+        // Batter composure: easy chase = calmer batting, hard chase = cautious (not reckless)
+        batStrength -= chasePressure * 0.3;  // Reduced from 0.6 (less extreme penalization)
         batStrength = Math.max(5, Math.min(batStrength, 120));
 
         // ─── WIDE / NO-BALL CHECK ───
@@ -606,67 +620,89 @@ public class MatchEngine {
         // ─── SCORING PROBABILITY ───
         double skill_diff = batStrength - bowlStrength; // positive = batter dominant
 
-        // Format-specific base probabilities
-        // T20: ~8.0 RPO → more boundaries, fewer dots, higher risk
-        // ODI: ~5.2 RPO → more dots/singles, fewer boundaries, steadier
+        // Format-specific base probabilities - REBALANCED
+        // T20: ~8.0 RPO → balanced aggressive scoring with realistic wicket rate
+        // ODI: ~5.2 RPO → controlled scoring with higher wicket risk (more balls faced)
+        // FC: ~3.0 RPO → defensive, patience-oriented, very low wicket rate
         double pDot, p1, p2, p3, p4, p6, pWicket;
 
         if ("T20".equalsIgnoreCase(ctx.format)) {
-            pDot    = 0.30;  // T20 has fewer dots
-            p1      = 0.24;
-            p2      = 0.10;
-            p3      = 0.02;
-            p4      = 0.15;  // more boundaries
-            p6      = 0.08;  // more sixes
-            pWicket = 0.055; // slightly higher risk per ball
+            pDot    = 0.32;  // 32% dots
+            p1      = 0.23;  // 23% singles
+            p2      = 0.09;  // 9% twos
+            p3      = 0.02;  // 2% threes
+            p4      = 0.12;  // 12% fours (reduced from 0.15)
+            p6      = 0.06;  // 6% sixes (reduced from 0.08)
+            pWicket = 0.065; // 6.5% wickets (increased from 0.055 to balance boundaries)
         } else if ("FC".equalsIgnoreCase(ctx.format)) {
             // FC: Most defensive, patience-oriented
-            pDot    = 0.48;  // lots of dots (patient batting)
-            p1      = 0.25;
-            p2      = 0.10;
-            p3      = 0.04;
-            p4      = 0.06;  // rare boundaries
-            p6      = 0.01;  // very rare sixes
-            pWicket = 0.03;  // lower wicket risk (defensive play)
+            pDot    = 0.50;  // 50% dots (patient batting)
+            p1      = 0.25;  // 25% singles
+            p2      = 0.08;  // 8% twos
+            p3      = 0.03;  // 3% threes
+            p4      = 0.05;  // 5% fours (rare boundaries)
+            p6      = 0.01;  // 1% sixes (very rare)
+            pWicket = 0.035; // 3.5% wickets (slightly increased from 0.03 for 300+ ball innings)
         } else { // ODI
-            pDot    = 0.40;  // ODIs have more dots
-            p1      = 0.28;
-            p2      = 0.10;
-            p3      = 0.03;
-            p4      = 0.08;  // fewer boundaries
-            p6      = 0.03;  // fewer sixes
-            pWicket = 0.04;  // lower per-ball wicket chance
+            pDot    = 0.42;  // 42% dots (more conservative)
+            p1      = 0.29;  // 29% singles
+            p2      = 0.09;  // 9% twos
+            p3      = 0.02;  // 2% threes
+            p4      = 0.06;  // 6% fours (reduced from 0.08)
+            p6      = 0.02;  // 2% sixes (reduced from 0.03)
+            pWicket = 0.055; // 5.5% wickets (increased from 0.04 to balance boundaries)
         }
 
         // Format-scaled shift factor (T20 skill gaps have bigger impact on boundaries)
-        double shiftScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.7 : 1.0;
+        // FIXED: Better batters score more boundaries AND take more risks (higher wicket rate)
+        double shiftScale = "T20".equalsIgnoreCase(ctx.format) ? 1.2 : "FC".equalsIgnoreCase(ctx.format) ? 0.6 : 0.9;
         double shift = (skill_diff / 200.0) * shiftScale;
-        pDot -= shift * 0.4;
-        p1 += shift * 0.12;
-        p2 += shift * 0.06;
-        p4 += shift * 0.12;
-        p6 += shift * 0.08;
-        pWicket -= shift * 0.35;
+        pDot -= shift * 0.35;
+        p1 += shift * 0.10;
+        p2 += shift * 0.05;
+        p4 += shift * 0.10;
+        p6 += shift * 0.06;
+        pWicket += shift * 0.15; // INVERTED: Higher skill = more aggressive play = higher wicket risk
 
         // Batting aggression extremes — bigger swings in T20, smaller in ODI, smallest in FC
-        double aggrScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.6 : 0.9;
+        // BALANCED: Aggressive players get more boundaries (+32-45%) AND proportional wickets (+17-23%)
+        double aggrScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.5 : 0.8;
         if ("A".equals(batter.lineupPlayer.getBatAggression())) {
-            p4 += 0.03 * aggrScale;
-            p6 += 0.035 * aggrScale;
-            pWicket += 0.025 * aggrScale;
-            pDot -= 0.06 * aggrScale;
-            p1 -= 0.025 * aggrScale;
+            p4 += 0.025 * aggrScale;      // Boundary boost (+32-45% depending on format)
+            p6 += 0.02 * aggrScale;       // Six boost
+            pWicket += 0.012 * aggrScale; // Proportional wicket increase: T20=+1.56%, ODI=+0.96%, FC=+0.6%
+            pDot -= 0.04 * aggrScale;
+            p1 -= 0.015 * aggrScale;
         } else if ("D".equals(batter.lineupPlayer.getBatAggression())) {
-            p4 -= 0.02 * aggrScale;
-            p6 -= 0.02 * aggrScale;
-            pWicket -= 0.02 * aggrScale;
-            pDot += 0.04 * aggrScale;
-            p1 += 0.02 * aggrScale;
+            p4 -= 0.015 * aggrScale;
+            p6 -= 0.015 * aggrScale;
+            pWicket -= 0.015 * aggrScale; // Defensive players have lower wicket risk
+            pDot += 0.03 * aggrScale;
+            p1 += 0.015 * aggrScale;
+        }
+
+        // Set-batsman effect: smooth non-linear acceleration with diminishing returns.
+        // New batters start slightly conservative; set players find boundaries more often,
+        // with only a modest wicket-risk bump so innings don't become overly aggressive.
+        if (setBatsmanFactor >= 0) {
+            pDot -= 0.025 * setBatsmanFactor;
+            p1 -= 0.006 * setBatsmanFactor;
+            p2 += 0.008 * setBatsmanFactor;
+            p4 += 0.012 * setBatsmanFactor;
+            p6 += 0.007 * setBatsmanFactor;
+            pWicket += 0.004 * setBatsmanFactor;
+        } else {
+            double settling = Math.abs(setBatsmanFactor);
+            pDot += 0.018 * settling;
+            p1 += 0.006 * settling;
+            p4 -= 0.009 * settling;
+            p6 -= 0.006 * settling;
+            pWicket += 0.002 * settling;
         }
 
         // Bowling aggression effects
         if ("A".equals(bowlerAggression)) {
-            pWicket += 0.015 * aggrScale;
+            pWicket += 0.010 * aggrScale; // REDUCED: from 0.015
             p4 += 0.015 * aggrScale;
             p6 += 0.01 * aggrScale;
             pDot -= 0.015 * aggrScale;
@@ -693,36 +729,34 @@ public class MatchEngine {
             double wktsPerOver = totalWickets / completedOvers;
 
             // collapseFactor: 0 (no pressure) to ~1.0 (extreme collapse)
-            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.65
-                    : "FC".equalsIgnoreCase(ctx.format) ? 0.40 : 0.50;
+            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.60
+                    : "FC".equalsIgnoreCase(ctx.format) ? 0.35 : 0.45;
             double collapseFactor = 0;
             if (wktsPerOver > collapseThreshold) {
-                collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.8);
+                collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.7);
             }
 
-            // Also factor in absolute wickets lost — 5+ down is always pressure
-            if (totalWickets >= 7) collapseFactor = Math.max(collapseFactor, 0.8);
-            else if (totalWickets >= 5) collapseFactor = Math.max(collapseFactor, 0.5);
+            // Also factor in absolute wickets lost — 7+ down is severe pressure
+            if (totalWickets >= 8) collapseFactor = Math.max(collapseFactor, 0.75);
+            else if (totalWickets >= 6) collapseFactor = Math.max(collapseFactor, 0.45);
+            else if (totalWickets >= 4) collapseFactor = Math.max(collapseFactor, 0.2);
 
-            // Aggressive players resist consolidation partially (their flaw)
-            double resistFactor = "A".equals(playerAggr) ? 0.55 : ("D".equals(playerAggr) ? 1.3 : 1.0);
+            // Aggressive players try harder but increase risk proportionally
+            double resistFactor = "A".equals(playerAggr) ? 0.7 : ("D".equals(playerAggr) ? 1.2 : 1.0);
             double adjustedCollapse = collapseFactor * resistFactor;
 
             // Shift toward defensive play: more dots/singles, fewer boundaries
-            pDot    += 0.08 * adjustedCollapse;
-            p1      += 0.04 * adjustedCollapse;
-            p4      -= 0.05 * adjustedCollapse;
-            p6      -= 0.04 * adjustedCollapse;
-            // Aggressive batsmen who ignore collapse lose more wickets
-            if ("A".equals(playerAggr) && collapseFactor > 0.3) {
-                pWicket += 0.025 * collapseFactor;
-            } else {
-                pWicket -= 0.01 * adjustedCollapse; // defensive play reduces wicket risk
-            }
+            pDot    += 0.06 * adjustedCollapse;
+            p1      += 0.03 * adjustedCollapse;
+            p4      -= 0.04 * adjustedCollapse;
+            p6      -= 0.03 * adjustedCollapse;
+            // Reduce wicket stacking: defensive play moderately reduces wicket risk
+            pWicket -= 0.008 * adjustedCollapse;
         }
 
         // ── 2. Chase situation awareness ──
         // Adjust batting intent based on required rate vs match situation.
+        // REDUCED PRESSURE: More balanced chase adjustments
         if (ctx.isChasing) {
             int runsNeeded = ctx.target - totalRuns;
             int totalBalls = ctx.maxOvers * 6;
@@ -736,49 +770,39 @@ public class MatchEngine {
             double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0
                     : "FC".equalsIgnoreCase(ctx.format) ? 3.0 : 5.0;
 
-            // How far behind/ahead of the required rate
-            double rateDiff = requiredRate - parRate; // positive = need to accelerate
-
             if (runsNeeded <= 0) {
                 // Already won — shouldn't reach here but safety
             } else if (requiredRate < parRate * 0.5) {
-                // Very easy chase — play very conservatively
-                // E.g., chasing 100 in T20: RRR ~5.0 vs par 8.0
+                // Very easy chase — play conservatively but not fearfully
                 double easyFactor = Math.min(1.0, (parRate * 0.5 - requiredRate) / (parRate * 0.4));
-                pDot    += 0.06 * easyFactor;
-                p1      += 0.06 * easyFactor;
-                p4      -= 0.06 * easyFactor;
-                p6      -= 0.05 * easyFactor;
-                pWicket -= 0.015 * easyFactor;
-                // Aggressive players still attempt more shots but modestly
-                if ("A".equals(playerAggr)) {
-                    pDot -= 0.02 * easyFactor;
-                    p4   += 0.02 * easyFactor;
-                    pWicket += 0.01 * easyFactor; // slight risk
-                }
+                pDot    += 0.03 * easyFactor;
+                p1      += 0.03 * easyFactor;
+                p4      -= 0.03 * easyFactor;
+                p6      -= 0.02 * easyFactor;
+                pWicket -= 0.008 * easyFactor;
             } else if (requiredRate < parRate * 0.8) {
-                // Comfortable chase — slightly conservative
+                // Comfortable chase — normal play
                 double comfortFactor = Math.min(1.0, (parRate * 0.8 - requiredRate) / (parRate * 0.3));
-                pDot += 0.03 * comfortFactor;
-                p1   += 0.03 * comfortFactor;
-                p4   -= 0.03 * comfortFactor;
-                p6   -= 0.02 * comfortFactor;
-                pWicket -= 0.005 * comfortFactor;
+                pDot += 0.015 * comfortFactor;
+                p1   += 0.015 * comfortFactor;
+                p4   -= 0.015 * comfortFactor;
+                p6   -= 0.01 * comfortFactor;
+                pWicket -= 0.003 * comfortFactor;
             } else if (requiredRate > parRate * 1.5) {
-                // Desperate chase — go all out
+                // Desperate chase — accelerate with calculated risk
                 double desperateFactor = Math.min(1.0, (requiredRate - parRate * 1.5) / (parRate * 0.5));
-                pDot -= 0.08 * desperateFactor;
-                p1   -= 0.03 * desperateFactor;
-                p4   += 0.04 * desperateFactor;
-                p6   += 0.05 * desperateFactor;
-                pWicket += 0.03 * desperateFactor;
+                pDot -= 0.04 * desperateFactor;  // Reduced from 0.08
+                p1   -= 0.015 * desperateFactor; // Reduced from 0.03
+                p4   += 0.02 * desperateFactor;  // Reduced from 0.04
+                p6   += 0.025 * desperateFactor; // Reduced from 0.05
+                pWicket += 0.015 * desperateFactor; // Reduced from 0.03
             } else if (requiredRate > parRate * 1.2) {
-                // Need to accelerate
+                // Need to accelerate — modest pressure
                 double pushFactor = Math.min(1.0, (requiredRate - parRate * 1.2) / (parRate * 0.3));
-                pDot -= 0.04 * pushFactor;
-                p4   += 0.02 * pushFactor;
-                p6   += 0.02 * pushFactor;
-                pWicket += 0.01 * pushFactor;
+                pDot -= 0.02 * pushFactor;   // Reduced from 0.04
+                p4   += 0.01 * pushFactor;   // Reduced from 0.02
+                p6   += 0.01 * pushFactor;   // Reduced from 0.02
+                pWicket += 0.006 * pushFactor; // Reduced from 0.01
             }
             // else: par range — no adjustment, play normally
         }
@@ -889,9 +913,10 @@ public class MatchEngine {
             result.isWicket = true;
             result.runs = 0;
 
-            // Determine dismissal type based on bowler type, fielding, keeper
+            // Determine dismissal type based on bowler type, fielding, keeper, match state
             DismissalInfo dismissal = determineDismissal(
-                    rng, bowler, batter, teamFieldingAvg, keeperSkill, ctx);
+                    rng, bowler, batter, teamFieldingAvg, keeperSkill, ctx,
+                    legalBallsBowled, totalRuns, totalWickets);
             result.dismissalType = dismissal.type;
             result.fielder = dismissal.fielder;
             result.commentary = "OUT! " + dismissal.commentary;
@@ -912,37 +937,81 @@ public class MatchEngine {
 
     private DismissalInfo determineDismissal(
             Random rng, Player bowler, BatsmanState batter,
-            double fieldingAvg, double keeperSkill, SimContext ctx) {
+            double fieldingAvg, double keeperSkill, SimContext ctx,
+            int legalBallsBowled, int totalRuns, int totalWickets) {
 
         String bowlType = bowler.getBowlType();
         boolean isPace = bowlType != null && (bowlType.equals("F") || bowlType.equals("FM") || bowlType.equals("MF") || bowlType.equals("M"));
         boolean isSpin = bowlType != null && (bowlType.equals("FS") || bowlType.equals("WS"));
 
-        // Probability weights for dismissal types
-        double pBowled = isPace ? 0.22 : (isSpin ? 0.18 : 0.20);
-        double pCaught = 0.40;  // most common
-        double pLBW = isPace ? 0.15 : (isSpin ? 0.22 : 0.15);
-        double pStumped = isSpin ? 0.10 : 0.02;
-        double pRunOut = 0.08;
+        // FIXED: Realistic dismissal distribution based on cricket statistics
+        // Pace bowlers: Bowled 18% | Caught 50% | LBW 15% | Caught Behind 10% | Run Out 3% | Stumped 1% | Hit Wicket 3%
+        // Spin bowlers: Bowled 15% | Caught 50% | LBW 20% | Caught Behind 5%  | Run Out 3% | Stumped 2% | Hit Wicket 5%
+        double pBowled = isPace ? 0.18 : (isSpin ? 0.15 : 0.17);
+        double pCaught = 0.50;  // most common (~55-65% in reality)
+        double pLBW = isPace ? 0.15 : (isSpin ? 0.20 : 0.15);
+        double pStumped = isSpin ? 0.02 : 0.01;  // REDUCED from 10%/2% - stumping is rare event
+        double pRunOut = 0.03;  // REDUCED from 8% - only increases with pressure
         double pCaughtBehind = isPace ? 0.10 : 0.05;
-        double pHitWicket = 0.02;
+        double pHitWicket = isPace ? 0.03 : 0.05;  // Spin batters more likely to hit wicket
 
-        // Fielding quality affects catches
-        pCaught += fieldingAvg * 0.002;
-        pCaughtBehind += keeperSkill * 0.001;
-        pStumped += keeperSkill * 0.0015;
+        // Fielding quality affects catches (modest, not dominant)
+        pCaught += fieldingAvg * 0.001;  // REDUCED from 0.002
+        pCaughtBehind += keeperSkill * 0.0005;  // REDUCED from 0.001
+        pStumped += keeperSkill * 0.0005;  // REDUCED from 0.0015 - keeper doesn't massively boost stumping
 
-        // Pitch effects
+        // Pitch effects (subtle, not dramatic)
         if ("GREEN".equals(ctx.pitchType) || "BOUNCY".equals(ctx.pitchType)) {
             pCaughtBehind += 0.04;
             pBowled += 0.03;
         }
         if ("DUSTY".equals(ctx.pitchType) || "DRY".equals(ctx.pitchType)) {
-            pStumped += 0.04;
-            pLBW += 0.03;
+            pStumped += 0.01;  // REDUCED from 0.04 - stumping boost is subtle
+            pLBW += 0.02;  // REDUCED from 0.03
         }
 
+        // RUN-OUT PRESSURE: Applies to BOTH first and second innings
+        // Second innings (chasing): Pressure to accelerate = desperate running
+        // First innings (batting first): Pressure from collapsing wickets = rash running
+        double runOutPressure = 0.0;
+        if (ctx.isChasing) {
+            // Chase: higher required rate = higher run-out risk from desperate running
+            double runsNeeded = ctx.target > 0 ? ctx.target - totalRuns : 0;
+            double oversCompleted = legalBallsBowled / 6.0;
+            double oversRemaining = ctx.maxOvers - oversCompleted;
+            double requiredRate = oversRemaining > 0 ? runsNeeded / oversRemaining : 0;
+            double parRate = ctx.target > 0 ? ctx.target / ctx.maxOvers : 0;
+            if (requiredRate > parRate * 1.5) {
+                runOutPressure = 0.04;  // Very desperate chase
+            } else if (requiredRate > parRate * 1.2) {
+                runOutPressure = 0.02;  // Moderate chase pressure
+            }
+        } else {
+            // First innings: rapid wicket loss creates pressure for risky running
+            double oversCompleted = legalBallsBowled / 6.0;
+            double wicketRate = oversCompleted > 0 ? totalWickets / oversCompleted : 0;
+            if (wicketRate > 1.5) {  // More than 1.5 wickets per over = collapse pressure
+                runOutPressure = 0.02;  // Desperate batting, risky running
+            } else if (wicketRate > 1.0) {  // 1+ wickets per over
+                runOutPressure = 0.01;  // Mild pressure
+            }
+        }
+        pRunOut += runOutPressure;
+
+        // CRITICAL: Normalize probabilities to ensure they sum to 1.0
         double dTotal = pBowled + pCaught + pLBW + pStumped + pRunOut + pCaughtBehind + pHitWicket;
+        if (dTotal > 1.0) {
+            // Scale down all probabilities proportionally to fit within 1.0
+            double scale = 1.0 / dTotal;
+            pBowled *= scale;
+            pCaught *= scale;
+            pLBW *= scale;
+            pStumped *= scale;
+            pRunOut *= scale;
+            pCaughtBehind *= scale;
+            pHitWicket *= scale;
+            dTotal = 1.0;
+        }
         double dRoll = rng.nextDouble() * dTotal;
         double dCum = 0;
 
@@ -1294,29 +1363,30 @@ public class MatchEngine {
             // T20 overs 1-6 = powerplay (fielding restrictions → runs flow)
             // T20 overs 7-15 = middle (consolidation, spinners dominate)
             // T20 overs 16-20 = death (slog, high scoring + high risk)
-            if (overNumber <= 6) return 3;
-            if (overNumber <= 15) return -1;
-            return 5;
+            if (overNumber <= 6) return 2.5;    // Slightly reduced from 3
+            if (overNumber <= 15) return -0.5;  // Slightly reduced from -1
+            return 4;                           // Slightly reduced from 5
         } else if ("ODI".equalsIgnoreCase(format)) {
-            // ODI overs 1-10 = powerplay (some runs, but wickets too)
-            // ODI overs 11-30 = consolidation (lowest scoring phase)
-            // ODI overs 31-40 = buildup (acceleration begins)
-            // ODI overs 41-50 = slog/death (big runs)
-            if (overNumber <= 10) return 1.5;
-            if (overNumber <= 30) return -2;
-            if (overNumber <= 40) return 1;
-            return 3.5;
+            // ODI overs 1-10 = powerplay (aggressive runs, low risk tolerance)
+            // ODI overs 11-30 = consolidation (steady phase, normal batting)
+            // ODI overs 31-40 = buildup (controlled acceleration)
+            // ODI overs 41-50 = death (aggressive push with calculated risk)
+            // FIXED: Removed harsh -2 penalty from overs 11-30
+            if (overNumber <= 10) return 1.0;   // Reduced from 1.5 (powerplay caution)
+            if (overNumber <= 30) return 0;     // Changed from -2 (neutral, no penalty)
+            if (overNumber <= 40) return 0.5;   // Reduced from 1
+            return 2.5;                         // Reduced from 3.5
         } else if ("FC".equalsIgnoreCase(format)) {
             // FC: Each session is 50 overs. Phase modifiers within a session:
             // Session overs 1-10 = new ball/opening: bowlers have advantage, wickets likely
-            // Session overs 11-25 = settling: batsmen consolidate, low risk
-            // Session overs 26-40 = middle: steady scoring, slight batsman advantage
-            // Session overs 41-50 = end of session: tired bowlers, slight batting boost
+            // Session overs 11-30 = settling: batsmen consolidate, balanced conditions
+            // Session overs 31-45 = middle: steady scoring, slight batsman advantage
+            // Session overs 46-50 = end of session: slightly tired bowlers, batting boost
             int sessionOver = ((overNumber - 1) % 50) + 1;
-            if (sessionOver <= 10) return 1.0;   // new ball period
-            if (sessionOver <= 25) return -2.5;   // deep consolidation
-            if (sessionOver <= 40) return -0.5;   // steady
-            return 1.5;                           // end of session push
+            if (sessionOver <= 10) return 0.8;   // Reduced from 1.0 (new ball slightly less harsh)
+            if (sessionOver <= 30) return -1.0;  // Reduced from -2.5 (balanced consolidation)
+            if (sessionOver <= 45) return 0;     // Changed from -0.5 (neutral middle phase)
+            return 1.0;                          // Reduced from 1.5 (end of session push)
         }
         // Fallback (shouldn't reach here for this engine)
         return 0;
@@ -1333,6 +1403,130 @@ public class MatchEngine {
     }
 
     // ─── Team fielding & keeper ─────────────────────────────────
+
+    /**
+     * Non-linear "set batter" progression by format.
+     * Returns roughly -0.15 (very new batter) to +0.85 (fully set, diminishing returns).
+     * The curve avoids treating 50 and 100 balls as the same batting state.
+     */
+    private double getSetBatsmanFactor(String format, int ballsFaced, String aggression) {
+        int balls = Math.max(0, ballsFaced);
+        double set;
+
+        if ("T20".equalsIgnoreCase(format)) {
+            if (balls <= 6) set = -0.10;
+            else if (balls <= 15) set = 0.22 * (balls - 6) / 9.0;
+            else if (balls <= 30) set = 0.22 + 0.30 * (balls - 15) / 15.0;
+            else set = 0.52 + 0.10 * (1.0 - Math.exp(-(balls - 30) / 16.0));
+        } else if ("FC".equalsIgnoreCase(format)) {
+            if (balls <= 15) set = -0.15;
+            else if (balls <= 50) set = 0.32 * (balls - 15) / 35.0;
+            else if (balls <= 120) set = 0.32 + 0.38 * (balls - 50) / 70.0;
+            else set = 0.70 + 0.12 * (1.0 - Math.exp(-(balls - 120) / 55.0));
+        } else { // ODI
+            // Anchors:
+            // ~30 balls = set, ~50 balls = controlled acceleration, 90+ = measured push.
+            if (balls <= 10) set = -0.12;
+            else if (balls <= 30) set = 0.22 * (balls - 10) / 20.0;
+            else if (balls <= 50) set = 0.22 + 0.24 * (balls - 30) / 20.0;
+            else if (balls <= 90) set = 0.46 + 0.26 * (balls - 50) / 40.0;
+            else if (balls <= 120) set = 0.72 + 0.08 * (balls - 90) / 30.0;
+            else set = 0.80 + 0.04 * (1.0 - Math.exp(-(balls - 120) / 45.0));
+        }
+
+        // Aggressive batters capitalize slightly more once set; defensive slightly less.
+        if ("A".equals(aggression)) set *= 1.06;
+        else if ("D".equals(aggression)) set *= 0.94;
+
+        return Math.max(-0.18, Math.min(set, 0.88));
+    }
+
+    /**
+     * Strike farming: stronger batter attempts to keep strike when partner is much weaker.
+     * Trigger threshold is weaker batter <= 40% of striker skill.
+     * Uses probabilistic attempt + success so farming is never guaranteed.
+     */
+    private boolean tryStrikeFarmingKeepStrike(
+            SimContext ctx,
+            BatsmanState striker,
+            BatsmanState nonStriker,
+            BattingScorecard strikerCard,
+            int legalBallsThisOver,
+            int overNumber,
+            boolean endOfOver,
+            Random rng) {
+
+        if (striker == null || nonStriker == null || rng == null) return false;
+
+        double strikerSkill = Math.max(1.0, striker.player.getBatRating());
+        double partnerSkill = Math.max(1.0, nonStriker.player.getBatRating());
+        if (strikerSkill <= partnerSkill) return false; // only the better batter farms
+
+        double ratio = partnerSkill / strikerSkill;
+        if (ratio > 0.40) return false; // not a big enough skill gap
+
+        // 0 at threshold (40%), up to 1 as partner gets much weaker.
+        double gapIntensity = Math.max(0.0, Math.min(1.0, (0.40 - ratio) / 0.40));
+
+        int ballsFaced = strikerCard != null && strikerCard.getBallsFaced() != null
+                ? strikerCard.getBallsFaced() : 0;
+        double setFactor = getSetBatsmanFactor(ctx.format, ballsFaced, striker.lineupPlayer.getBatAggression());
+        double positiveSet = Math.max(0.0, setFactor);
+
+        // At 40% gap they still try, but not always. Bigger gap -> stronger intent.
+        double attemptChance = 0.45 + (0.30 * gapIntensity);
+        double successChance = 0.40 + (0.35 * gapIntensity);
+
+        // Format/phase tuning:
+        // T20 -> strongest farming (especially death overs)
+        // ODI -> balanced farming
+        // FC  -> conservative farming (especially early session)
+        if ("T20".equalsIgnoreCase(ctx.format)) {
+            attemptChance += 0.05;
+            successChance += 0.04;
+            if (overNumber >= 16) {
+                attemptChance += 0.08;
+                successChance += 0.06;
+            } else if (overNumber <= 6) {
+                attemptChance -= 0.04;
+                successChance -= 0.03;
+            }
+        } else if ("FC".equalsIgnoreCase(ctx.format)) {
+            attemptChance -= 0.08;
+            successChance -= 0.07;
+            int sessionOver = ((Math.max(1, overNumber) - 1) % 50) + 1;
+            if (sessionOver <= 15) {
+                attemptChance -= 0.05;
+                successChance -= 0.05;
+            } else if (sessionOver >= 46) {
+                attemptChance += 0.03;
+                successChance += 0.02;
+            }
+        } else { // ODI
+            if (overNumber >= 41) {
+                attemptChance += 0.06;
+                successChance += 0.05;
+            } else if (overNumber <= 10) {
+                attemptChance -= 0.03;
+                successChance -= 0.02;
+            }
+        }
+
+        if (endOfOver || legalBallsThisOver >= 5) attemptChance += 0.12;
+        attemptChance += 0.06 * positiveSet;
+        if ("D".equals(striker.lineupPlayer.getBatAggression())) attemptChance += 0.04;
+        if ("A".equals(striker.lineupPlayer.getBatAggression())) attemptChance -= 0.02;
+        attemptChance = Math.max(0.15, Math.min(attemptChance, 0.88));
+
+        if (rng.nextDouble() >= attemptChance) return false;
+
+        // Farming can fail: execution pressure / ball quality.
+        if (endOfOver || legalBallsThisOver >= 5) successChance += 0.08;
+        successChance += 0.05 * positiveSet;
+        successChance = Math.max(0.20, Math.min(successChance, 0.90));
+
+        return rng.nextDouble() < successChance;
+    }
 
     private double calculateTeamFielding(MatchLineup bowlingLineup) {
         double sum = 0;
@@ -2074,7 +2268,12 @@ public class MatchEngine {
                         batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, nextBatIdx));
                     } else {
                         if (delivery.runs % 2 == 1) {
-                            BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+                            boolean keepStrike = !delivery.isBye && !delivery.isLegBye
+                                    && tryStrikeFarmingKeepStrike(
+                                    ctx, striker, nonStriker, batCard, legalBallsThisOver, overNumber, false, ctx.rng);
+                            if (!keepStrike) {
+                                BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+                            }
                         }
                     }
                 }
@@ -2087,7 +2286,12 @@ public class MatchEngine {
             }
 
             // End of over
-            BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+            BattingScorecard overEndStrikerCard = batCards.get(striker.player.getId());
+            boolean keepEndOverStrike = tryStrikeFarmingKeepStrike(
+                    ctx, striker, nonStriker, overEndStrikerCard, legalBallsThisOver, overNumber, true, ctx.rng);
+            if (!keepEndOverStrike) {
+                BatsmanState temp = striker; striker = nonStriker; nonStriker = temp;
+            }
             if (maidenPossible && runsThisOver == 0) bowlCard.setMaidens(bowlCard.getMaidens() + 1);
             previousBowler = currentBowler;
 

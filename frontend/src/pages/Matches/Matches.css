@@ -172,6 +172,8 @@
 .matches-row {
   border-bottom: 1px solid var(--border);
   transition: background 0.13s;
+  color: inherit;
+  text-decoration: none;
 }
 .matches-row:last-child {
   border-bottom: none;

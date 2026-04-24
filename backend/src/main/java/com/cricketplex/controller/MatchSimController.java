@@ -345,6 +345,16 @@ public class MatchSimController {
         resp.put("matchType", fixture.getMatchType());
         resp.put("fixtureStatus", fixture.getStatus());
         resp.put("fcDay", fixture.getFcDay());
+        if (fixture.getLeague() != null) {
+            resp.put("leagueId", fixture.getLeague().getId());
+            resp.put("leagueLabel", fixture.getLeague().getDivision() + "." + fixture.getLeague().getLeagueNumber());
+        }
+        try {
+            resp.put("weather", weatherService.getMatchWeather(
+                    fixture.getHomeTeam().getCountry(), fixture.getMatchDate(), LocalDate.now()));
+        } catch (Exception ignored) {
+            // Weather is optional for header display.
+        }
         resp.put("attendance", result.getAttendance());
         // Parse attendance breakdown: "standAtt,standCap,ecoAtt,ecoCap,stdAtt,stdCap,premAtt,premCap"
         if (result.getAttendanceBreakdown() != null) {

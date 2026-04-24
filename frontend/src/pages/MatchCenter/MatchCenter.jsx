@@ -698,6 +698,19 @@ export default function MatchCenter() {
             {result.groundName && (
               <span className="mc-meta-item"><HiOutlineMapPin /> {result.groundName}</span>
             )}
+            {result.leagueId && result.leagueLabel && (
+              <span
+                className="mc-meta-item mc-meta-link"
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/league/${result.leagueId}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') navigate(`/league/${result.leagueId}`);
+                }}
+              >
+                <HiOutlineClipboardDocumentList /> League {result.leagueLabel}
+              </span>
+            )}
             {result.matchDate && (
               <span className="mc-meta-item mc-meta-date">
                 <HiOutlineCalendarDays />
@@ -708,6 +721,16 @@ export default function MatchCenter() {
               </span>
             )}
             {result.format && <span className="mc-format-badge">{result.format}</span>}
+            {result.pitchType && (
+              <span className="mc-meta-item">
+                Pitch: <strong>{result.pitchType}</strong>
+              </span>
+            )}
+            {result.weather?.available && (
+              <span className="mc-meta-item">
+                {result.weather.icon} {result.weather.condition} {result.weather.temperature}C
+              </span>
+            )}
             {result.attendance != null && result.attendance > 0 && (
               <span className="mc-meta-item"><HiOutlineUserGroup /> {result.attendance.toLocaleString()} attendance</span>
             )}
@@ -962,51 +985,67 @@ export default function MatchCenter() {
                   const overRuns = balls.reduce((s, b) => s + b.runs, 0);
                   const overWickets = balls.filter((b) => b.isWicket).length;
                   const snap = commOverSnapshots[overNum];
-                  const ctxPanel = snap ? (
-                        <div className="mc-comm-over-ctx">
-                          <div className="mc-comm-ctx-row mc-comm-ctx-players">
-                            <div className="mc-comm-ctx-bats">
-                              {snap.atCrease.map((bat) => (
-                                <span key={bat.name} className="mc-comm-ctx-bat">
-                                  {bat.name} <strong>{bat.runs}</strong>({bat.balls})
-                                </span>
-                              ))}
-                            </div>
-                            <span className="mc-comm-ctx-bowl">
-                              {snap.curBowler} {oversDisplay(snap.curBowlerFigs.legalBalls)}-{snap.curBowlerFigs.wickets}/{snap.curBowlerFigs.runs}
-                            </span>
-                          </div>
-                          <div className="mc-comm-ctx-row mc-comm-ctx-wkt-row">
-                            <span className="mc-comm-ctx-item">
-                              <span className="mc-comm-ctx-label">Pship</span>
-                              <span>{snap.partRuns}({snap.partBalls})</span>
-                            </span>
-                            {snap.lastWicket && (
-                              <span className="mc-comm-ctx-item mc-comm-ctx-lastwkt">
-                                <span className="mc-comm-ctx-label">Last wkt</span>
-                                <span>
-                                  {snap.lastWicket.score} · {snap.lastWicket.batsman} {snap.lastWicket.runs}({snap.lastWicket.balls}) b {snap.lastWicket.bowler}
-                                  <span className="mc-comm-ctx-over"> ({snap.lastWicket.overBall})</span>
-                                </span>
+                  const ctxPanel = snap ? (() => {
+                    const need = commTargetInfo ? Math.max(0, commTargetInfo.target - snap.cumRuns) : null;
+                    const remainBalls = commTargetInfo ? Math.max(0, commTargetInfo.totalBalls - snap.cumLegal) : null;
+                    const rrr = commTargetInfo && remainBalls > 0 ? (need / remainBalls) * 6 : null;
+                    const battingTeamLabel = commInn?.battingTeam || 'Team';
+                    return (
+                      <div className="mc-comm-over-ctx">
+                        <div className="mc-comm-ctx-grid">
+                          <div className="mc-comm-ctx-col mc-comm-ctx-col-left">
+                            <div className="mc-comm-ctx-row mc-comm-ctx-score-row">
+                              <span className="mc-comm-ctx-item">
+                                <span className="mc-comm-ctx-label">Score</span>
+                                <span>{battingTeamLabel} {snap.cumRuns}/{snap.cumWkts}</span>
                               </span>
-                            )}
+                            </div>
+                            <div className="mc-comm-ctx-row mc-comm-ctx-players">
+                              <div className="mc-comm-ctx-bats">
+                                {snap.atCrease.map((bat) => (
+                                  <span key={bat.name} className="mc-comm-ctx-bat">
+                                    {bat.name} <strong>{bat.runs}</strong>({bat.balls})
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mc-comm-ctx-row mc-comm-ctx-wkt-row">
+                              <span className="mc-comm-ctx-item">
+                                <span className="mc-comm-ctx-label">Pship</span>
+                                <span>{snap.partRuns}({snap.partBalls})</span>
+                              </span>
+                              {snap.lastWicket && (
+                                <span className="mc-comm-ctx-item mc-comm-ctx-lastwkt">
+                                  <span className="mc-comm-ctx-label">Last wkt</span>
+                                  <span>
+                                    {snap.lastWicket.score} - {snap.lastWicket.batsman} {snap.lastWicket.runs}({snap.lastWicket.balls}) b {snap.lastWicket.bowler}
+                                    <span className="mc-comm-ctx-over"> ({snap.lastWicket.overBall})</span>
+                                  </span>
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="mc-comm-ctx-row mc-comm-ctx-rates">
-                            <span><span className="mc-comm-ctx-label">RR</span> {snap.rr.toFixed(2)}</span>
-                            {commTargetInfo && (() => {
-                              const need = Math.max(0, commTargetInfo.target - snap.cumRuns);
-                              const remainBalls = Math.max(0, commTargetInfo.totalBalls - snap.cumLegal);
-                              const rrr = remainBalls > 0 ? (need / remainBalls) * 6 : null;
-                              return (
+
+                          <div className="mc-comm-ctx-col mc-comm-ctx-col-right">
+                            <div className="mc-comm-ctx-row">
+                              <span className="mc-comm-ctx-bowl">
+                                {snap.curBowler} {oversDisplay(snap.curBowlerFigs.legalBalls)}-{snap.curBowlerFigs.wickets}/{snap.curBowlerFigs.runs}
+                              </span>
+                            </div>
+                            <div className="mc-comm-ctx-row mc-comm-ctx-rates">
+                              <span><span className="mc-comm-ctx-label">RR</span> {snap.rr.toFixed(2)}</span>
+                              {commTargetInfo && (
                                 <>
-                                  <span><span className="mc-comm-ctx-label">RRR</span> {rrr !== null ? rrr.toFixed(2) : '—'}</span>
-                                  <span><span className="mc-comm-ctx-label">Need</span> {need} in {remainBalls}b</span>
+                                  <span><span className="mc-comm-ctx-label">RRR</span> {rrr !== null ? rrr.toFixed(2) : '-'}</span>
+                                  <span><span className="mc-comm-ctx-label">Need</span> {need !== null ? `${need} in ${remainBalls}b` : '-'}</span>
                                 </>
-                              );
-                            })()}
+                              )}
+                            </div>
                           </div>
                         </div>
-                      ) : null;
+                      </div>
+                    );
+                  })() : null;
                   return (
                     <div key={overNum} className="mc-comm-over-group">
                       {liveRunning && commFilter === 'all' && (
@@ -1977,3 +2016,4 @@ function formatDismissal(bc) {
   if (d === 'hit_wicket') return `hit wicket b ${bc.bowler}`;
   return `${d} ${bc.bowler || ''}`;
 }
+

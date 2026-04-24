@@ -42,6 +42,7 @@ public class PlayerAgingService {
     }
 
     @Scheduled(cron = "0 30 0 * * *", zone = "UTC")
+    @Transactional
     public void scheduledAging() {
         applyMissedDays();
     }
