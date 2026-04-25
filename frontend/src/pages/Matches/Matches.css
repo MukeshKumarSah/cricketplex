@@ -158,6 +158,12 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.6rem 1.1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.matches-row:visited {
+  color: inherit;
 }
 
 .matches-table-head {

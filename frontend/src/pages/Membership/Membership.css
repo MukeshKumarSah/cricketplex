@@ -1,0 +1,51 @@
+.membership-container {
+  padding: 2rem;
+  background: #f9fafc;
+  font-family: "Poppins", sans-serif;
+}
+
+.membership-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.membership-header h1 {
+  color: #1e3a8a;
+  font-size: 2.5rem;
+}
+
+.subtitle {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.membership-intro {
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  text-align: center;
+  color: #374151;
+}
+
+.membership-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.membership-footer {
+  text-align: center;
+  margin-top: 3rem;
+  color: #6b7280;
+}

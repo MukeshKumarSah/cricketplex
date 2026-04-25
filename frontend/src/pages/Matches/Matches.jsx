@@ -151,10 +151,14 @@ export default function Matches() {
               const rowRoute = getRowRoute(m);
 
               return (
-                <div
+                <a
                   key={m.id}
+                  href={rowRoute}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(rowRoute);
+                  }}
                   className="matches-row matches-row-clickable"
-                  onClick={() => navigate(rowRoute)}
                 >
                   <div className="mt-col-date">
                     <span className="matches-date">{formatDate(m.matchDate)}</span>
@@ -249,9 +253,10 @@ export default function Matches() {
                         <button
                           className="matches-action-btn matches-lineup-btn"
                           onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/lineup`); }}
-                        >
+                        ><a href={`/match/${m.id}/lineup`}>
                           {m.lineupSet && <span className="matches-tick">✓</span>}
                           Lineup Setup
+                          </a>
                         </button>
                       )
                     ) : (
@@ -269,7 +274,7 @@ export default function Matches() {
                       </span>
                     )}
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>

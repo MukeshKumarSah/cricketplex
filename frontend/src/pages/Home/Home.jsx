@@ -32,6 +32,7 @@ import AdminSims from '../Admin/AdminSims';
 import ComingSoon from '../ComingSoon/ComingSoon';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
+import Membership from '../Membership/Membership';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -278,7 +279,8 @@ export default function Home() {
             />
             <Route
               path="support"
-              element={<ComingSoon icon="❤️" title="Support the Game" description="Help keep CricketPlex running and growing. Options to support the project will be available here soon." />}
+              element={<Membership />}
+              // element={<ComingSoon icon="❤️" title="Support the Game" description="Help keep CricketPlex running and growing. Options to support the project will be available here soon." />}
             />
             {user?.role === 'ADMIN' && (
               <Route
