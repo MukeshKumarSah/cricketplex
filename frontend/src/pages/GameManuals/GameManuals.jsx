@@ -102,6 +102,10 @@ const sections = [
         text: 'Before each match you select your playing eleven from your fit squad. The lineup page shows available players with their attributes highlighted. You must select a wicket-keeper and maintain a sensible batting order.',
       },
       {
+        heading: 'Left & Right Hand Combinations',
+        text: 'The match engine heavily penalizes bowlers who have to constantly adjust their line and length. Constructing partnerships that rotate the strike between a Left-Handed and Right-Handed batter will disrupt the bowler\'s rhythm and increase your scoring rate.',
+      },
+      {
         heading: 'Captain & Vice-Captain',
         text: 'Assign a captain and vice-captain in your XI. The captain\'s leadership score provides a morale bonus during matches. A strong captain can swing close matches in your favour.',
       },
@@ -111,11 +115,15 @@ const sections = [
       },
       {
         heading: 'First Class Strategy',
-        text: 'For First Class (multi-day) matches you have an additional FC Strategy tab. Set your batting approach (aggressive / balanced / defensive) and bowling strategy (attacking / containing), which influences how the match engine simulates declarations and bowling rotations across innings.',
+        text: 'For First Class (multi-day) matches you have an additional FC Strategy tab. Set your batting approach and bowling strategy. Be aware that FC pitches physically deteriorate as the match progresses — batting last on a Day 4 dustbowl is incredibly difficult, making your 1st Innings declaration timing crucial!',
       },
       {
         heading: 'Bowling Order',
-        text: 'Specify which players bowl and in what order. The match engine uses your designated bowling order to rotate overs. Leaving bowlers unassigned means the engine picks automatically but may use sub-optimal choices.',
+        text: 'Specify which players bowl and in what order. Save your highly experienced (15+ XP), elite Fast Bowlers (80+ Rating) for the Death Overs — they have a special "Death Over Specialist" ability that halves the batting team\'s late-game scoring boost! Also note that bowlers take an over to find their rhythm, so constantly rotating them every over may lead to loose deliveries.',
+      },
+      {
+        heading: 'New vs Old Ball Physics',
+        text: 'The physical state of the ball changes over time. A hard, new ball swings and bounces, granting a significant advantage to Fast Bowlers but making it hard for Spinners to grip. Conversely, an old, scuffed ball grips the pitch beautifully for Spinners, while Fast Bowlers will struggle unless conditions are hot enough for reverse swing.',
       },
     ],
   },
@@ -167,7 +175,7 @@ const sections = [
       },
       {
         heading: 'Commentary',
-        text: 'Every ball is logged with narrative commentary — dot balls, runs scored, wicket types (bowled, caught, LBW, run out, etc.), wides, no-balls, and extras. Milestone events (50s, 100s, 5-wicket hauls) get special callouts.',
+        text: 'Every ball is logged with narrative commentary. Look out for game-changing moments like Dropped Catches (influenced by fielding ratings) and Free Hits (awarded after a T20/ODI no-ball) where batters swing fearlessly without risk of being caught or bowled!',
       },
       {
         heading: 'Charts',
@@ -315,7 +323,7 @@ const sections = [
       },
       {
         heading: 'Player Development',
-        text: 'Younger players (under 25) gain more from training than veterans. Over-training fatigues players and risks minor injuries. Balance intense training blocks with lighter recovery sessions before important matches.',
+        text: 'Younger players gain more from training than veterans. Additionally, players with high Stamina are natural athletes and will learn skills significantly faster. Ensure players maintain high Fitness, as training while exhausted will yield almost zero skill growth.',
       },
       {
         heading: 'Coaching Staff',
@@ -517,4 +525,3 @@ export default function GameManuals() {
     </div>
   );
 }
-

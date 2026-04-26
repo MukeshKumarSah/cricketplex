@@ -257,6 +257,8 @@ public class MatchEngine {
         int totalExtras = 0;
         int ballsBowled = 0; // legal balls
         int overNumber = 0;
+        boolean isFreeHit = false;
+        String previousBatHand = null;
 
         Player currentBowler = null;
         String currentBowlerAggression = "N";
@@ -298,7 +300,10 @@ public class MatchEngine {
                         ctx, striker, currentBowler, currentBowlerAggression,
                         teamFieldingAvg, keeperSkill,
                         overNumber, totalRuns, totalWickets, ballsBowled,
-                        batCards.get(striker.player.getId()));
+                        batCards.get(striker.player.getId()),
+                        currentBowlerBalls,
+                        isFreeHit,
+                        previousBatHand);
 
                 // Create ball event (skipped during fast-forward to avoid millions of rows)
                 if (!Boolean.TRUE.equals(SKIP_BALL_EVENTS.get())) {
@@ -322,9 +327,19 @@ public class MatchEngine {
                             .build();
                     innings.getBallEvents().add(event);
                 }
+                
+                previousBatHand = striker.player.getBatHand();
 
                 // Update scores
                 totalRuns += delivery.runs;
+
+                // Update Free Hit status
+                if (!delivery.isWide && !delivery.isNoBall) {
+                    isFreeHit = false; // Consumed on legal delivery
+                }
+                if (delivery.isNoBall && ("T20".equalsIgnoreCase(ctx.format) || "ODI".equalsIgnoreCase(ctx.format))) {
+                    isFreeHit = true; // Awarded for next ball
+                }
 
                 if (delivery.isWide || delivery.isNoBall) {
                     // Extra — doesn't count as legal ball
@@ -482,7 +497,7 @@ public class MatchEngine {
             SimContext ctx, BatsmanState batter, Player bowler, String bowlerAggression,
             double teamFieldingAvg, double keeperSkill,
             int overNumber, int totalRuns, int totalWickets, int legalBallsBowled,
-            BattingScorecard batCard) {
+            BattingScorecard batCard, int bowlerBalls, boolean isFreeHit, String previousBatHand) {
 
         Random rng = ctx.rng;
         DeliveryResult result = new DeliveryResult();
@@ -512,7 +527,7 @@ public class MatchEngine {
         double bowlStamina = bowler.getStamina() / 100.0;
         // Fatigue simulation: fitness drops slightly with balls faced / bowled
         double batFatigue = 1.0 - (batCard.getBallsFaced() * 0.001 * (1.0 - batStamina));
-        double bowlFatigue = 1.0;  // already factored via spell
+        double bowlFatigue = Math.max(0.6, 1.0 - (bowlerBalls * 0.002 * (1.0 - bowlStamina)));
 
         // ── Pitch modifier ──
         PitchEffect pitchEffect = getPitchEffect(ctx.pitchType, bowler.getBowlType());
@@ -533,6 +548,15 @@ public class MatchEngine {
 
         // ── Phase of innings (powerplay/middle/death for T20/ODI) ──
         double phaseModifier = getPhaseModifier(ctx.format, overNumber, ctx.maxOvers);
+
+        // ── L/R Disruption ──
+        double lrDisruption = 0;
+        if (previousBatHand != null && !previousBatHand.equals(batter.player.getBatHand())) {
+            lrDisruption = -3.5; // Bowlers struggle to adjust line and length instantly
+        }
+
+        // ── Ball Condition (New vs Old) ──
+        double ballConditionMod = getBallConditionModifier(ctx.format, overNumber, bowler.getBowlType(), ctx.condition);
 
         // ── Composite batting strength ──
         double batStrength = batSkill
@@ -557,9 +581,11 @@ public class MatchEngine {
                 + bowlFitness * 3.0
                 + pitchEffect.bowlerBonus
                 + weatherEffect.bowlingMod
+                + ballConditionMod
                 + typeMatchup
                 + teamFieldingAvg * 0.15
-                + keeperSkill * 0.05;
+                + keeperSkill * 0.05
+                + lrDisruption;
         bowlStrength *= bowlFatigue;
         bowlStrength = Math.max(5, Math.min(bowlStrength, 120));
 
@@ -648,6 +674,9 @@ public class MatchEngine {
                 result.commentary += ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "");
                 if (result.isBoundary) result.commentary += " away to the boundary";
             }
+            if (isFreeHit) {
+                result.commentary = "Free Hit! " + result.commentary;
+            }
             return result;
         }
 
@@ -699,39 +728,43 @@ public class MatchEngine {
         pWicket -= shift * 0.20; // Bad batters get out more, good batters survive longer
 
         // Batting aggression extremes — bigger swings in T20, smaller in ODI, smallest in FC
-        // BALANCED: Aggressive players get more boundaries (+32-45%) AND proportional wickets (+17-23%)
+        // BALANCED: Aggression is scaled by the batter's actual skill. Tailenders swinging wildly
+        // will get the wicket penalty without the boundary reward.
         double aggrScale = "T20".equalsIgnoreCase(ctx.format) ? 1.3 : "FC".equalsIgnoreCase(ctx.format) ? 0.5 : 0.8;
+        double batSkillMod = Math.max(0.2, Math.min(1.2, batter.player.getBatRating() / 50.0));
+        
         if ("A".equals(batter.lineupPlayer.getBatAggression())) {
-            p4 += 0.025 * aggrScale;      // Boundary boost (+32-45% depending on format)
-            p6 += 0.02 * aggrScale;       // Six boost
-            pWicket += 0.012 * aggrScale; // Proportional wicket increase: T20=+1.56%, ODI=+0.96%, FC=+0.6%
-            pDot -= 0.04 * aggrScale;
-            p1 -= 0.015 * aggrScale;
+            p4 += 0.025 * aggrScale * batSkillMod;      // Boundaries scale with skill
+            p6 += 0.02 * aggrScale * batSkillMod;       
+            pWicket += 0.012 * aggrScale;               // Wicket risk is full regardless of skill
+            pDot -= 0.04 * aggrScale * batSkillMod;
+            p1 -= 0.015 * aggrScale * batSkillMod;
         } else if ("D".equals(batter.lineupPlayer.getBatAggression())) {
             p4 -= 0.015 * aggrScale;
             p6 -= 0.015 * aggrScale;
-            pWicket -= 0.015 * aggrScale; // Defensive players have lower wicket risk
+            pWicket -= 0.015 * aggrScale * batSkillMod; // Defensive survival scales with skill
             pDot += 0.03 * aggrScale;
             p1 += 0.015 * aggrScale;
         }
 
         // Set-batsman effect: smooth non-linear acceleration with diminishing returns.
-        // New batters start slightly conservative; set players find boundaries more often,
-        // with only a modest wicket-risk bump so innings don't become overly aggressive.
+        // Scaled by batter skill so tailenders don't turn into prime MS Dhoni after surviving 20 balls.
+        double setSkillMod = Math.max(0.3, Math.min(1.0, batter.player.getBatRating() / 40.0));
         if (setBatsmanFactor >= 0) {
-            pDot -= 0.025 * setBatsmanFactor;
-            p1 -= 0.006 * setBatsmanFactor;
-            p2 += 0.008 * setBatsmanFactor;
-            p4 += 0.012 * setBatsmanFactor;
-            p6 += 0.007 * setBatsmanFactor;
+            pDot -= 0.025 * setBatsmanFactor * setSkillMod;
+            p1 -= 0.006 * setBatsmanFactor * setSkillMod;
+            p2 += 0.008 * setBatsmanFactor * setSkillMod;
+            p4 += 0.012 * setBatsmanFactor * setSkillMod;
+            p6 += 0.007 * setBatsmanFactor * setSkillMod;
             pWicket += 0.004 * setBatsmanFactor;
         } else {
             double settling = Math.abs(setBatsmanFactor);
-            pDot += 0.018 * settling;
-            p1 += 0.006 * settling;
-            p4 -= 0.009 * settling;
-            p6 -= 0.006 * settling;
-            pWicket += 0.002 * settling;
+            // Significantly increase the penalty for new batters getting their eye in
+            pDot += 0.10 * settling;     // More play and misses / defensive leaves
+            p1 -= 0.02 * settling;       // Struggle to rotate the strike
+            p4 -= 0.05 * settling;       // Less likely to find the boundary
+            p6 -= 0.04 * settling;       // Less likely to clear the ropes
+            pWicket += 0.20 * settling;  // Massive bump: realistic vulnerability early in the innings!
         }
 
         // Bowling aggression effects
@@ -857,20 +890,6 @@ public class MatchEngine {
                 pWicket -= 0.01 * earlyPressure;
             }
 
-            // If batting well late (few wickets, good score), accelerate
-            if ("T20".equalsIgnoreCase(ctx.format) && completedOvers >= 14 && totalWickets <= 3) {
-                double accelBonus = 0.3 + (completedOvers - 14) * 0.1; // ramp up 0.3→0.9
-                accelBonus = Math.min(accelBonus, 0.9);
-                pDot -= 0.03 * accelBonus;
-                p4   += 0.02 * accelBonus;
-                p6   += 0.02 * accelBonus;
-            } else if ("ODI".equalsIgnoreCase(ctx.format) && completedOvers >= 40 && totalWickets <= 4) {
-                double accelBonus = 0.3 + (completedOvers - 40) * 0.07;
-                accelBonus = Math.min(accelBonus, 0.9);
-                pDot -= 0.03 * accelBonus;
-                p4   += 0.02 * accelBonus;
-                p6   += 0.02 * accelBonus;
-            }
             // FC first innings: patience is king — only very late in an innings with few wickets do they push
             if ("FC".equalsIgnoreCase(ctx.format)) {
                 // In FC, early wickets in an innings mean even more consolidation
@@ -885,14 +904,72 @@ public class MatchEngine {
             }
         }
 
+        // ── 3b. Universal Death Overs Acceleration (Both Innings) ──
+        // Batters naturally accelerate at the death, drastically cutting dots and increasing
+        // boundaries. How hard they push depends on how many wickets they have left.
+        double oversDone = legalBallsBowled / 6.0;
+        if ("T20".equalsIgnoreCase(ctx.format) && oversDone >= 15) {
+            // Full boost with up to 4 down. Scales down to 0 if 9 down.
+            double wktFactor = Math.max(0.0, 1.0 - (Math.max(0, totalWickets - 4) * 0.2)); 
+            double deathPush = Math.min(1.3, (0.5 + (oversDone - 15) * 0.16)) * wktFactor;
+            
+            pDot -= 0.08 * deathPush;  // Slashes dots significantly
+            p1   += 0.02 * deathPush;  // Scrambling
+            p4   += 0.04 * deathPush;  // Boundary boost
+            p6   += 0.03 * deathPush;  // Six boost
+            pWicket += 0.015 * deathPush; // Inherent risk
+        } else if ("ODI".equalsIgnoreCase(ctx.format) && oversDone >= 40) {
+            // Full boost with up to 4 down. Scales down to 0.25 if 9 down.
+            double wktFactor = Math.max(0.0, 1.0 - (Math.max(0, totalWickets - 4) * 0.15)); 
+            double deathPush = Math.min(1.5, (0.5 + (oversDone - 40) * 0.1)) * wktFactor;
+            
+            pDot -= 0.12 * deathPush;  // Slashes up to 18% off dots in ODI!
+            p1   += 0.05 * deathPush;  // Scrambling for runs
+            p4   += 0.05 * deathPush;  // Slogging
+            p6   += 0.03 * deathPush;
+            pWicket += 0.02 * deathPush; // High risk
+        }
+
+        // ── 4. Tailender / Extreme Mismatch Crush ──
+        // Overrides situational flat modifiers if a batter is severely outmatched.
+        // Mathematically crushes boundaries and spikes wicket risk for tailenders.
+        if (skill_diff < -25) {
+            double mismatchIntensity = Math.min(1.0, Math.abs(skill_diff + 25) / 50.0);
+            
+            p4 *= (1.0 - (0.85 * mismatchIntensity)); // Slash up to 85%
+            p6 *= (1.0 - (0.95 * mismatchIntensity)); // Slash up to 95%
+            pWicket += 0.15 * mismatchIntensity;      // Spike wickets
+            
+            pDot += 0.10 * mismatchIntensity;
+            p1 += 0.05 * mismatchIntensity;
+        } else if (skill_diff > 25) {
+            // ── 4b. Elite Batter Feast ──
+            // Severely punishes part-time/weak bowlers facing elite batters.
+            double feastIntensity = Math.min(1.0, (skill_diff - 25) / 50.0);
+            
+            p4 += 0.10 * feastIntensity;   // Massive boundary boost (up to +10%)
+            p6 += 0.08 * feastIntensity;   // Massive six boost (up to +8%)
+            pDot -= 0.12 * feastIntensity; // Drastically fewer dots
+            p1 -= 0.06 * feastIntensity;
+        }
+
+        // ── 5. Free Hit Boost ──
+        // Batters swing for the fences with zero fear of getting out!
+        if (isFreeHit) {
+            p4 += 0.12;
+            p6 += 0.10;
+            pDot -= 0.15;
+            p1 -= 0.07;
+        }
+
         // Clamp probabilities
         pDot = Math.max(0.10, pDot);
         p1 = Math.max(0.05, p1);
         p2 = Math.max(0.02, p2);
         p3 = Math.max(0.005, p3);
-        p4 = Math.max(0.02, p4);
-        p6 = Math.max(0.01, p6);
-        pWicket = Math.max(0.01, Math.min(pWicket, 0.40));
+        p4 = Math.max(0.005, p4); // Lowered minimum boundary cap for tailenders
+        p6 = Math.max(0.001, p6); // Lowered minimum six cap for tailenders
+        pWicket = Math.max(0.01, Math.min(pWicket, 0.50)); // Raised maximum wicket cap for quick collapses
 
         // Normalize
         double total = pDot + p1 + p2 + p3 + p4 + p6 + pWicket;
@@ -961,14 +1038,41 @@ public class MatchEngine {
             result.dismissalType = dismissal.type;
             result.fielder = dismissal.fielder;
             result.commentary = "OUT! " + dismissal.commentary;
+            
+            if ("DROPPED".equals(dismissal.type)) {
+                // Cancel the wicket, it's a drop!
+                result.isWicket = false;
+                result.runs = rng.nextInt(3); // 0, 1, or 2 runs scrambled after the drop
+                result.dismissalType = null;
+                result.fielder = dismissal.fielder;
+                result.commentary = dismissal.commentary + (result.runs > 0 ? " They scramble for " + result.runs + "." : "");
+            } else if (isFreeHit && !"RUN_OUT".equals(dismissal.type)) {
+                // Cancel the wicket due to Free Hit!
+                result.isWicket = false;
+                result.runs = rng.nextInt(3);
+                result.dismissalType = null;
+                result.fielder = dismissal.fielder;
+                result.commentary = dismissal.commentary + " But the batter survives on the Free Hit!" + (result.runs > 0 ? " They scramble for " + result.runs + "." : "");
+            } else {
+                // ─── WICKET ───
+                result.isWicket = true;
+                result.runs = 0;
+                result.dismissalType = dismissal.type;
+                result.fielder = dismissal.fielder;
+                result.commentary = "OUT! " + dismissal.commentary;
 
             // Run out can have runs scored
             if ("RUN_OUT".equals(dismissal.type)) {
                 // Sometimes 1 run is completed before run out
                 if (rng.nextDouble() < 0.25) {
                     result.runs = 1;
-                }
             }
+        }
+        }
+        }
+
+        if (isFreeHit && !result.commentary.startsWith("Free Hit!")) {
+            result.commentary = "Free Hit! " + result.commentary;
         }
 
         return result;
@@ -1072,6 +1176,12 @@ public class MatchEngine {
                     batter.player.getFirstName() + " " + batter.player.getLastName() + " bowled by " +
                             bowler.getFirstName() + " " + bowler.getLastName());
         } else if (dRoll < (dCum += pCaught)) {
+            // Catching relies on the randomly selected fielder's skill (40% to 100% chance)
+            double catchChance = 0.40 + (randomFielder.getFldRating() * 0.006); 
+            if (rng.nextDouble() > catchChance) {
+                return new DismissalInfo("DROPPED", randomFielder,
+                        "Dropped! " + randomFielder.getFirstName() + " " + randomFielder.getLastName() + " puts it down!");
+            }
             return new DismissalInfo("CAUGHT", randomFielder,
                     "Caught by " + randomFielder.getFirstName() + " " + randomFielder.getLastName() +
                             " off " + bowler.getFirstName() + " " + bowler.getLastName());
@@ -1086,6 +1196,13 @@ public class MatchEngine {
             return new DismissalInfo("RUN_OUT", randomFielder,
                     "Run out! Direct hit by " + randomFielder.getFirstName() + " " + randomFielder.getLastName());
         } else if (dRoll < (dCum += pCaughtBehind)) {
+            // Keeper catching relies on keeper skill (50% to 100% chance)
+            double catchChance = 0.50 + (keeper != null ? keeper.getKeeperRating() * 0.005 : 0);
+            if (rng.nextDouble() > catchChance) {
+                String keeperName = keeper != null ? keeper.getFirstName() + " " + keeper.getLastName() : "The keeper";
+                return new DismissalInfo("DROPPED", keeper,
+                        "Dropped! " + keeperName + " spills a tough chance behind the stumps!");
+            }
             return new DismissalInfo("CAUGHT_BEHIND", keeper,
                     "Caught behind by " + (keeper != null ? keeper.getFirstName() + " " + keeper.getLastName() : "keeper") +
                             " off " + bowler.getFirstName() + " " + bowler.getLastName());
@@ -1433,6 +1550,53 @@ public class MatchEngine {
         return 0;
     }
 
+    // ─── Ball condition modifier ────────────────────────────────
+
+    private double getBallConditionModifier(String format, int overNumber, String bowlType, String condition) {
+        String type = bowlType != null ? bowlType : "M";
+        boolean isPace = type.equals("F") || type.equals("FM") || type.equals("MF") || type.equals("M");
+        boolean isSpin = type.equals("FS") || type.equals("WS");
+        
+        int ballAgeOvers;
+        if ("FC".equalsIgnoreCase(format)) {
+            ballAgeOvers = ((overNumber - 1) % 80) + 1; // New ball available every 80 overs
+        } else {
+            ballAgeOvers = overNumber;
+        }
+
+        boolean isNewBall = false;
+        boolean isOldBall = false;
+
+        if ("T20".equalsIgnoreCase(format)) {
+            if (ballAgeOvers <= 4) isNewBall = true;
+            else if (ballAgeOvers >= 15) isOldBall = true;
+        } else if ("ODI".equalsIgnoreCase(format)) {
+            if (ballAgeOvers <= 10) isNewBall = true;
+            else if (ballAgeOvers >= 35) isOldBall = true;
+        } else { // FC
+            if (ballAgeOvers <= 15) isNewBall = true;
+            else if (ballAgeOvers >= 60) isOldBall = true;
+        }
+
+        if (isNewBall) {
+            if (isPace) return 4.0;  // Hard seam, extra bounce and swing
+            if (isSpin) return -3.0; // Hard to grip, less turn
+        } else if (isOldBall) {
+            if (isSpin) return 5.0;  // Scuffed ball grips the pitch and turns sharply
+            if (isPace) {
+                // Reverse swing conditions for genuine pace
+                if ("Hot & Humid".equals(condition) || "Sunny".equals(condition)) {
+                    if (type.equals("F") || type.equals("FM")) {
+                        return 3.0; // Reverse swing extracted
+                    }
+                }
+                return -3.0; // Soft ball sits up nicely for batters, no conventional swing
+            }
+        }
+        
+        return 0.0; // Middle overs: ball is neutral
+    }
+
     // ─── Aggression modifier ────────────────────────────────────
 
     private double getAggressionModifier(String aggression) {
@@ -1456,19 +1620,19 @@ public class MatchEngine {
 
         if ("T20".equalsIgnoreCase(format)) {
             if (balls <= 6) set = -0.10;
-            else if (balls <= 15) set = 0.22 * (balls - 6) / 9.0;
+            else if (balls <= 15) set = -0.10 + 0.32 * (balls - 6) / 9.0; // Starts at -0.10, ends at 0.22
             else if (balls <= 30) set = 0.22 + 0.30 * (balls - 15) / 15.0;
             else set = 0.52 + 0.10 * (1.0 - Math.exp(-(balls - 30) / 16.0));
         } else if ("FC".equalsIgnoreCase(format)) {
             if (balls <= 15) set = -0.15;
-            else if (balls <= 50) set = 0.32 * (balls - 15) / 35.0;
+            else if (balls <= 50) set = -0.15 + 0.47 * (balls - 15) / 35.0; // Starts at -0.15, ends at 0.32
             else if (balls <= 120) set = 0.32 + 0.38 * (balls - 50) / 70.0;
             else set = 0.70 + 0.12 * (1.0 - Math.exp(-(balls - 120) / 55.0));
         } else { // ODI
             // Anchors:
             // ~30 balls = set, ~50 balls = controlled acceleration, 90+ = measured push.
             if (balls <= 10) set = -0.12;
-            else if (balls <= 30) set = 0.22 * (balls - 10) / 20.0;
+            else if (balls <= 30) set = -0.12 + 0.34 * (balls - 10) / 20.0; // Starts at -0.12, ends at 0.22
             else if (balls <= 50) set = 0.22 + 0.24 * (balls - 30) / 20.0;
             else if (balls <= 90) set = 0.46 + 0.26 * (balls - 50) / 40.0;
             else if (balls <= 120) set = 0.72 + 0.08 * (balls - 90) / 30.0;
@@ -1755,18 +1919,6 @@ public class MatchEngine {
         return matchResultRepository.save(result);
     }
 
-    /**
-     * Save FC match when Day 2 overs are exhausted but match not complete.
-     * Increments fcDay to 2 so scheduler doesn't retry Day 2 indefinitely.
-     */
-    private MatchResult saveFCDay2Paused(Fixture fixture, MatchResult result) {
-        result.setResultType("PENDING");
-        fixture.setFcDay(2);  // Mark Day 2 as attempted
-        fixture.setStatus("FC_DAY1_COMPLETE");  // Keep status but fcDay prevents retry
-        fixtureRepository.save(fixture);
-        return matchResultRepository.save(result);
-    }
-
     private MatchResult finalizeFCMatch(Fixture fixture, MatchResult result, Random rng) {
         result.setManOfMatch(pickManOfMatch(result, rng));
         fixture.setFcDay(2);
@@ -1981,7 +2133,7 @@ public class MatchEngine {
                     if (fixture.getFcDay() == null || fixture.getFcDay() == 0) {
                         return saveFCDay1Complete(fixture, result);
                     }
-                    return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
+                return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng); // Day 2 ends, match is drawn/completed
                 }
                 if (inningsNum == 4) {
                     return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng);
@@ -1998,6 +2150,19 @@ public class MatchEngine {
             int declareAt = 0;
             boolean isChasing = false;
             int chaseTarget = 0;
+
+            // ── FC Pitch Deterioration ──
+            // Pitch naturally degrades as the match progresses into days 3 and 4
+            if (next == 3) {
+                if ("FLAT".equals(pitchType)) pitchType = "STANDARD";
+                else if ("STANDARD".equals(pitchType) || "GREEN".equals(pitchType)) pitchType = "UNEVEN";
+                else if ("DRY".equals(pitchType)) pitchType = "DUSTY";
+                fixture.setPitchType(pitchType);
+            } else if (next == 4) {
+                if ("STANDARD".equals(pitchType)) pitchType = "UNEVEN";
+                else if ("UNEVEN".equals(pitchType)) pitchType = "DUSTY";
+                fixture.setPitchType(pitchType);
+            }
 
             switch (next) {
                 case 1:
@@ -2087,7 +2252,7 @@ public class MatchEngine {
                 if (fixture.getFcDay() == null || fixture.getFcDay() == 0) {
                     return saveFCDay1Complete(fixture, result);
                 }
-                return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
+            return determineFCResultAndFinalize(fixture, result, battingFirst, battingSecond, rng); // Day 2 ends, match is drawn/completed
             }
         }
 
@@ -2128,6 +2293,8 @@ public class MatchEngine {
         int startOver;
         Set<UUID> existingBatCardIds;
         Set<UUID> existingBowlCardIds;
+        boolean isFreeHit = false;
+        String previousBatHand = null;
 
         String resumeJson = innings.getResumeState();
         if (resumeJson != null) {
@@ -2180,8 +2347,7 @@ public class MatchEngine {
             totalRuns = 0; totalWickets = 0; totalExtras = 0; ballsBowled = 0;
             bowlerBallCounts = new HashMap<>();
             previousBowler = null;
-        int runsAtLastWicket = 0;
-        boolean isFreeHit = false;
+            int runsAtLastWicket = 0;
             existingBatCardIds = Collections.emptySet();
             existingBowlCardIds = Collections.emptySet();
         }
@@ -2196,7 +2362,6 @@ public class MatchEngine {
         outerLoop:
         for (int over = startOver; over < ctx.maxOvers; over++) {
             overNumber = over + 1;
-        int currentBowlerBalls = bowlerBallCounts.getOrDefault(currentBowler.getId(), 0);
 
             // Bowler selection: plan rotation with wrap-around and fallback
             int planSize = Math.max(1, bowlerPlan.size());
@@ -2243,6 +2408,7 @@ public class MatchEngine {
             int legalBallsThisOver = 0, runsThisOver = 0;
             boolean maidenPossible = true;
             int ballInOver = 0;
+            int currentBowlerBalls = bowlerBallCounts.getOrDefault(currentBowler.getId(), 0);
 
             while (legalBallsThisOver < 6) {
                 ballInOver++;
@@ -2251,7 +2417,10 @@ public class MatchEngine {
                         ctx, striker, currentBowler, currentBowlerAggression,
                         teamFieldingAvg, keeperSkill,
                         overNumber, totalRuns, totalWickets, ballsBowled,
-                        batCards.get(striker.player.getId()));
+                        batCards.get(striker.player.getId()),
+                        currentBowlerBalls,
+                        isFreeHit,
+                        previousBatHand);
 
                 if (!Boolean.TRUE.equals(SKIP_BALL_EVENTS.get())) {
                     BallEvent event = BallEvent.builder()
@@ -2266,8 +2435,18 @@ public class MatchEngine {
                             .build();
                     innings.getBallEvents().add(event);
                 }
+                
+                previousBatHand = striker.player.getBatHand();
             
                 totalRuns += delivery.runs;
+
+                // Update Free Hit status
+                if (!delivery.isWide && !delivery.isNoBall) {
+                    isFreeHit = false; // Consumed on legal delivery
+                }
+                if (delivery.isNoBall && ("T20".equalsIgnoreCase(ctx.format) || "ODI".equalsIgnoreCase(ctx.format))) {
+                    isFreeHit = true; // Awarded for next ball
+                }
 
                 if (delivery.isWide || delivery.isNoBall) {
                     totalExtras += delivery.runs;

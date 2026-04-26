@@ -24,7 +24,7 @@ public class FriendlyChallengeService {
     private final UserRepository userRepository;
     private final MatchEngine matchEngine;
 
-    private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "12:00", "17:00", "21:00");
+    private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "07:30", "12:00", "17:00", "21:00");
 
     // ─── Send a challenge ────────────────────────────────────────
 
@@ -208,9 +208,17 @@ public class FriendlyChallengeService {
             // Advance challenge date so Day 2 can be triggered tomorrow without showing as "expired"
             challenge.setMatchDate(result.getFixture().getMatchDate());
             challengeRepository.save(challenge);
+            
+            // Override fixture to IN_PROGRESS so frontend shows live ball-by-ball viewing
+            result.getFixture().setStatus("IN_PROGRESS");
+            fixtureRepository.save(result.getFixture());
         } else if ("COMPLETED".equals(result.getFixture().getStatus())) {
             challenge.setStatus("COMPLETED");
             challengeRepository.save(challenge);
+            
+            // Override fixture to IN_PROGRESS so frontend shows live ball-by-ball viewing
+            result.getFixture().setStatus("IN_PROGRESS");
+            fixtureRepository.save(result.getFixture());
         }
         return result;
     }

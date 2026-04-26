@@ -49,10 +49,6 @@ const sections = [
         text: 'Every match lineup must include exactly 11 players. The lineup must contain at least 1 designated wicket-keeper. For limited-overs formats, you must designate exactly 5 bowlers. AI will auto-pick if you do not set a lineup before the deadline.',
       },
       {
-        heading: 'Foreign Player Quota',
-        text: 'A maximum of 5 overseas (foreign) players may be included in a single match lineup. Your total squad may hold up to 10 foreign players. This encourages development of local talent through the academy system.',
-      },
-      {
         heading: 'Player Contracts',
         text: 'All players must be under valid contracts. Contracts range from 1 to 5 seasons. When a contract expires, you must re-sign or release the player. Unsigned players become free agents after a 3-day grace period.',
       },

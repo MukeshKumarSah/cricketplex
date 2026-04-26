@@ -209,8 +209,8 @@ public class MatchScheduler {
                         // Only attempt Day 2 if Day 2 hasn't been tried yet (fcDay == 1)
                         if (f.getFcDay() != null && f.getFcDay() != 1) continue;
 
-                        // Day 2 starts the day AFTER matchDate
-                        LocalDate day2Date = f.getMatchDate().plusDays(1);
+                    // Match date was already advanced by 1 day at the end of Day 1
+                    LocalDate day2Date = f.getMatchDate();
                         if (today.isBefore(day2Date)) continue;
 
                         String startTimeStr;
@@ -242,6 +242,14 @@ public class MatchScheduler {
                             if (fresh != null && "COMPLETED".equals(fresh.getStatus())) {
                                 fresh.setStatus("IN_PROGRESS");
                                 fixtureRepository.save(fresh);
+                                
+                                // If it's a Friendly FC, complete the challenge so it doesn't get stuck in ACCEPTED
+                                if (fresh.getLeague() == null) {
+                                    friendlyChallengeRepository.findByFixtureId(fresh.getId()).ifPresent(challenge -> {
+                                        challenge.setStatus("COMPLETED");
+                                        friendlyChallengeRepository.save(challenge);
+                                    });
+                                }
                                 log.info("Set fixture {} to IN_PROGRESS for Day 2 live viewing", f.getId());
                             }
                         });

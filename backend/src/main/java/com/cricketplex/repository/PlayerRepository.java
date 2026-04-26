@@ -36,6 +36,6 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
     int rollOverAge(@Param("daysPerSeason") int daysPerSeason);
 
     @Modifying
-    @Query(value = "UPDATE players SET fitness = LEAST(100, fitness + 1 + (stamina * 5 / 100)) WHERE fitness < 100", nativeQuery = true)
+    @Query(value = "UPDATE players SET fitness = LEAST(100, fitness + 4 + (stamina * 5 / 100)) WHERE fitness < 100", nativeQuery = true)
     int recoverFitness();
 }
