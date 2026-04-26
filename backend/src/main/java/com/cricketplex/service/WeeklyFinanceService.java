@@ -218,9 +218,24 @@ public class WeeklyFinanceService {
             for (LeagueTeam lt : teams) stats.put(lt.getTeam().getId(), new int[2]);
 
             List<Fixture> fixtures = fixtureRepository.findByLeagueId(leagueId);
+
+            List<UUID> completedFixtureIds = new ArrayList<>();
+            for (Fixture f : fixtures) {
+                if ("COMPLETED".equals(f.getStatus())) completedFixtureIds.add(f.getId());
+            }
+
+            Map<UUID, MatchResult> resultsByFixture = new HashMap<>();
+            if (!completedFixtureIds.isEmpty()) {
+                for (MatchResult result : matchResultRepository.findAllByFixtureIds(completedFixtureIds)) {
+                    if (result.getFixture() != null) {
+                        resultsByFixture.put(result.getFixture().getId(), result);
+                    }
+                }
+            }
+
             for (Fixture f : fixtures) {
                 if (!"COMPLETED".equals(f.getStatus())) continue;
-                MatchResult mr = matchResultRepository.findByFixtureId(f.getId()).orElse(null);
+                MatchResult mr = resultsByFixture.get(f.getId());
                 if (mr == null) continue;
 
                 UUID homeId = f.getHomeTeam().getId();

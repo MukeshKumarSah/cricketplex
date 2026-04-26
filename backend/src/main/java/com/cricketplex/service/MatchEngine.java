@@ -65,10 +65,12 @@ public class MatchEngine {
                 .orElseThrow(() -> new IllegalArgumentException("Fixture not found"));
 
         String fixtureStatus = fixture.getStatus();
-        boolean isFcDay2 = "FC_DAY1_COMPLETE".equals(fixtureStatus);
+        // Schedulers often set status to IN_PROGRESS to lock the match before calling simulateMatch.
+        boolean isFcDay2 = "FC_DAY1_COMPLETE".equals(fixtureStatus) || 
+                           ("IN_PROGRESS".equals(fixtureStatus) && fixture.getFcDay() != null && fixture.getFcDay() == 1);
 
-        if (!"SCHEDULED".equals(fixtureStatus) && !isFcDay2) {
-            throw new IllegalStateException("Match already played or in progress");
+        if (!"SCHEDULED".equals(fixtureStatus) && !"IN_PROGRESS".equals(fixtureStatus) && !"FC_DAY1_COMPLETE".equals(fixtureStatus)) {
+            throw new IllegalStateException("Match already played or in invalid state: " + fixtureStatus);
         }
         if ("SCHEDULED".equals(fixtureStatus) && matchResultRepository.existsByFixtureId(fixtureId)) {
             throw new IllegalStateException("Match result already exists");
@@ -286,6 +288,7 @@ public class MatchEngine {
             int runsThisOver = 0;
             boolean maidenPossible = true;
             int ballInOver = 0;
+            int currentBowlerBalls = bowlerBallCounts.getOrDefault(currentBowler.getId(), 0);
 
             while (legalBallsThisOver < 6) {
                 ballInOver++;
@@ -356,23 +359,33 @@ public class MatchEngine {
 
                     if (delivery.runs > 0) maidenPossible = false;
                     runsThisOver += delivery.runs;
+                    if (!delivery.isWide && !delivery.isNoBall) currentBowlerBalls++;
 
                     // Wicket?
                     if (delivery.isWicket) {
                         maidenPossible = false;
                         totalWickets++;
 
-                        batCard.setDismissalType(delivery.dismissalType);
-                        if (!"RUN_OUT".equals(delivery.dismissalType)) {
+                        BattingScorecard dismissedCard = batCard;
+                        boolean nonStrikerOut = false;
+
+                        if ("RUN_OUT".equals(delivery.dismissalType)) {
+                            if (ctx.rng.nextBoolean()) {
+                                dismissedCard = batCards.get(nonStriker.player.getId());
+                                nonStrikerOut = true;
+                            }
+                        } else {
                             bowlCard.setWickets(bowlCard.getWickets() + 1);
-                            batCard.setBowler(currentBowler);
+                            dismissedCard.setBowler(currentBowler);
                         }
-                        batCard.setFielder(delivery.fielder);
+                        
+                        dismissedCard.setDismissalType(delivery.dismissalType);
+                        dismissedCard.setFielder(delivery.fielder);
 
                         // Update strike rate for dismissed batter
-                        if (batCard.getBallsFaced() > 0) {
-                            batCard.setStrikeRate(
-                                    Math.round(batCard.getRunsScored() * 100.0 / batCard.getBallsFaced() * 100.0) / 100.0);
+                        if (dismissedCard.getBallsFaced() > 0) {
+                            dismissedCard.setStrikeRate(
+                                    Math.round(dismissedCard.getRunsScored() * 100.0 / dismissedCard.getBallsFaced() * 100.0) / 100.0);
                         }
 
                         // Next batter
@@ -381,10 +394,16 @@ public class MatchEngine {
                             break outerLoop;
                         }
 
-                        striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                        if (nonStrikerOut) {
+                            nonStriker = new BatsmanState(battingOrder.get(nextBatIdx));
+                            batCards.put(nonStriker.player.getId(),
+                                    createBatCard(innings, nonStriker.lineupPlayer, nextBatIdx));
+                        } else {
+                            striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                            batCards.put(striker.player.getId(),
+                                    createBatCard(innings, striker.lineupPlayer, nextBatIdx));
+                        }
                         nextBatIdx++;
-                        batCards.put(striker.player.getId(),
-                                createBatCard(innings, striker.lineupPlayer, nextBatIdx));
                     } else {
                         // Rotate strike on odd runs
                         if (delivery.runs % 2 == 1) {
@@ -611,9 +630,24 @@ public class MatchEngine {
             result.isWide = isWide;
             result.isNoBall = !isWide;
             result.runs = 1;
-            // Wides/no-balls can have extra runs
-            if (rng.nextDouble() < 0.08) result.runs += rng.nextInt(3) + 1;
+            
+            double extraRoll = rng.nextDouble();
+            if (extraRoll < 0.05) {
+                result.runs += 4;
+                result.isBoundary = true;
+            } else if (extraRoll < 0.15) {
+                result.runs += 2;
+            } else if (extraRoll < 0.20) {
+                result.runs += 1;
+            } else if (extraRoll < 0.22) {
+                result.runs += 3;
+            }
+            
             result.commentary = isWide ? "Wide ball" : "No ball";
+            if (result.runs > 1) {
+                result.commentary += ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "");
+                if (result.isBoundary) result.commentary += " away to the boundary";
+            }
             return result;
         }
 
@@ -662,7 +696,7 @@ public class MatchEngine {
         p2 += shift * 0.05;
         p4 += shift * 0.10;
         p6 += shift * 0.06;
-        pWicket += shift * 0.15; // INVERTED: Higher skill = more aggressive play = higher wicket risk
+        pWicket -= shift * 0.20; // Bad batters get out more, good batters survive longer
 
         // Batting aggression extremes — bigger swings in T20, smaller in ODI, smallest in FC
         // BALANCED: Aggressive players get more boundaries (+32-45%) AND proportional wickets (+17-23%)
@@ -858,7 +892,7 @@ public class MatchEngine {
         p3 = Math.max(0.005, p3);
         p4 = Math.max(0.02, p4);
         p6 = Math.max(0.01, p6);
-        pWicket = Math.max(0.01, Math.min(pWicket, 0.20));
+        pWicket = Math.max(0.01, Math.min(pWicket, 0.40));
 
         // Normalize
         double total = pDot + p1 + p2 + p3 + p4 + p6 + pWicket;
@@ -881,12 +915,19 @@ public class MatchEngine {
         if (roll < (cumulative += pDot)) {
             // Dot ball — check for bye/leg bye
             if (rng.nextDouble() < byeChance) {
-                int byeRuns = rng.nextDouble() < 0.7 ? 1 : 2;
+                double byeRoll = rng.nextDouble();
+                int byeRuns = 1;
+                if (byeRoll < 0.05) byeRuns = 4;
+                else if (byeRoll < 0.15) byeRuns = 2;
+                else if (byeRoll < 0.20) byeRuns = 3;
+                
                 boolean isLegBye = rng.nextBoolean();
                 result.runs = byeRuns;
                 result.isBye = !isLegBye;
                 result.isLegBye = isLegBye;
+                result.isBoundary = (byeRuns == 4);
                 result.commentary = (isLegBye ? "Leg bye, " : "Bye, ") + byeRuns + " run" + (byeRuns > 1 ? "s" : "");
+                if (result.isBoundary) result.commentary += " away to the boundary";
             } else {
                 result.runs = 0;
                 result.commentary = "Dot ball";
@@ -1706,6 +1747,10 @@ public class MatchEngine {
         result.setResultType("PENDING");
         fixture.setFcDay(1);
         fixture.setStatus("FC_DAY1_COMPLETE");
+        // Advance the match date so the scheduler picks up Day 2 tomorrow and weather updates correctly
+        if (fixture.getMatchDate() != null) {
+            fixture.setMatchDate(fixture.getMatchDate().plusDays(1));
+        }
         fixtureRepository.save(fixture);
         return matchResultRepository.save(result);
     }
@@ -1933,6 +1978,9 @@ public class MatchEngine {
                 totalMatchOvers += newOvers;
 
                 if (dayOversUsed >= dayOversLimit || last.getResumeState() != null) {
+                    if (fixture.getFcDay() == null || fixture.getFcDay() == 0) {
+                        return saveFCDay1Complete(fixture, result);
+                    }
                     return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
                 }
                 if (inningsNum == 4) {
@@ -2036,6 +2084,9 @@ public class MatchEngine {
             dayOversUsed += oversUsed;
 
             if (dayOversUsed >= dayOversLimit || inn.getResumeState() != null) {
+                if (fixture.getFcDay() == null || fixture.getFcDay() == 0) {
+                    return saveFCDay1Complete(fixture, result);
+                }
                 return saveFCDay2Paused(fixture, result);  // Day 2 overs exhausted, don't retry
             }
         }
@@ -2129,6 +2180,8 @@ public class MatchEngine {
             totalRuns = 0; totalWickets = 0; totalExtras = 0; ballsBowled = 0;
             bowlerBallCounts = new HashMap<>();
             previousBowler = null;
+        int runsAtLastWicket = 0;
+        boolean isFreeHit = false;
             existingBatCardIds = Collections.emptySet();
             existingBowlCardIds = Collections.emptySet();
         }
@@ -2143,6 +2196,7 @@ public class MatchEngine {
         outerLoop:
         for (int over = startOver; over < ctx.maxOvers; over++) {
             overNumber = over + 1;
+        int currentBowlerBalls = bowlerBallCounts.getOrDefault(currentBowler.getId(), 0);
 
             // Bowler selection: plan rotation with wrap-around and fallback
             int planSize = Math.max(1, bowlerPlan.size());
@@ -2212,7 +2266,7 @@ public class MatchEngine {
                             .build();
                     innings.getBallEvents().add(event);
                 }
-
+            
                 totalRuns += delivery.runs;
 
                 if (delivery.isWide || delivery.isNoBall) {
@@ -2232,7 +2286,7 @@ public class MatchEngine {
 
                     if (delivery.isBye || delivery.isLegBye) {
                         totalExtras += delivery.runs;
-                        if (delivery.runs == 0) bowlCard.setDotBalls(bowlCard.getDotBalls() + 1);
+                        bowlCard.setDotBalls(bowlCard.getDotBalls() + 1);
                     } else {
                         batCard.setRunsScored(batCard.getRunsScored() + delivery.runs);
                         if (delivery.isBoundary) batCard.setFours(batCard.getFours() + 1);
@@ -2240,32 +2294,46 @@ public class MatchEngine {
                         bowlCard.setRunsConceded(bowlCard.getRunsConceded() + delivery.runs);
                         if (delivery.runs == 0 && !delivery.isWicket) {
                             bowlCard.setDotBalls(bowlCard.getDotBalls() + 1);
+                        } else if (delivery.runs > 0) {
+                            maidenPossible = false;
+                            runsThisOver += delivery.runs;
                         }
                     }
-
-                    if (delivery.runs > 0) maidenPossible = false;
-                    runsThisOver += delivery.runs;
 
                     if (delivery.isWicket) {
                         maidenPossible = false;
                         totalWickets++;
-                        batCard.setDismissalType(delivery.dismissalType);
-                        if (!"RUN_OUT".equals(delivery.dismissalType)) {
-                            bowlCard.setWickets(bowlCard.getWickets() + 1);
-                            batCard.setBowler(currentBowler);
+                
+                BattingScorecard dismissedCard = batCard;
+                boolean nonStrikerOut = false;
+                if ("RUN_OUT".equals(delivery.dismissalType)) {
+                    if (ctx.rng.nextBoolean()) {
+                        dismissedCard = batCards.get(nonStriker.player.getId());
+                        nonStrikerOut = true;
+                    }
+                } else {
+                    bowlCard.setWickets(bowlCard.getWickets() + 1);
+                    dismissedCard.setBowler(currentBowler);
                         }
-                        batCard.setFielder(delivery.fielder);
-                        if (batCard.getBallsFaced() > 0) {
-                            batCard.setStrikeRate(Math.round(batCard.getRunsScored() * 100.0 / batCard.getBallsFaced() * 100.0) / 100.0);
-                        }
+                dismissedCard.setDismissalType(delivery.dismissalType);
+                dismissedCard.setFielder(delivery.fielder);
+                
+                if (dismissedCard.getBallsFaced() > 0) {
+                    dismissedCard.setStrikeRate(Math.round(dismissedCard.getRunsScored() * 100.0 / dismissedCard.getBallsFaced() * 100.0) / 100.0);
+                }
                         if (totalWickets >= 10 || nextBatIdx >= battingOrder.size()) {
                             innings.setAllOut(true);
                             allOut = true;
                             break outerLoop;
                         }
-                        striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                if (nonStrikerOut) {
+                    nonStriker = new BatsmanState(battingOrder.get(nextBatIdx));
+                    batCards.put(nonStriker.player.getId(), createBatCard(innings, nonStriker.lineupPlayer, nextBatIdx));
+                } else {
+                    striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                    batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, nextBatIdx));
+                }
                         nextBatIdx++;
-                        batCards.put(striker.player.getId(), createBatCard(innings, striker.lineupPlayer, nextBatIdx));
                     } else {
                         if (delivery.runs % 2 == 1) {
                             boolean keepStrike = !delivery.isBye && !delivery.isLegBye

@@ -144,11 +144,10 @@ public class MatchScheduler {
                     // simulateMatch() is @Transactional — runs in its own transaction
                     matchEngine.simulateMatch(f.getId());
 
-                    // Override COMPLETED → IN_PROGRESS for live ball-by-ball viewing
-                    // For FC Day 1, leave as FC_DAY1_COMPLETE (don't override)
+                    // Override COMPLETED / FC_DAY1_COMPLETE → IN_PROGRESS for live ball-by-ball viewing
                         txTemplate.executeWithoutResult(status -> {
                             Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
-                            if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                            if (fresh != null && ("COMPLETED".equals(fresh.getStatus()) || "FC_DAY1_COMPLETE".equals(fresh.getStatus()))) {
                                 fresh.setStatus("IN_PROGRESS");
                                 fixtureRepository.save(fresh);
                                 log.info("Set fixture {} to IN_PROGRESS for live viewing", f.getId());
@@ -308,14 +307,23 @@ public class MatchScheduler {
                             // Set fixture to IN_PROGRESS for live viewing, challenge to COMPLETED
                             txTemplate.executeWithoutResult(status -> {
                                 Fixture fresh = fixtureRepository.findById(fixtureId).orElse(null);
-                                if (fresh != null && !"FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
+                                FriendlyChallenge fcFresh = friendlyChallengeRepository.findById(fc.getId()).orElse(null);
+                                
+                                if (fresh != null && "FC_DAY1_COMPLETE".equals(fresh.getStatus())) {
                                     fresh.setStatus("IN_PROGRESS");
                                     fixtureRepository.save(fresh);
-                                }
-                                FriendlyChallenge fcFresh = friendlyChallengeRepository.findById(fc.getId()).orElse(null);
-                                if (fcFresh != null) {
-                                    fcFresh.setStatus("COMPLETED");
-                                    friendlyChallengeRepository.save(fcFresh);
+                                    if (fcFresh != null) {
+                                        // Advance challenge date to tomorrow so Day 2 can be triggered without expiring
+                                        fcFresh.setMatchDate(fresh.getMatchDate());
+                                        friendlyChallengeRepository.save(fcFresh);
+                                    }
+                                } else if (fresh != null && "COMPLETED".equals(fresh.getStatus())) {
+                                    fresh.setStatus("IN_PROGRESS");
+                                    fixtureRepository.save(fresh);
+                                    if (fcFresh != null) {
+                                        fcFresh.setStatus("COMPLETED");
+                                        friendlyChallengeRepository.save(fcFresh);
+                                    }
                                 }
                                 log.info("Friendly match {} auto-started, challenge {} completed", fixtureId, fc.getId());
                             });

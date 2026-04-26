@@ -204,13 +204,14 @@ public class FriendlyChallengeService {
         // Simulate
         MatchResult result = matchEngine.simulateMatch(fixtureId);
 
-        // Override fixture to IN_PROGRESS for live time-based viewing
-        Fixture fixture = challenge.getFixture();
-        fixture.setStatus("IN_PROGRESS");
-        fixtureRepository.save(fixture);
-
-        challenge.setStatus("COMPLETED");
-        challengeRepository.save(challenge);
+        if ("FC_DAY1_COMPLETE".equals(result.getFixture().getStatus())) {
+            // Advance challenge date so Day 2 can be triggered tomorrow without showing as "expired"
+            challenge.setMatchDate(result.getFixture().getMatchDate());
+            challengeRepository.save(challenge);
+        } else if ("COMPLETED".equals(result.getFixture().getStatus())) {
+            challenge.setStatus("COMPLETED");
+            challengeRepository.save(challenge);
+        }
         return result;
     }
 
