@@ -154,8 +154,8 @@
 .matches-table-head,
 .matches-row {
   display: grid;
-  grid-template-columns: 130px 80px 1fr 145px 135px;
-  gap: 0.75rem;
+  grid-template-columns: 115px 75px 1fr 135px 125px;
+  gap: 0.5rem;
   align-items: center;
   padding: 0.6rem 1.1rem;
   text-decoration: none;
@@ -388,8 +388,8 @@
   .matches-filters { flex-direction: column; align-items: flex-start; }
   .matches-table-head,
   .matches-row {
-    grid-template-columns: 100px 70px 1fr 100px 110px;
-    gap: 0.5rem;
+    grid-template-columns: 95px 65px 1fr 95px 100px;
+    gap: 0.4rem;
     padding: 0.5rem 0.7rem;
   }
   .matches-team-name { font-size: 0.75rem; }

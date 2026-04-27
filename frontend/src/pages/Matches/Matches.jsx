@@ -48,12 +48,15 @@ export default function Matches() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const upcoming = matches.filter(
-    (m) => m.status === 'IN_PROGRESS' || m.status === 'FC_DAY1_COMPLETE' || (m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE'))
-  );
-  const past = matches.filter(
-    (m) => m.status === 'COMPLETED'
-  ).slice().reverse();
+  const getSortKey = (m) => `${m.matchDate || '1970-01-01'}T${m.matchStartTimeUtc || '00:00'}`;
+
+  const upcoming = matches
+    .filter((m) => m.status === 'IN_PROGRESS' || m.status === 'FC_DAY1_COMPLETE' || (m.matchDate >= today && (m.status === 'SCHEDULED' || m.status === 'LIVE')))
+    .sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+
+  const past = matches
+    .filter((m) => m.status === 'COMPLETED')
+    .sort((a, b) => getSortKey(b).localeCompare(getSortKey(a)));
 
   const displayed = activeTab === 'upcoming' ? upcoming : past;
 

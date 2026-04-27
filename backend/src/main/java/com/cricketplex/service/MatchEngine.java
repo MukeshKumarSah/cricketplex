@@ -647,6 +647,13 @@ public class MatchEngine {
                     else if (requiredRate < 1) chasePressure = -2.5;    // Halved from -5
                 }
             }
+
+            // ── Progress Delay: Early in the innings, chase pressure (positive or negative) is muted
+            if (chasePressure != 0) {
+                double progress = legalBallsBowled / (ctx.maxOvers * 6.0); // 0.0 to 1.0
+                double pressureMultiplier = 0.3 + (0.7 * progress); // 30% early on, 100% at the end
+                chasePressure *= pressureMultiplier;
+            }
         }
         bowlStrength += chasePressure;
         // Batter composure: easy chase = calmer batting, hard chase = cautious (not reckless)
@@ -847,6 +854,10 @@ public class MatchEngine {
             double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0
                     : "FC".equalsIgnoreCase(ctx.format) ? 3.0 : 5.0;
 
+            // ── Panic Delay: Scale down aggressive chase factors early on so they build an innings
+            double progress = legalBallsBowled / (ctx.maxOvers * 6.0);
+            double panicMultiplier = 0.3 + (0.7 * progress);
+
             if (runsNeeded <= 0) {
                 // Already won — shouldn't reach here but safety
             } else if (requiredRate < parRate * 0.5) {
@@ -870,6 +881,7 @@ public class MatchEngine {
             } else if (requiredRate > parRate * 1.5) {
                 // Desperate chase — accelerate with calculated risk
                 double desperateFactor = Math.min(1.0, (requiredRate - parRate * 1.5) / (parRate * 0.5));
+                desperateFactor *= panicMultiplier; // Don't slog wildly on ball 1
                 pDot -= 0.04 * desperateFactor;  // Reduced from 0.08
                 p1   -= 0.015 * desperateFactor; // Reduced from 0.03
                 p4   += 0.02 * desperateFactor;  // Reduced from 0.04
@@ -878,6 +890,7 @@ public class MatchEngine {
             } else if (requiredRate > parRate * 1.2) {
                 // Need to accelerate — modest pressure
                 double pushFactor = Math.min(1.0, (requiredRate - parRate * 1.2) / (parRate * 0.3));
+                pushFactor *= panicMultiplier; // Build the innings
                 pDot -= 0.02 * pushFactor;   // Reduced from 0.04
                 p4   += 0.01 * pushFactor;   // Reduced from 0.02
                 p6   += 0.01 * pushFactor;   // Reduced from 0.02
@@ -886,39 +899,34 @@ public class MatchEngine {
             // else: par range — no adjustment, play normally
         }
 
-        // ── 3. First innings pacing (don't just slog from ball 1) ──
-        // In first innings, early overs should be about building a platform,
-        // not every ball is a boundary attempt.
-        if (!ctx.isChasing) {
-            double completedOvers = legalBallsBowled / 6.0;
+        // ── 3. Early Innings Pacing (Build a platform) ──
+        // In both innings, early overs should be about building a platform.
+        double oversDone = legalBallsBowled / 6.0;
 
-            // If batting in first 3-4 overs with lots of wickets down, consolidate harder
-            if (completedOvers < 4 && totalWickets >= 2) {
-                double earlyPressure = Math.min(1.0, totalWickets / 3.0);
-                pDot    += 0.04 * earlyPressure;
-                p1      += 0.03 * earlyPressure;
-                p4      -= 0.03 * earlyPressure;
-                p6      -= 0.03 * earlyPressure;
+        if (oversDone < 4 && totalWickets >= 2) {
+            double earlyPressure = Math.min(1.0, totalWickets / 3.0);
+            pDot    += 0.04 * earlyPressure;
+            p1      += 0.03 * earlyPressure;
+            p4      -= 0.03 * earlyPressure;
+            p6      -= 0.03 * earlyPressure;
+            pWicket -= 0.01 * earlyPressure;
+        }
+
+        // FC first innings: patience is king — only very late in an innings with few wickets do they push
+        if ("FC".equalsIgnoreCase(ctx.format) && !ctx.isChasing) {
+            // In FC, early wickets in an innings mean even more consolidation
+            if (oversDone < 10 && totalWickets >= 3) {
+                double earlyPressure = Math.min(1.0, totalWickets / 4.0);
+                pDot    += 0.06 * earlyPressure;
+                p1      += 0.02 * earlyPressure;
+                p4      -= 0.04 * earlyPressure;
+                p6      -= 0.02 * earlyPressure;
                 pWicket -= 0.01 * earlyPressure;
-            }
-
-            // FC first innings: patience is king — only very late in an innings with few wickets do they push
-            if ("FC".equalsIgnoreCase(ctx.format)) {
-                // In FC, early wickets in an innings mean even more consolidation
-                if (completedOvers < 10 && totalWickets >= 3) {
-                    double earlyPressure = Math.min(1.0, totalWickets / 4.0);
-                    pDot    += 0.06 * earlyPressure;
-                    p1      += 0.02 * earlyPressure;
-                    p4      -= 0.04 * earlyPressure;
-                    p6      -= 0.02 * earlyPressure;
-                    pWicket -= 0.01 * earlyPressure;
-                }
             }
         }
 
         // ── 3b. ODI Middle Overs Pacing (Probability Trade) ──
         // Overs 11-40: Field spreads out. Trade boundaries and dots for singles.
-        double oversDone = legalBallsBowled / 6.0;
         if ("ODI".equalsIgnoreCase(ctx.format) && oversDone >= 10 && oversDone < 40) {
             pDot -= 0.08; // -8% Dots
             p4   -= 0.03; // -3% Fours
@@ -1716,13 +1724,20 @@ public class MatchEngine {
                 }
             }
         } else if (isWeakStriker) {
-            if (delivery.runs % 2 == 0) {
-                if (delivery.runs == 0) {
-                    delivery.runs = 1;
-                    delivery.commentary = "Nudged onto the leg side and they sprint for a quick single to give the strike to the set batter.";
-                } else if (delivery.runs == 2) {
-                    delivery.runs = 1;
-                    delivery.commentary = "Hit into the deep, they cross for one but decline the second to hand over the strike.";
+            if (legalBallsThisOver < 5) {
+                if (delivery.runs % 2 == 0) {
+                    if (delivery.runs == 0) {
+                        delivery.runs = 1;
+                        delivery.commentary = "Nudged onto the leg side and they sprint for a quick single to give the strike to the set batter.";
+                    } else if (delivery.runs == 2) {
+                        delivery.runs = 1;
+                        delivery.commentary = "Hit into the deep, they cross for one but decline the second to hand over the strike.";
+                    }
+                }
+            } else {
+                if (delivery.runs % 2 != 0) {
+                    delivery.runs--;
+                    delivery.commentary = "Played into the gap but refuses the single, ensuring the better batter takes strike next over.";
                 }
             }
         }
