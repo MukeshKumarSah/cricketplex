@@ -21,7 +21,7 @@ function buildBatsmenMap(balls) {
   const map = {};
   balls.forEach((b) => {
     if (!map[b.batsman]) map[b.batsman] = { runs: 0, balls: 0 };
-    map[b.batsman].runs += b.isWide ? 0 : b.runs;
+    map[b.batsman].runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
     if (!b.isWide && !b.isNoBall) map[b.batsman].balls += 1;
     else if (b.isNoBall) map[b.batsman].balls += 1;
   });
@@ -32,8 +32,8 @@ function buildBowlerMap(balls) {
   balls.forEach((b) => {
     if (!map[b.bowler]) map[b.bowler] = { overs: 0, legalBalls: 0, runs: 0, wickets: 0, maidens: 0 };
     const bw = map[b.bowler];
-    bw.runs += b.runs;
-    if (b.isWicket) bw.wickets += 1;
+    bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
+    if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
     if (!b.isWide && !b.isNoBall) bw.legalBalls += 1;
     bw.overs = Math.floor(bw.legalBalls / 6) + (bw.legalBalls % 6) / 10;
   });
@@ -215,13 +215,13 @@ export default function LiveMatch() {
       balls.forEach((b) => {
         if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, runs: 0, balls: 0, fours: 0, sixes: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
         const bm = batMap[b.batsman];
-        if (!b.isWide) bm.runs += b.runs;
+        bm.runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         if (!b.isWide && !b.isNoBall) bm.balls += 1;
         else if (b.isNoBall) bm.balls += 1;
-        if (b.isBoundary && !b.isSix) bm.fours += 1;
-        if (b.isSix) bm.sixes += 1;
+        if (b.isBoundary && !b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) bm.fours += 1;
+        if (b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) bm.sixes += 1;
         if (b.isWicket) { dismissed.add(b.batsman); bm.notOut = false; bm.dismissal = b.dismissalType || 'out'; bm.bowler = b.bowler; bm.fielder = b.fielder || null; }
-        if (b.isWide || b.isNoBall) extras += 1;
+        if (b.isWide || b.isNoBall || b.isBye || b.isLegBye) extras += b.runs;
       });
       const battingCard = batOrder.map((name) => {
         const bm = batMap[name];
@@ -233,15 +233,15 @@ export default function LiveMatch() {
       balls.forEach((b) => {
         if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, legalBalls: 0, maidens: 0, runs: 0, wickets: 0 }; bowlOrder.push(b.bowler); }
         const bw = bowlMap[b.bowler];
-        bw.runs += b.runs;
-        if (b.isWicket) bw.wickets += 1;
+        bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
+      if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
         if (!b.isWide && !b.isNoBall) bw.legalBalls += 1;
       });
       const bowlerOverRuns = {};
       balls.forEach((b) => {
         const key = `${b.bowler}_${b.over}`;
         if (!bowlerOverRuns[key]) bowlerOverRuns[key] = { bowler: b.bowler, runs: 0, legalBalls: 0 };
-        bowlerOverRuns[key].runs += b.runs;
+        bowlerOverRuns[key].runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
         if (!b.isWide && !b.isNoBall) bowlerOverRuns[key].legalBalls += 1;
       });
       Object.values(bowlerOverRuns).forEach((ov) => {
@@ -558,6 +558,8 @@ function chipClass(b) {
   if (b.isSix) return 'ch-six';
   if (b.isBoundary) return 'ch-four';
   if (b.isWide || b.isNoBall) return 'ch-extra';
+  if (b.isBoundary && !b.isBye && !b.isLegBye && !b.isWide && !b.isNoBall) return 'ch-four';
+  if (b.isWide || b.isNoBall || b.isBye || b.isLegBye) return 'ch-extra';
   if (b.runs === 0) return 'ch-dot';
   return 'ch-run';
 }
@@ -565,6 +567,10 @@ function chipText(b) {
   if (b.isWicket) return 'W';
   if (b.isWide) return 'Wd';
   if (b.isNoBall) return 'Nb';
+  if (b.isWide) return `${b.runs}wd`;
+  if (b.isNoBall) return `${b.runs}nb`;
+  if (b.isBye) return `${b.runs}b`;
+  if (b.isLegBye) return `${b.runs}lb`;
   if (b.isSix) return '6';
   if (b.isBoundary) return '4';
   return b.runs;
@@ -573,12 +579,14 @@ function ballRowClass(b) {
   if (b.isWicket) return 'lm-row-wicket';
   if (b.isSix) return 'lm-row-six';
   if (b.isBoundary) return 'lm-row-four';
+  if (b.isBoundary && !b.isBye && !b.isLegBye && !b.isWide && !b.isNoBall) return 'lm-row-four';
   return '';
 }
 function ballResultClass(b) {
   if (b.isWicket) return 'lmr-wicket';
   if (b.isSix) return 'lmr-six';
   if (b.isBoundary) return 'lmr-four';
+  if (b.isBoundary && !b.isBye && !b.isLegBye && !b.isWide && !b.isNoBall) return 'lmr-four';
   if (b.runs === 0 && !b.isWide && !b.isNoBall) return 'lmr-dot';
   return '';
 }
@@ -586,6 +594,8 @@ function ballResultText(b) {
   if (b.isWicket) return 'OUT';
   if (b.isWide) return `${b.runs}wd`;
   if (b.isNoBall) return `${b.runs}nb`;
+  if (b.isBye) return `${b.runs}b`;
+  if (b.isLegBye) return `${b.runs}lb`;
   if (b.isSix) return 'SIX';
   if (b.isBoundary) return 'FOUR';
   if (b.runs === 0) return '•';

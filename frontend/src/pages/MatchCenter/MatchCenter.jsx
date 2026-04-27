@@ -18,7 +18,7 @@ function buildBatsmenMap(balls) {
   const map = {};
   balls.forEach((b) => {
     if (!map[b.batsman]) map[b.batsman] = { runs: 0, balls: 0 };
-    map[b.batsman].runs += b.isWide ? 0 : b.runs;
+    map[b.batsman].runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
     if (!b.isWide && !b.isNoBall) map[b.batsman].balls += 1;
     else if (b.isNoBall) map[b.batsman].balls += 1;
   });
@@ -29,8 +29,8 @@ function buildBowlerMap(balls) {
   balls.forEach((b) => {
     if (!map[b.bowler]) map[b.bowler] = { legalBalls: 0, runs: 0, wickets: 0, maidens: 0 };
     const bw = map[b.bowler];
-    bw.runs += b.runs;
-    if (b.isWicket) bw.wickets += 1;
+    bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
+    if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
     if (!b.isWide && !b.isNoBall) bw.legalBalls += 1;
   });
   return map;
@@ -362,10 +362,10 @@ export default function MatchCenter() {
       balls.forEach((b) => {
         runs += b.runs;
         if (b.isWicket) wkts++;
-        if (b.isBoundary && !b.isSix) fours++;
-        if (b.isSix) sixes++;
-        if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isWicket) dots++;
-        if (b.isWide || b.isNoBall) extras++;
+        if (b.isBoundary && !b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) fours++;
+        if (b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) sixes++;
+        if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye && !b.isWicket) dots++;
+        if (b.isWide || b.isNoBall || b.isBye || b.isLegBye) extras += b.runs;
       });
       const legal = getLegalCount(balls);
       const rr = legal > 0 ? ((runs / legal) * 6).toFixed(2) : '0.00';
@@ -415,10 +415,11 @@ export default function MatchCenter() {
       const milestones = [];
       balls.forEach((b) => {
         if (!batMap[b.batsman]) batMap[b.batsman] = 0;
-        if (!b.isWide) batMap[b.batsman] += b.runs;
-        if (batMap[b.batsman] >= 100 && (batMap[b.batsman] - (b.isWide ? 0 : b.runs)) < 100) {
+        const batRunsThisBall = (b.isWide || b.isNoBall || b.isBye || b.isLegBye) ? 0 : b.runs;
+        batMap[b.batsman] += batRunsThisBall;
+        if (batMap[b.batsman] >= 100 && (batMap[b.batsman] - batRunsThisBall) < 100) {
           milestones.push({ player: b.batsman, type: '100', over: b.overBall });
-        } else if (batMap[b.batsman] >= 50 && (batMap[b.batsman] - (b.isWide ? 0 : b.runs)) < 50) {
+        } else if (batMap[b.batsman] >= 50 && (batMap[b.batsman] - batRunsThisBall) < 50) {
           milestones.push({ player: b.batsman, type: '50', over: b.overBall });
         }
       });
@@ -571,22 +572,26 @@ export default function MatchCenter() {
       if (!b.isWide && !b.isNoBall) cumLegal++;
 
       if (!batMap[b.batsman]) batMap[b.batsman] = { runs: 0, balls: 0, dismissed: false };
-      if (!b.isWide) batMap[b.batsman].runs += b.runs;
+      batMap[b.batsman].runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
       if (!b.isWide && !b.isNoBall) batMap[b.batsman].balls++;
       else if (b.isNoBall) batMap[b.batsman].balls++;
 
       if (!bowlMap[b.bowler]) bowlMap[b.bowler] = { runs: 0, legalBalls: 0, wickets: 0 };
-      bowlMap[b.bowler].runs += b.runs;
+      bowlMap[b.bowler].runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
       if (!b.isWide && !b.isNoBall) bowlMap[b.bowler].legalBalls++;
 
       if (!b.isWide) partRuns += b.runs;
       else partRuns += b.runs; // wides still count as extras to partnership
+      partRuns += b.runs;
       if (!b.isWide && !b.isNoBall) partBalls++;
       else if (b.isNoBall) partBalls++;
 
       if (b.isWicket) {
         cumWkts++;
         batMap[b.batsman].dismissed = true;
+        if (b.dismissalType !== 'RUN_OUT') {
+          bowlMap[b.bowler].wickets++;
+        }
         lastWicket = {
           batsman: b.batsman,
           runs: batMap[b.batsman].runs,
@@ -636,9 +641,11 @@ export default function MatchCenter() {
     const bowlerWkts = {};
     for (const b of commBalls) {
       if (!b.isWide) {
+        const batRunsThisBall = (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         if (!batRuns[b.batsman]) batRuns[b.batsman] = 0;
         const prev = batRuns[b.batsman];
         batRuns[b.batsman] += b.runs;
+        batRuns[b.batsman] += batRunsThisBall;
         const curr = batRuns[b.batsman];
         for (const ms of [50, 100, 150, 200]) {
           if (prev < ms && curr >= ms) {
@@ -1029,7 +1036,7 @@ export default function MatchCenter() {
                           <div className="mc-comm-ctx-col mc-comm-ctx-col-right">
                             <div className="mc-comm-ctx-row">
                               <span className="mc-comm-ctx-bowl">
-                                {snap.curBowler} {oversDisplay(snap.curBowlerFigs.legalBalls)}-{snap.curBowlerFigs.wickets}/{snap.curBowlerFigs.runs}
+                                {snap.curBowler} {oversDisplay(snap.curBowlerFigs.legalBalls)}-{snap.curBowlerFigs.wickets}-{snap.curBowlerFigs.runs}
                               </span>
                             </div>
                             <div className="mc-comm-ctx-row mc-comm-ctx-rates">
@@ -1857,15 +1864,17 @@ function buildInningsStats(innData, balls) {
   balls.forEach((b) => {
     if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, playerId: b.batsmanId, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
     const bm = batMap[b.batsman];
-    if (!b.isWide) bm.runs += b.runs;
+    bm.runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
     if (!b.isWide && !b.isNoBall) bm.balls += 1;
     else if (b.isNoBall) bm.balls += 1;
-    if (b.isBoundary && !b.isSix) bm.fours += 1;
-    if (b.isSix) bm.sixes += 1;
-    if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isWicket) bm.dots += 1;
+    if (b.isBoundary && !b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) bm.fours += 1;
+    if (b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) bm.sixes += 1;
+    if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye && !b.isWicket) bm.dots += 1;
     if (b.isWicket) { dismissed.add(b.batsman); bm.notOut = false; bm.dismissal = b.dismissalType || 'out'; bm.bowler = b.bowler; bm.fielder = b.fielder || null; }
     if (b.isWide) { extras += 1; extWides += 1; }
     if (b.isNoBall) { extras += 1; extNoBalls += 1; }
+    if (b.isWide) { extras += b.runs; extWides += b.runs; }
+    if (b.isNoBall) { extras += b.runs; extNoBalls += b.runs; }
     if (b.isBye) { extras += b.runs; extByes += b.runs; }
     if (b.isLegBye) { extras += b.runs; extLegByes += b.runs; }
   });
@@ -1879,8 +1888,8 @@ function buildInningsStats(innData, balls) {
   balls.forEach((b) => {
     if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, playerId: b.bowlerId, legalBalls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, wides: 0, noBalls: 0 }; bowlOrder.push(b.bowler); }
     const bw = bowlMap[b.bowler];
-    bw.runs += b.runs;
-    if (b.isWicket) bw.wickets += 1;
+    bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
+    if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
     if (b.isWide) bw.wides += 1;
     if (b.isNoBall) bw.noBalls += 1;
     if (!b.isWide && !b.isNoBall) {
@@ -1892,7 +1901,7 @@ function buildInningsStats(innData, balls) {
   balls.forEach((b) => {
     const key = `${b.bowler}_${b.over}`;
     if (!bowlerOverRuns[key]) bowlerOverRuns[key] = { bowler: b.bowler, runs: 0, legalBalls: 0 };
-    bowlerOverRuns[key].runs += b.runs;
+    bowlerOverRuns[key].runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
     if (!b.isWide && !b.isNoBall) bowlerOverRuns[key].legalBalls += 1;
   });
   Object.values(bowlerOverRuns).forEach((ov) => {
@@ -1977,6 +1986,8 @@ function chipClass(b) {
   if (b.isSix) return 'ch-six';
   if (b.isBoundary) return 'ch-four';
   if (b.isWide || b.isNoBall) return 'ch-extra';
+  if (b.isBoundary && !b.isBye && !b.isLegBye && !b.isWide && !b.isNoBall) return 'ch-four';
+  if (b.isWide || b.isNoBall || b.isBye || b.isLegBye) return 'ch-extra';
   if (b.runs === 0) return 'ch-dot';
   return 'ch-run';
 }
@@ -1984,6 +1995,10 @@ function chipText(b) {
   if (b.isWicket) return 'W';
   if (b.isWide) return 'Wd';
   if (b.isNoBall) return 'Nb';
+  if (b.isWide) return `${b.runs}wd`;
+  if (b.isNoBall) return `${b.runs}nb`;
+  if (b.isBye) return `${b.runs}b`;
+  if (b.isLegBye) return `${b.runs}lb`;
   if (b.isSix) return '6';
   if (b.isBoundary) return '4';
   return b.runs;
@@ -1992,6 +2007,7 @@ function ballResultClass(b) {
   if (b.isWicket) return 'mcr-wicket';
   if (b.isSix) return 'mcr-six';
   if (b.isBoundary) return 'mcr-four';
+  if (b.isBoundary && !b.isBye && !b.isLegBye && !b.isWide && !b.isNoBall) return 'mcr-four';
   if (b.runs === 0 && !b.isWide && !b.isNoBall) return 'mcr-dot';
   return '';
 }
@@ -1999,6 +2015,8 @@ function ballResultText(b) {
   if (b.isWicket) return 'OUT';
   if (b.isWide) return `${b.runs}wd`;
   if (b.isNoBall) return `${b.runs}nb`;
+  if (b.isBye) return `${b.runs}b`;
+  if (b.isLegBye) return `${b.runs}lb`;
   if (b.isSix) return 'SIX';
   if (b.isBoundary) return 'FOUR';
   if (b.runs === 0) return '•';
@@ -2016,4 +2034,3 @@ function formatDismissal(bc) {
   if (d === 'hit_wicket') return `hit wicket b ${bc.bowler}`;
   return `${d} ${bc.bowler || ''}`;
 }
-
