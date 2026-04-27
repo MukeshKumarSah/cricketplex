@@ -177,33 +177,90 @@ export default function Dashboard() {
       .catch(() => {});
     getMyMatches()
       .then((res) => {
-        const all = res.data || [];
-        const completed = all.filter((m) => m.status === 'COMPLETED');
-        const live = all.filter((m) => m.status === 'IN_PROGRESS' || m.status === 'LIVE');
-        const day1Done = all.filter((m) => m.status === 'FC_DAY1_COMPLETE');
-        const upcoming = all.filter((m) => m.status === 'SCHEDULED');
-        // Smart pick: 2 completed + 1 live + 2 upcoming (adjust based on availability)
-        let picked = [];
-        if (live.length > 0) {
-          const c = completed.slice(-2);
-          const l = live.slice(0, 1);
-          const need = 5 - c.length - l.length;
-          const d = day1Done.slice(0, Math.max(need, 0));
-          const u = upcoming.slice(0, Math.max(need - d.length, 0));
-          picked = [...c, ...l, ...d, ...u];
-        } else if (completed.length > 0) {
-          const c = completed.slice(-2);
-          const need = 5 - c.length;
-          const d = day1Done.slice(0, Math.max(need, 0));
-          const u = upcoming.slice(0, Math.max(need - d.length, 0));
-          picked = [...c, ...d, ...u];
-        } else {
-          picked = [...day1Done, ...upcoming].slice(0, 5);
-        }
-        setDashMatches(picked.slice(0, 5));
-      })
+  //       const all = res.data || [];
+  //       const completed = all.filter((m) => m.status === 'COMPLETED');
+  //       const live = all.filter((m) => m.status === 'IN_PROGRESS' || m.status === 'LIVE');
+  //       const day1Done = all.filter((m) => m.status === 'FC_DAY1_COMPLETE');
+  //       const upcoming = all.filter((m) => m.status === 'SCHEDULED');
+  //       // Smart pick: 2 completed + 1 live + 2 upcoming (adjust based on availability)
+  //       let picked = [];
+  //       if (live.length > 0) {
+  //         const c = completed.slice(-2);
+  //         const l = live.slice(0, 1);
+  //         const need = 5 - c.length - l.length;
+  //         const d = day1Done.slice(0, Math.max(need, 0));
+  //         const u = upcoming.slice(0, Math.max(need - d.length, 0));
+  //         picked = [...c, ...l, ...d, ...u];
+  //       } else if (completed.length > 0) {
+  //         const c = completed.slice(-2);
+  //         const need = 5 - c.length;
+  //         const d = day1Done.slice(0, Math.max(need, 0));
+  //         const u = upcoming.slice(0, Math.max(need - d.length, 0));
+  //         picked = [...c, ...d, ...u];
+  //       } else {
+  //         picked = [...day1Done, ...upcoming].slice(0, 5);
+  //       }
+  //       setDashMatches(picked.slice(0, 5));
+  //     })
+  //     .catch(() => {});
+  // }, []);
+
+  // 1. Group matches by status
+  const allMatches = res.data || [];
+  const liveMatches = allMatches.filter(m => m.status === 'IN_PROGRESS' || m.status === 'LIVE');
+  const futureMatches = allMatches.filter(m => m.status === 'SCHEDULED');
+
+  // Reverse past matches so the most recently played is at index 0
+  const pastMatches = allMatches
+    .filter(m => m.status === 'COMPLETED' || m.status === 'FC_DAY1_COMPLETE')
+    .reverse(); 
+
+  // 2. Take up to 5 Live matches first
+  const selectedLive = liveMatches.slice(0, 5);
+  let remainingSlots = 5 - selectedLive.length;
+
+  const selectedPast = [];
+  const selectedFuture = [];
+
+  let pIdx = 0;
+  let fIdx = 0;
+  let turn = 'past'; // Always try to grab a recent past match first
+
+  // 3. Alternate between Past and Future until we fill the remaining slots
+  while (remainingSlots > 0) {
+    if (turn === 'past') {
+      if (pIdx < pastMatches.length) {
+        selectedPast.push(pastMatches[pIdx]);
+        pIdx++;
+        remainingSlots--;
+      }
+      turn = 'future'; // Switch turn to future
+    } else {
+      if (fIdx < futureMatches.length) {
+        selectedFuture.push(futureMatches[fIdx]);
+        fIdx++;
+        remainingSlots--;
+      }
+      turn = 'past'; // Switch turn to past
+    }
+    
+    // Break early if we completely run out of both past and future matches
+    if (pIdx >= pastMatches.length && fIdx >= futureMatches.length) break;
+  }
+
+  // 4. Combine them chronologically for the UI
+  // (Reverse selectedPast so they render oldest-to-newest leading up to the Live matches)
+  const dashMatches = [
+    ...selectedPast.reverse(),
+    ...selectedLive,
+    ...selectedFuture
+  ];
+
+  setDashMatches(dashMatches); // Or however you set your state!
+  })
       .catch(() => {});
   }, []);
+
 
   const managerInitials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)

@@ -717,13 +717,13 @@ public class MatchEngine {
             p6      = 0.01;  // 1% sixes (very rare)
             pWicket = 0.025; // 2.5% wickets (Allows for 100+ over innings)
         } else { // ODI
-            pDot    = 0.43;  // 44% dots (more conservative)
-            p1      = 0.295;  // 29.5% singles
+            pDot    = 0.44;  // 44% dots 
+            p1      = 0.298; // 29.8% singles
             p2      = 0.09;  // 9% twos
             p3      = 0.02;  // 2% threes
-            p4      = 0.06;  // 6% fours (reduced from 0.08)
-            p6      = 0.02;  // 2% sixes (reduced from 0.03)
-            pWicket = 0.04; // 4% wickets (Realistic ODI average)
+            p4      = 0.08;  // 8% fours (traded off during middle overs)
+            p6      = 0.04;  // 4% sixes
+            pWicket = 0.032; // 3.2% wickets (Safeguards 50-over survival for amateurs)
         }
 
         // Format-scaled shift factor (T20 skill gaps have bigger impact on boundaries)
@@ -814,9 +814,9 @@ public class MatchEngine {
             }
 
             // Also factor in absolute wickets lost — 7+ down is severe pressure
-            if (totalWickets >= 8) collapseFactor = Math.max(collapseFactor, 0.75);
-            else if (totalWickets >= 6) collapseFactor = Math.max(collapseFactor, 0.45);
-            else if (totalWickets >= 4) collapseFactor = Math.max(collapseFactor, 0.2);
+            if (totalWickets >= 8) collapseFactor = Math.max(collapseFactor, 0.60); // Relaxed from 0.75
+            else if (totalWickets >= 6) collapseFactor = Math.max(collapseFactor, 0.30); // Relaxed from 0.45
+            else if (totalWickets >= 4) collapseFactor = Math.max(collapseFactor, 0.10); // Relaxed from 0.20
 
             // Aggressive players try harder but increase risk proportionally
             double resistFactor = "A".equals(playerAggr) ? 0.7 : ("D".equals(playerAggr) ? 1.2 : 1.0);
@@ -850,21 +850,23 @@ public class MatchEngine {
             if (runsNeeded <= 0) {
                 // Already won — shouldn't reach here but safety
             } else if (requiredRate < parRate * 0.5) {
-                // Very easy chase — play conservatively but not fearfully
+                // Very easy chase — knock it around, zero risk (Removes Survival Trap)
                 double easyFactor = Math.min(1.0, (parRate * 0.5 - requiredRate) / (parRate * 0.4));
-                pDot    += 0.03 * easyFactor;
-                p1      += 0.03 * easyFactor;
-                p4      -= 0.03 * easyFactor;
+                pDot    -= 0.06 * easyFactor; // Plunge dots to keep strike moving
+                p1      += 0.10 * easyFactor; // Easy singles
+                p2      += 0.02 * easyFactor; // Easy twos
+                p4      -= 0.04 * easyFactor; // Remove boundaries
                 p6      -= 0.02 * easyFactor;
-                pWicket -= 0.008 * easyFactor;
+                pWicket -= 0.01 * easyFactor;
             } else if (requiredRate < parRate * 0.8) {
-                // Comfortable chase — normal play
+                // Comfortable chase — steady rotation
                 double comfortFactor = Math.min(1.0, (parRate * 0.8 - requiredRate) / (parRate * 0.3));
-                pDot += 0.015 * comfortFactor;
-                p1   += 0.015 * comfortFactor;
-                p4   -= 0.015 * comfortFactor;
-                p6   -= 0.01 * comfortFactor;
-                pWicket -= 0.003 * comfortFactor;
+                pDot    -= 0.03 * comfortFactor;
+                p1      += 0.05 * comfortFactor;
+                p2      += 0.01 * comfortFactor;
+                p4      -= 0.02 * comfortFactor;
+                p6      -= 0.01 * comfortFactor;
+                pWicket -= 0.005 * comfortFactor;
             } else if (requiredRate > parRate * 1.5) {
                 // Desperate chase — accelerate with calculated risk
                 double desperateFactor = Math.min(1.0, (requiredRate - parRate * 1.5) / (parRate * 0.5));
@@ -914,10 +916,19 @@ public class MatchEngine {
             }
         }
 
-        // ── 3b. Universal Death Overs Acceleration (Both Innings) ──
+        // ── 3b. ODI Middle Overs Pacing (Probability Trade) ──
+        // Overs 11-40: Field spreads out. Trade boundaries and dots for singles.
+        double oversDone = legalBallsBowled / 6.0;
+        if ("ODI".equalsIgnoreCase(ctx.format) && oversDone >= 10 && oversDone < 40) {
+            pDot -= 0.08; // -8% Dots
+            p4   -= 0.03; // -3% Fours
+            p6   -= 0.01; // -1% Sixes
+            p1   += 0.12; // All traded directly into +12% Singles
+        }
+
+        // ── 3c. Universal Death Overs Acceleration (Both Innings) ──
         // Batters naturally accelerate at the death, drastically cutting dots and increasing
         // boundaries. How hard they push depends on how many wickets they have left.
-        double oversDone = legalBallsBowled / 6.0;
         if ("T20".equalsIgnoreCase(ctx.format) && oversDone >= 15) {
             // Full boost with up to 4 down. Scales down to 0 if 9 down.
             double wktFactor = Math.max(0.0, 1.0 - (Math.max(0, totalWickets - 4) * 0.2)); 
