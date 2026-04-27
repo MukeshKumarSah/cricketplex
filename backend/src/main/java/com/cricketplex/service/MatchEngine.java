@@ -700,30 +700,30 @@ public class MatchEngine {
         double pDot, p1, p2, p3, p4, p6, pWicket;
 
         if ("T20".equalsIgnoreCase(ctx.format)) {
-            pDot    = 0.32;  // 32% dots
+            pDot    = 0.33;  // 33% dots
             p1      = 0.23;  // 23% singles
             p2      = 0.09;  // 9% twos
             p3      = 0.02;  // 2% threes
             p4      = 0.12;  // 12% fours (reduced from 0.15)
             p6      = 0.06;  // 6% sixes (reduced from 0.08)
-            pWicket = 0.065; // 6.5% wickets (increased from 0.055 to balance boundaries)
+            pWicket = 0.055; // 5.5% wickets (Realistic T20 average)
         } else if ("FC".equalsIgnoreCase(ctx.format)) {
             // FC: Most defensive, patience-oriented
-            pDot    = 0.50;  // 50% dots (patient batting)
+            pDot    = 0.51;  // 51% dots (patient batting)
             p1      = 0.25;  // 25% singles
             p2      = 0.08;  // 8% twos
             p3      = 0.03;  // 3% threes
             p4      = 0.05;  // 5% fours (rare boundaries)
             p6      = 0.01;  // 1% sixes (very rare)
-            pWicket = 0.035; // 3.5% wickets (slightly increased from 0.03 for 300+ ball innings)
+            pWicket = 0.025; // 2.5% wickets (Allows for 100+ over innings)
         } else { // ODI
-            pDot    = 0.42;  // 42% dots (more conservative)
-            p1      = 0.29;  // 29% singles
+            pDot    = 0.43;  // 44% dots (more conservative)
+            p1      = 0.295;  // 29.5% singles
             p2      = 0.09;  // 9% twos
             p3      = 0.02;  // 2% threes
             p4      = 0.06;  // 6% fours (reduced from 0.08)
             p6      = 0.02;  // 2% sixes (reduced from 0.03)
-            pWicket = 0.055; // 5.5% wickets (increased from 0.04 to balance boundaries)
+            pWicket = 0.04; // 4% wickets (Realistic ODI average)
         }
 
         // Format-scaled shift factor (T20 skill gaps have bigger impact on boundaries)
@@ -774,7 +774,7 @@ public class MatchEngine {
             p1 -= 0.02 * settling;       // Struggle to rotate the strike
             p4 -= 0.05 * settling;       // Less likely to find the boundary
             p6 -= 0.04 * settling;       // Less likely to clear the ropes
-            pWicket += 0.20 * settling;  // Massive bump: realistic vulnerability early in the innings!
+            pWicket += 0.08 * settling;  // Softened bump: vulnerable, but won't trigger instant collapses
         }
 
         // Bowling aggression effects

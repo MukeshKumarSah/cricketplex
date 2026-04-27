@@ -415,7 +415,7 @@ export default function MatchCenter() {
       const milestones = [];
       balls.forEach((b) => {
         if (!batMap[b.batsman]) batMap[b.batsman] = 0;
-        const batRunsThisBall = (b.isWide || b.isNoBall || b.isBye || b.isLegBye) ? 0 : b.runs;
+        const batRunsThisBall = (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         batMap[b.batsman] += batRunsThisBall;
         if (batMap[b.batsman] >= 100 && (batMap[b.batsman] - batRunsThisBall) < 100) {
           milestones.push({ player: b.batsman, type: '100', over: b.overBall });
@@ -580,8 +580,6 @@ export default function MatchCenter() {
       bowlMap[b.bowler].runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
       if (!b.isWide && !b.isNoBall) bowlMap[b.bowler].legalBalls++;
 
-      if (!b.isWide) partRuns += b.runs;
-      else partRuns += b.runs; // wides still count as extras to partnership
       partRuns += b.runs;
       if (!b.isWide && !b.isNoBall) partBalls++;
       else if (b.isNoBall) partBalls++;
@@ -640,21 +638,18 @@ export default function MatchCenter() {
     const batRuns = {};
     const bowlerWkts = {};
     for (const b of commBalls) {
-      if (!b.isWide) {
-        const batRunsThisBall = (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
-        if (!batRuns[b.batsman]) batRuns[b.batsman] = 0;
-        const prev = batRuns[b.batsman];
-        batRuns[b.batsman] += b.runs;
-        batRuns[b.batsman] += batRunsThisBall;
-        const curr = batRuns[b.batsman];
-        for (const ms of [50, 100, 150, 200]) {
-          if (prev < ms && curr >= ms) {
-            if (!map.has(b)) map.set(b, []);
-            map.get(b).push({ type: 'bat', player: b.batsman, score: ms });
-          }
+      const batRunsThisBall = (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
+      if (!batRuns[b.batsman]) batRuns[b.batsman] = 0;
+      const prev = batRuns[b.batsman];
+      batRuns[b.batsman] += batRunsThisBall;
+      const curr = batRuns[b.batsman];
+      for (const ms of [50, 100, 150, 200]) {
+        if (prev < ms && curr >= ms) {
+          if (!map.has(b)) map.set(b, []);
+          map.get(b).push({ type: 'bat', player: b.batsman, score: ms });
         }
       }
-      if (b.isWicket) {
+      if (b.isWicket && b.dismissalType !== 'RUN_OUT') {
         if (!bowlerWkts[b.bowler]) bowlerWkts[b.bowler] = 0;
         bowlerWkts[b.bowler]++;
         const w = bowlerWkts[b.bowler];
@@ -1365,7 +1360,7 @@ export default function MatchCenter() {
                             {p.bat2}
                             <span className="mc-part-contrib">{p.bat2Runs} ({p.bat2Balls})</span>
                           </span>
-                          <span className="mc-part-stat mc-part-runs">{p.runs}{p.extras > 0 ? <span className="mc-part-extras-hint"> +{p.extras}e</span> : ''}</span>
+                          <span className="mc-part-stat mc-part-runs">{p.runs}{p.extras > 0 ? <span className="mc-part-extras-hint"> ({p.extras}e)</span> : ''}</span>
                           <span className="mc-part-stat">{p.balls}</span>
                           <div className="mc-part-bar-wrap">
                             <div className="mc-part-bar-split" style={{ width: `${barWidth}%` }}>
@@ -1871,8 +1866,6 @@ function buildInningsStats(innData, balls) {
     if (b.isSix && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye) bm.sixes += 1;
     if (b.runs === 0 && !b.isWide && !b.isNoBall && !b.isBye && !b.isLegBye && !b.isWicket) bm.dots += 1;
     if (b.isWicket) { dismissed.add(b.batsman); bm.notOut = false; bm.dismissal = b.dismissalType || 'out'; bm.bowler = b.bowler; bm.fielder = b.fielder || null; }
-    if (b.isWide) { extras += 1; extWides += 1; }
-    if (b.isNoBall) { extras += 1; extNoBalls += 1; }
     if (b.isWide) { extras += b.runs; extWides += b.runs; }
     if (b.isNoBall) { extras += b.runs; extNoBalls += b.runs; }
     if (b.isBye) { extras += b.runs; extByes += b.runs; }
