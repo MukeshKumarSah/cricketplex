@@ -1613,8 +1613,8 @@ export default function MatchCenter() {
               <button onClick={() => { setOverlayDismissed(true); setActiveTab('commentary'); }}>
                 <HiOutlineClipboardDocumentList /> View Commentary
               </button>
-              <button className="mc-overlay-back" onClick={() => navigate('/challenges')}>
-                Back to Challenges
+              <button className="mc-overlay-back" onClick={() => navigate('/matches')}>
+                Back to Matches
               </button>
             </div>
           </div>

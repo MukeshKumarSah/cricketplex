@@ -850,23 +850,23 @@ public class MatchEngine {
             if (runsNeeded <= 0) {
                 // Already won — shouldn't reach here but safety
             } else if (requiredRate < parRate * 0.5) {
-                // Very easy chase — knock it around, zero risk (Removes Survival Trap)
+                // Very easy chase — knock it around safely
                 double easyFactor = Math.min(1.0, (parRate * 0.5 - requiredRate) / (parRate * 0.4));
-                pDot    -= 0.06 * easyFactor; // Plunge dots to keep strike moving
-                p1      += 0.10 * easyFactor; // Easy singles
-                p2      += 0.02 * easyFactor; // Easy twos
-                p4      -= 0.04 * easyFactor; // Remove boundaries
-                p6      -= 0.02 * easyFactor;
-                pWicket -= 0.01 * easyFactor;
+                pDot    -= 0.03 * easyFactor; // Toned down from 0.06
+                p1      += 0.04 * easyFactor; // Toned down from 0.10
+                p2      += 0.01 * easyFactor; // Toned down from 0.02
+                p4      -= 0.015 * easyFactor; // Toned down from 0.04 (allow occasional boundaries)
+                p6      -= 0.005 * easyFactor;
+                pWicket -= 0.002 * easyFactor; // Removed massive wicket shield (was 0.01)
             } else if (requiredRate < parRate * 0.8) {
                 // Comfortable chase — steady rotation
                 double comfortFactor = Math.min(1.0, (parRate * 0.8 - requiredRate) / (parRate * 0.3));
-                pDot    -= 0.03 * comfortFactor;
-                p1      += 0.05 * comfortFactor;
-                p2      += 0.01 * comfortFactor;
-                p4      -= 0.02 * comfortFactor;
-                p6      -= 0.01 * comfortFactor;
-                pWicket -= 0.005 * comfortFactor;
+                pDot    -= 0.015 * comfortFactor;
+                p1      += 0.02 * comfortFactor;
+                p2      += 0.005 * comfortFactor;
+                p4      -= 0.005 * comfortFactor;
+                p6      -= 0.005 * comfortFactor;
+                // Wicket risk remains normal, no artificial safety
             } else if (requiredRate > parRate * 1.5) {
                 // Desperate chase — accelerate with calculated risk
                 double desperateFactor = Math.min(1.0, (requiredRate - parRate * 1.5) / (parRate * 0.5));

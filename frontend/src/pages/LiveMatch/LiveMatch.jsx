@@ -490,8 +490,8 @@ export default function LiveMatch() {
               <button onClick={() => navigate(`/match/${fixtureId}/commentary`)}>
                 <HiOutlineClipboardDocumentList /> Full Commentary
               </button>
-              <button className="lm-overlay-back" onClick={() => navigate('/challenges')}>
-                Back to Challenges
+              <button className="lm-overlay-back" onClick={() => navigate('/matches')}>
+                Back to Matches
               </button>
             </div>
           </div>
