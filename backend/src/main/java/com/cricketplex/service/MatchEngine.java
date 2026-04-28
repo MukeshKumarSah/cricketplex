@@ -623,33 +623,18 @@ public class MatchEngine {
                     default       -> 1.0;   // STANDARD — no adjustment
                 };
                 double requiredRate = rawRR * pitchRRRScale;
-                if ("T20".equalsIgnoreCase(ctx.format)) {
-                    if (requiredRate > 14) chasePressure = 5;      // Halved from 10
-                    else if (requiredRate > 12) chasePressure = 3.5;  // Halved from 7
-                    else if (requiredRate > 10) chasePressure = 2;    // Halved from 4
-                    else if (requiredRate > 8) chasePressure = 0.5;   // Halved from 1
-                    else if (requiredRate < 5) chasePressure = -1.5;  // Halved from -3
-                    else if (requiredRate < 3) chasePressure = -2.5;  // Halved from -5
-                } else if ("ODI".equalsIgnoreCase(ctx.format)) {
-                    if (requiredRate > 10) chasePressure = 5;      // Halved from 10
-                    else if (requiredRate > 8) chasePressure = 3.5; // Halved from 7
-                    else if (requiredRate > 6) chasePressure = 2;   // Halved from 4
-                    else if (requiredRate > 5) chasePressure = 0.5; // Halved from 1
-                    else if (requiredRate < 3) chasePressure = -1.5; // Halved from -3
-                    else if (requiredRate < 2) chasePressure = -2.5; // Halved from -5
-                } else if ("FC".equalsIgnoreCase(ctx.format)) {
-                    // FC chases are more relaxed: plenty of overs
-                    if (requiredRate > 6) chasePressure = 5;       // Halved from 10
-                    else if (requiredRate > 5) chasePressure = 3;  // Halved from 6
-                    else if (requiredRate > 4) chasePressure = 1.5;    // Halved from 3
-                    else if (requiredRate > 3) chasePressure = 0.5;    // Halved from 1
-                    else if (requiredRate < 1.5) chasePressure = -1.5;  // Halved from -3
-                    else if (requiredRate < 1) chasePressure = -2.5;    // Halved from -5
-                }
+                
+                // ── Smooth Chase Progression: Mapped dynamically against par rate
+                double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0 : "FC".equalsIgnoreCase(ctx.format) ? 3.0 : 5.0;
+                double diff = requiredRate - parRate;
+                double scale = "T20".equalsIgnoreCase(ctx.format) ? 0.8 : "FC".equalsIgnoreCase(ctx.format) ? 1.5 : 1.0;
+                
+                chasePressure = diff * scale;
+                chasePressure = Math.max(-3.0, Math.min(chasePressure, 5.0)); // Clamp to realistic bounds
             }
 
-            // ── Progress Delay: Early in the innings, chase pressure (positive or negative) is muted
-            if (chasePressure != 0) {
+            // ── Panic Delay: High RRR early in the innings shouldn't cause max pressure immediately
+            if (chasePressure > 0) {
                 double progress = legalBallsBowled / (ctx.maxOvers * 6.0); // 0.0 to 1.0
                 double pressureMultiplier = 0.3 + (0.7 * progress); // 30% early on, 100% at the end
                 chasePressure *= pressureMultiplier;
@@ -854,47 +839,32 @@ public class MatchEngine {
             double parRate = "T20".equalsIgnoreCase(ctx.format) ? 8.0
                     : "FC".equalsIgnoreCase(ctx.format) ? 3.0 : 5.0;
 
-            // ── Panic Delay: Scale down aggressive chase factors early on so they build an innings
+            // ── Chase Progress: Scale down all chase factors early on so they play naturally
             double progress = legalBallsBowled / (ctx.maxOvers * 6.0);
-            double panicMultiplier = 0.3 + (0.7 * progress);
+            double progressMultiplier = 0.3 + (0.7 * progress);
 
             if (runsNeeded <= 0) {
                 // Already won — shouldn't reach here but safety
-            } else if (requiredRate < parRate * 0.5) {
-                // Very easy chase — knock it around safely
-                double easyFactor = Math.min(1.0, (parRate * 0.5 - requiredRate) / (parRate * 0.4));
-                pDot    -= 0.03 * easyFactor; // Toned down from 0.06
-                p1      += 0.04 * easyFactor; // Toned down from 0.10
-                p2      += 0.01 * easyFactor; // Toned down from 0.02
-                p4      -= 0.015 * easyFactor; // Toned down from 0.04 (allow occasional boundaries)
-                p6      -= 0.005 * easyFactor;
-                pWicket -= 0.002 * easyFactor; // Removed massive wicket shield (was 0.01)
-            } else if (requiredRate < parRate * 0.8) {
-                // Comfortable chase — steady rotation
-                double comfortFactor = Math.min(1.0, (parRate * 0.8 - requiredRate) / (parRate * 0.3));
-                pDot    -= 0.015 * comfortFactor;
-                p1      += 0.02 * comfortFactor;
-                p2      += 0.005 * comfortFactor;
-                p4      -= 0.005 * comfortFactor;
-                p6      -= 0.005 * comfortFactor;
-                // Wicket risk remains normal, no artificial safety
-            } else if (requiredRate > parRate * 1.5) {
-                // Desperate chase — accelerate with calculated risk
-                double desperateFactor = Math.min(1.0, (requiredRate - parRate * 1.5) / (parRate * 0.5));
-                desperateFactor *= panicMultiplier; // Don't slog wildly on ball 1
-                pDot -= 0.04 * desperateFactor;  // Reduced from 0.08
-                p1   -= 0.015 * desperateFactor; // Reduced from 0.03
-                p4   += 0.02 * desperateFactor;  // Reduced from 0.04
-                p6   += 0.025 * desperateFactor; // Reduced from 0.05
-                pWicket += 0.015 * desperateFactor; // Reduced from 0.03
-            } else if (requiredRate > parRate * 1.2) {
-                // Need to accelerate — modest pressure
-                double pushFactor = Math.min(1.0, (requiredRate - parRate * 1.2) / (parRate * 0.3));
-                pushFactor *= panicMultiplier; // Build the innings
-                pDot -= 0.02 * pushFactor;   // Reduced from 0.04
-                p4   += 0.01 * pushFactor;   // Reduced from 0.02
-                p6   += 0.01 * pushFactor;   // Reduced from 0.02
-                pWicket += 0.006 * pushFactor; // Reduced from 0.01
+            } else {
+                double ratio = requiredRate / parRate;
+                if (ratio > 1.0) {
+                    // Accelerating chase: smoothly scales up to 2.0x par rate (intensity 0 to 1)
+                    double intensity = Math.min(1.0, (ratio - 1.0) / 1.0) * progressMultiplier;
+                    pDot    -= 0.04 * intensity;
+                    p1      -= 0.015 * intensity;
+                    p4      += 0.02 * intensity;
+                    p6      += 0.025 * intensity;
+                    pWicket += 0.015 * intensity;
+                } else if (ratio < 1.0) {
+                    // Comfortable chase: smoothly scales down to 0.4x par rate (intensity 0 to 1)
+                    double intensity = Math.min(1.0, (1.0 - ratio) / 0.6) * progressMultiplier;
+                    pDot    -= 0.03 * intensity;
+                    p1      += 0.04 * intensity;
+                    p2      += 0.01 * intensity;
+                    p4      -= 0.015 * intensity;
+                    p6      -= 0.005 * intensity;
+                    pWicket -= 0.002 * intensity;
+                }
             }
             // else: par range — no adjustment, play normally
         }
@@ -903,6 +873,7 @@ public class MatchEngine {
         // In both innings, early overs should be about building a platform.
         double oversDone = legalBallsBowled / 6.0;
 
+        // If batting in first 3-4 overs with lots of wickets down, consolidate harder
         if (oversDone < 4 && totalWickets >= 2) {
             double earlyPressure = Math.min(1.0, totalWickets / 3.0);
             pDot    += 0.04 * earlyPressure;
@@ -1095,9 +1066,8 @@ public class MatchEngine {
                 // Sometimes 1 run is completed before run out
                 if (rng.nextDouble() < 0.25) {
                     result.runs = 1;
-            }
-        }
-        }
+                }
+            }}
         }
 
         if (isFreeHit && !result.commentary.startsWith("Free Hit!")) {

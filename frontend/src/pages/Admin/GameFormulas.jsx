@@ -571,17 +571,15 @@ const sections = [
     title: 'Chase Pressure',
     subsections: [
       {
-        title: 'Chase Pressure by Required Run Rate',
-        header: ['Req. Rate', 'T20', 'ODI', 'FC'],
-        grid: [
-          ['Very High', '>14 → +5', '>10 → +5', '>6 → +5'],
-          ['High', '>12 → +3.5', '>8 → +3.5', '>5 → +3'],
-          ['Above Avg', '>10 → +2', '>6 → +2', '>4 → +1.5'],
-          ['Moderate', '>8 → +0.5', '>5 → +0.5', '>3 → +0.5'],
-          ['Comfortable', '<5 → Knock it around, steady singles', '<3 → Steady singles', '<1.5 → Steady singles'],
-          ['Cruising', '<3 → High singles, zero risk', '<2 → High singles, zero risk', '<1 → High singles, zero risk'],
+        title: 'Chase Pressure (Smooth Curve)',
+        rows: [
+          ['Formula', 'chasePressure = (RRR − Par Rate) × FormatScale'],
+          ['Par Rates', 'T20: 8.0, ODI: 5.0, FC: 3.0'],
+          ['Format Scale', 'T20: 0.8, ODI: 1.0, FC: 1.5'],
+          ['Limits', 'Clamped between −3.0 (very easy) and +5.0 (extreme pressure)'],
+          ['Progress Delay', 'Starts at 30% intensity on ball 1, smoothly reaches 100% by the final over.'],
         ],
-        note: 'Thresholds are applied to the pitch-adjusted RRR (raw RRR × pitch scale).',
+        note: 'The required run rate is dynamically compared to the Par Rate to produce a continuous pressure score. No sudden bucket jumps!',
       },
       {
         title: 'Pitch RRR Scaling (adjusts perceived chase difficulty)',
