@@ -446,6 +446,30 @@ export default function MatchCenter() {
     return inningsSummaries;
   }, [commentary, currentInnings, currentBallIdx, matchEnded, isLive]);
 
+  const scorecardMetaByInnings = useMemo(() => {
+    const out = {};
+    for (const inn of result?.innings || []) {
+      const batById = {};
+      const bowlById = {};
+      for (const bc of inn.battingCard || []) batById[bc.playerId] = bc;
+      for (const bw of inn.bowlingCard || []) bowlById[bw.playerId] = bw;
+      out[inn.inningsNumber] = { batById, bowlById };
+    }
+    return out;
+  }, [result?.innings]);
+
+  const formatBowlingStyle = (hand, type) => {
+    if (!type) return '-';
+    const h = hand === 'LH' ? 'L' : hand === 'RH' ? 'R' : '';
+    const t = String(type).toUpperCase();
+    if (t === 'F') return `${h}F`.trim();
+    if (t === 'M') return `${h}M`.trim();
+    if (t === 'FM' || t === 'MF') return `${h}FM`.trim();
+    if (t === 'FS') return `${h}FS`.trim();
+    if (t === 'WS') return `${h}WS`.trim();
+    return `${h}${t}`.trim();
+  };
+
   // ─── Performance points (MoM scoring formula) ───
   const { homePoints, awayPoints } = useMemo(() => {
     if (!result?.innings) return { homePoints: [], awayPoints: [] };
@@ -855,6 +879,7 @@ export default function MatchCenter() {
                   <div className="mc-sc-table mc-sc-batting">
                     <div className="mc-sc-head">
                       <span className="mc-sc-name">Batter</span>
+                      <span className="mc-sc-num">Hand</span>
                       <span className="mc-sc-num">R</span>
                       <span className="mc-sc-num">B</span>
                       <span className="mc-sc-num">4s</span>
@@ -864,10 +889,19 @@ export default function MatchCenter() {
                     </div>
                     {scInn.battingCard?.map((bc, i) => (
                       <div key={i} className={`mc-sc-row ${bc.notOut ? 'mc-sc-notout' : ''}`}>
+                        {(() => {
+                          return (
                         <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>
                           {bc.playerName}{bc.notOut ? '*' : ''}
                           <span className="mc-sc-dismissal">
                             {bc.notOut ? 'not out' : formatDismissal(bc)}
+                          </span>
+                        </span>
+                          );
+                        })()}
+                        <span className="mc-sc-hand">
+                          <span className="mc-sc-hand-badge">
+                            {scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || '-'}
                           </span>
                         </span>
                         <span className={`mc-sc-num ${bc.runs >= 50 ? 'mc-sc-milestone' : ''}`}>{bc.runs}</span>
@@ -905,6 +939,7 @@ export default function MatchCenter() {
                   <div className="mc-sc-table mc-sc-bowling">
                     <div className="mc-sc-head">
                       <span className="mc-sc-name">Bowler</span>
+                      <span className="mc-sc-num">Type</span>
                       <span className="mc-sc-num">O</span>
                       <span className="mc-sc-num">M</span>
                       <span className="mc-sc-num">R</span>
@@ -916,7 +951,21 @@ export default function MatchCenter() {
                     </div>
                     {scInn.bowlingCard?.map((bc, i) => (
                       <div key={i} className={`mc-sc-row ${bc.wickets >= 3 ? 'mc-sc-haul' : ''}`}>
-                        <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>{bc.playerName}</span>
+                        {(() => {
+                          return (
+                            <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>
+                              {bc.playerName}
+                            </span>
+                          );
+                        })()}
+                        <span className="mc-sc-type">
+                          <span className="mc-sc-type-badge">
+                            {formatBowlingStyle(
+                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand,
+                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType
+                            )}
+                          </span>
+                        </span>
                         <span className="mc-sc-num">{bc.overs}</span>
                         <span className="mc-sc-num">{bc.maidens}</span>
                         <span className="mc-sc-num">{bc.runs}</span>

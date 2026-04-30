@@ -379,7 +379,7 @@
 }
 .lm-sc-head {
   display: grid;
-  grid-template-columns: 1fr repeat(5, 42px);
+  grid-template-columns: 1fr repeat(6, 42px);
   gap: 4px;
   padding: 8px 12px;
   background: #111827;
@@ -390,7 +390,7 @@
 
 .lm-sc-row {
   display: grid;
-  grid-template-columns: 1fr repeat(5, 42px);
+  grid-template-columns: 1fr repeat(6, 42px);
   gap: 4px;
   padding: 8px 12px;
   border-bottom: 1px solid #0f172a;

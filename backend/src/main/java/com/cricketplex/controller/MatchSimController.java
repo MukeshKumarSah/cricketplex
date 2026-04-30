@@ -493,6 +493,8 @@ public class MatchSimController {
             card.put("bowlRating", bc.getPlayer().getBowlRating());
             card.put("fldRating", bc.getPlayer().getFldRating());
             card.put("keeperRating", bc.getPlayer().getKeeperRating());
+            card.put("batHand", bc.getPlayer().getBatHand());
+            card.put("bowlHand", bc.getPlayer().getBowlHand());
             card.put("bowlType", bc.getPlayer().getBowlType());
             card.put("role", bc.getPlayer().getRole());
             batCards.add(card);
@@ -515,6 +517,8 @@ public class MatchSimController {
             card.put("dotBalls", bc.getDotBalls());
             card.put("wides", bc.getWides());
             card.put("noBalls", bc.getNoBalls());
+            card.put("batHand", bc.getPlayer().getBatHand());
+            card.put("bowlHand", bc.getPlayer().getBowlHand());
             card.put("bowlType", bc.getPlayer().getBowlType());
             card.put("bowlRating", bc.getPlayer().getBowlRating());
             bowlCards.add(card);

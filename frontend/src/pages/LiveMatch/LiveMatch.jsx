@@ -213,7 +213,15 @@ export default function LiveMatch() {
       const dismissed = new Set();
       let extras = 0;
       balls.forEach((b) => {
-        if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, runs: 0, balls: 0, fours: 0, sixes: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
+        if (!batMap[b.batsman]) {
+          batMap[b.batsman] = {
+            playerId: b.batsmanId,
+            playerName: b.batsman,
+            runs: 0, balls: 0, fours: 0, sixes: 0,
+            dismissal: null, bowler: null, fielder: null, notOut: true,
+          };
+          batOrder.push(b.batsman);
+        }
         const bm = batMap[b.batsman];
         bm.runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         if (!b.isWide && !b.isNoBall) bm.balls += 1;
@@ -231,7 +239,14 @@ export default function LiveMatch() {
       const bowlMap = {};
       const bowlOrder = [];
       balls.forEach((b) => {
-        if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, legalBalls: 0, maidens: 0, runs: 0, wickets: 0 }; bowlOrder.push(b.bowler); }
+        if (!bowlMap[b.bowler]) {
+          bowlMap[b.bowler] = {
+            playerId: b.bowlerId,
+            playerName: b.bowler,
+            legalBalls: 0, maidens: 0, runs: 0, wickets: 0,
+          };
+          bowlOrder.push(b.bowler);
+        }
         const bw = bowlMap[b.bowler];
         bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
       if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
@@ -270,6 +285,30 @@ export default function LiveMatch() {
     }
     return innings;
   }, [commentary, currentInnings, currentBallIdx, matchEnded]);
+
+  const scorecardMetaByInnings = useMemo(() => {
+    const out = {};
+    for (const inn of result?.innings || []) {
+      const batById = {};
+      const bowlById = {};
+      for (const bc of inn.battingCard || []) batById[bc.playerId] = bc;
+      for (const bw of inn.bowlingCard || []) bowlById[bw.playerId] = bw;
+      out[inn.inningsNumber] = { batById, bowlById };
+    }
+    return out;
+  }, [result?.innings]);
+
+  const formatBowlingStyle = (hand, type) => {
+    if (!type) return '-';
+    const h = hand === 'LH' ? 'L' : hand === 'RH' ? 'R' : '';
+    const t = String(type).toUpperCase();
+    if (t === 'F') return `${h}F`.trim();
+    if (t === 'M') return `${h}M`.trim();
+    if (t === 'FM' || t === 'MF') return `${h}FM`.trim();
+    if (t === 'FS') return `${h}FS`.trim();
+    if (t === 'WS') return `${h}WS`.trim();
+    return `${h}${t}`.trim();
+  };
 
   const scInn = liveScorecard.find((i) => i.inningsNumber === scActiveInnings);
 
@@ -400,6 +439,7 @@ export default function LiveMatch() {
                 <div className="lm-sc-table">
                   <div className="lm-sc-head">
                     <span className="lm-sc-name">Batter</span>
+                    <span className="lm-sc-num">Hand</span>
                     <span className="lm-sc-num">R</span>
                     <span className="lm-sc-num">B</span>
                     <span className="lm-sc-num">4s</span>
@@ -408,12 +448,17 @@ export default function LiveMatch() {
                   </div>
                   {scInn.battingCard?.map((bc, i) => (
                     <div key={i} className={`lm-sc-row ${bc.notOut ? 'lm-sc-notout' : ''}`}>
+                      {(() => {
+                        return (
                       <span className="lm-sc-name">
                         {bc.playerName}{bc.notOut ? '*' : ''}
                         <span className="lm-sc-dismissal">
                           {bc.notOut ? 'not out' : formatDismissal(bc)}
                         </span>
                       </span>
+                        );
+                      })()}
+                      <span className="lm-sc-num">{scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || '-'}</span>
                       <span className={`lm-sc-num ${bc.runs >= 50 ? 'lm-sc-milestone' : ''}`}>{bc.runs}</span>
                       <span className="lm-sc-num">{bc.balls}</span>
                       <span className="lm-sc-num">{bc.fours}</span>
@@ -432,6 +477,7 @@ export default function LiveMatch() {
                 <div className="lm-sc-table">
                   <div className="lm-sc-head">
                     <span className="lm-sc-name">Bowler</span>
+                    <span className="lm-sc-num">Type</span>
                     <span className="lm-sc-num">O</span>
                     <span className="lm-sc-num">M</span>
                     <span className="lm-sc-num">R</span>
@@ -440,7 +486,15 @@ export default function LiveMatch() {
                   </div>
                   {scInn.bowlingCard?.map((bc, i) => (
                     <div key={i} className={`lm-sc-row ${bc.wickets >= 3 ? 'lm-sc-haul' : ''}`}>
-                      <span className="lm-sc-name">{bc.playerName}</span>
+                      {(() => {
+                        return <span className="lm-sc-name">{bc.playerName}</span>;
+                      })()}
+                      <span className="lm-sc-num">
+                        {formatBowlingStyle(
+                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand,
+                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType
+                        )}
+                      </span>
                       <span className="lm-sc-num">{bc.overs}</span>
                       <span className="lm-sc-num">{bc.maidens}</span>
                       <span className="lm-sc-num">{bc.runs}</span>
