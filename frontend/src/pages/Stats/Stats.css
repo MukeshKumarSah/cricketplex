@@ -133,6 +133,25 @@
   text-align: center;
   border-bottom: 1px solid var(--border);
 }
+
+.st-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+}
+
+.st-sortable:hover {
+  background-color: var(--surface-3);
+}
+
+.st-sort-icon {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.6rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .st-th-name {
   text-align: left !important;
   padding-left: 1rem !important;

@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.service.FixtureService;
+import com.cricketplex.service.LeagueService;
 import com.cricketplex.service.MatchEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class LeagueController {
     private final BallEventRepository ballEventRepository;
     private final LineupPlayerRepository lineupPlayerRepository;
     private final FixtureService fixtureService;
+    private final LeagueService leagueService;
     private final MatchEngine matchEngine;
 
     @GetMapping("/{id}")
@@ -227,6 +229,16 @@ public class LeagueController {
         result.put("totalRounds", fixtures.size());
         result.put("rounds", fixtures);
         return ResponseEntity.ok(result);
+    }
+
+    // ── Available Leagues by Country ──
+
+    @GetMapping("/available/{country}")
+    public ResponseEntity<?> getAvailableLeaguesByCountry(
+            @PathVariable String country,
+            @RequestParam(required = false) String format,
+            @RequestParam(required = false) Integer season) {
+        return ResponseEntity.ok(leagueService.getLeaguesByCountry(country, format, season));
     }
 
     // ── League Stats (Batting / Bowling / Fielding) ──

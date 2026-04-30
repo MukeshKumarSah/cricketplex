@@ -576,6 +576,24 @@
   border-bottom: 1px solid var(--border);
 }
 
+.lp-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+}
+
+.lp-sortable:hover {
+  background-color: var(--surface-3);
+}
+
+.lp-sort-icon {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.65rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .lp-stat-table td {
   padding: 0.55rem 0.55rem;
   text-align: center;

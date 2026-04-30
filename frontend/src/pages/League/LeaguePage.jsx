@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getLeaguesByCountry } from '../../api/auth';
+import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getAvailableLeagues } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import toast from 'react-hot-toast';
 import {
@@ -47,6 +47,10 @@ export default function LeaguePage() {
   const [availableLeaguesData, setAvailableLeaguesData] = useState(null);
   const [filterLoading, setFilterLoading] = useState(false);
 
+  // Sorting States
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
+
   useEffect(() => {
     setLoading(true);
     getLeagueDetail(id, season)
@@ -71,9 +75,10 @@ export default function LeaguePage() {
     if (!country || !format) return;
     setFilterLoading(true);
     try {
-      const res = await getLeaguesByCountry(country, format);
+      const res = await getAvailableLeagues(country, format);
       setAvailableLeaguesData(res.data);
-    } catch {
+    } catch (err) {
+      console.error('Failed to load available leagues:', err);
       toast.error('Failed to load available leagues');
     } finally {
       setFilterLoading(false);
@@ -95,6 +100,62 @@ export default function LeaguePage() {
   const handleNavigateToLeague = useCallback((leagueId) => {
     navigate(`/league/${leagueId}`);
   }, [navigate]);
+
+  // Handle column sorting
+  const handleSort = useCallback((field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  }, [sortField, sortOrder]);
+
+  // Sort data based on current sort field and order
+  const sortData = useCallback((data, field, order) => {
+    if (!field || !data) return data;
+    
+    const sorted = [...data].sort((a, b) => {
+      let aVal = a[field];
+      let bVal = b[field];
+
+      // Handle string comparisons
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+
+      // Handle numeric comparisons
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return sorted;
+  }, []);
+
+  // Get sorted stats data
+  const getSortedStatsData = useCallback(() => {
+    if (!statsData) return statsData;
+    
+    let data = statsData;
+    if (activeStatTab === 'batting' && sortField) {
+      return {
+        ...data,
+        batting: sortData(data.batting, sortField, sortOrder),
+      };
+    } else if (activeStatTab === 'bowling' && sortField) {
+      return {
+        ...data,
+        bowling: sortData(data.bowling, sortField, sortOrder),
+      };
+    } else if (activeStatTab === 'fielding' && sortField) {
+      return {
+        ...data,
+        fielding: sortData(data.fielding, sortField, sortOrder),
+      };
+    }
+    return data;
+  }, [statsData, activeStatTab, sortField, sortOrder, sortData]);
 
   useEffect(() => {
     sessionStorage.setItem('league_stat_tab', activeStatTab);
@@ -437,26 +498,58 @@ export default function LeaguePage() {
                       <thead>
                         <tr>
                           <th className="lp-st-pos">#</th>
-                          <th className="lp-st-player">Player</th>
-                          <th className="lp-st-team">Team</th>
-                          <th>Bat</th>
-                          <th>M</th>
-                          <th>Inn</th>
-                          <th>NO</th>
-                          <th>Runs</th>
-                          <th>BF</th>
-                          <th>HS</th>
-                          <th>SR</th>
-                          <th>Avg</th>
-                          <th>100s</th>
-                          <th>50s</th>
-                          <th>4s</th>
-                          <th>6s</th>
-                          <th>0s</th>
+                          <th className="lp-st-player lp-sortable" onClick={() => handleSort('playerName')}>
+                            Player {sortField === 'playerName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-st-team lp-sortable" onClick={() => handleSort('teamName')}>
+                            Team {sortField === 'teamName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('batHand')}>
+                            Bat {sortField === 'batHand' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('matches')}>
+                            M {sortField === 'matches' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('innings')}>
+                            Inn {sortField === 'innings' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('notOuts')}>
+                            NO {sortField === 'notOuts' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('runs')}>
+                            Runs {sortField === 'runs' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('balls')}>
+                            BF {sortField === 'balls' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('highScore')}>
+                            HS {sortField === 'highScore' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('strikeRate')}>
+                            SR {sortField === 'strikeRate' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('average')}>
+                            Avg {sortField === 'average' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('hundreds')}>
+                            100s {sortField === 'hundreds' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('fifties')}>
+                            50s {sortField === 'fifties' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('fours')}>
+                            4s {sortField === 'fours' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('sixes')}>
+                            6s {sortField === 'sixes' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('ducks')}>
+                            0s {sortField === 'ducks' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {statsData.batting.map((b, i) => (
+                        {getSortedStatsData().batting.map((b, i) => (
                           <tr key={b.playerId}>
                             <td className="lp-st-pos">{i + 1}</td>
                             <td className="lp-st-player">{b.playerName}</td>
@@ -488,25 +581,55 @@ export default function LeaguePage() {
                       <thead>
                         <tr>
                           <th className="lp-st-pos">#</th>
-                          <th className="lp-st-player">Player</th>
-                          <th className="lp-st-team">Team</th>
-                          <th>Type</th>
-                          <th>M</th>
-                          <th>Inn</th>
-                          <th>Balls</th>
-                          <th>Mdns</th>
-                          <th>Runs</th>
-                          <th className="lp-st-highlight-head">Wkts</th>
-                          <th>BB</th>
-                          <th>Avg</th>
-                          <th>SR</th>
-                          <th>Econ</th>
-                          <th>3WI</th>
-                          <th>5WI</th>
+                          <th className="lp-st-player lp-sortable" onClick={() => handleSort('playerName')}>
+                            Player {sortField === 'playerName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-st-team lp-sortable" onClick={() => handleSort('teamName')}>
+                            Team {sortField === 'teamName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('bowlType')}>
+                            Type {sortField === 'bowlType' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('matches')}>
+                            M {sortField === 'matches' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('innings')}>
+                            Inn {sortField === 'innings' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('balls')}>
+                            Balls {sortField === 'balls' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('maidens')}>
+                            Mdns {sortField === 'maidens' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('runs')}>
+                            Runs {sortField === 'runs' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('wickets')}>
+                            Wkts {sortField === 'wickets' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('bestBowling')}>
+                            BB {sortField === 'bestBowling' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('average')}>
+                            Avg {sortField === 'average' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('strikeRate')}>
+                            SR {sortField === 'strikeRate' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('economy')}>
+                            Econ {sortField === 'economy' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('threeWI')}>
+                            3WI {sortField === 'threeWI' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('fiveWI')}>
+                            5WI {sortField === 'fiveWI' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {statsData.bowling.map((b, i) => (
+                        {getSortedStatsData().bowling.map((b, i) => (
                           <tr key={b.playerId}>
                             <td className="lp-st-pos">{i + 1}</td>
                             <td className="lp-st-player">{b.playerName}</td>
@@ -537,18 +660,34 @@ export default function LeaguePage() {
                       <thead>
                         <tr>
                           <th className="lp-st-pos">#</th>
-                          <th className="lp-st-player">Player</th>
-                          <th className="lp-st-team">Team</th>
-                          <th>M</th>
-                          <th>Catches</th>
-                          <th>Keeper Ct</th>
-                          <th>Stumpings</th>
-                          <th>Runouts</th>
-                          <th className="lp-st-highlight-head">Total</th>
+                          <th className="lp-st-player lp-sortable" onClick={() => handleSort('playerName')}>
+                            Player {sortField === 'playerName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-st-team lp-sortable" onClick={() => handleSort('teamName')}>
+                            Team {sortField === 'teamName' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('matches')}>
+                            M {sortField === 'matches' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('fielderCatches')}>
+                            Catches {sortField === 'fielderCatches' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('keeperCatches')}>
+                            Keeper Ct {sortField === 'keeperCatches' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('stumpings')}>
+                            Stumpings {sortField === 'stumpings' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('runouts')}>
+                            Runouts {sortField === 'runouts' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
+                          <th className="lp-sortable" onClick={() => handleSort('total')}>
+                            Total {sortField === 'total' && <span className="lp-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {statsData.fielding.map((f, i) => (
+                        {getSortedStatsData().fielding.map((f, i) => (
                           <tr key={f.playerId}>
                             <td className="lp-st-pos">{i + 1}</td>
                             <td className="lp-st-player">{f.playerName}</td>

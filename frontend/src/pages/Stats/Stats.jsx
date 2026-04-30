@@ -18,6 +18,8 @@ export default function Stats() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(() => sessionStorage.getItem('stats_tab') || 'batting');
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     setLoading(true);
@@ -36,6 +38,36 @@ export default function Stats() {
   useEffect(() => {
     sessionStorage.setItem('stats_tab', tab);
   }, [tab]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortData = (rows, field, order) => {
+    if (!field || !rows) return rows;
+    
+    const sorted = [...rows].sort((a, b) => {
+      let aVal = a[field];
+      let bVal = b[field];
+
+      // Handle string comparisons
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+
+      // Handle numeric comparisons
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+      return order === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return sorted;
+  };
 
   if (loading) return <div className="st-loading">Loading stats…</div>;
   if (!data) return <div className="st-loading">No data available</div>;
@@ -85,36 +117,61 @@ export default function Stats() {
       </div>
 
       <div className="st-table-wrap">
-        {tab === 'batting' && <BattingTable rows={data.batting} navigate={navigate} />}
-        {tab === 'bowling' && <BowlingTable rows={data.bowling} navigate={navigate} />}
-        {tab === 'fielding' && <FieldingTable rows={data.fielding} navigate={navigate} />}
+        {tab === 'batting' && <BattingTable rows={data.batting} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
+        {tab === 'bowling' && <BowlingTable rows={data.bowling} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
+        {tab === 'fielding' && <FieldingTable rows={data.fielding} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
       </div>
     </div>
   );
 }
 
-function BattingTable({ rows, navigate }) {
+function BattingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No batting data for this format</div>;
+  const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
     <table className="st-table">
       <thead>
         <tr>
-          <th className="st-th-name">Player</th>
-          <th>Mat</th>
-          <th>Inn</th>
-          <th>NO</th>
-          <th className="st-highlight-col">Runs</th>
-          <th>HS</th>
-          <th>Avg</th>
-          <th>SR</th>
-          <th>100s</th>
-          <th>50s</th>
-          <th>4s</th>
-          <th>6s</th>
+          <th className="st-th-name st-sortable" onClick={() => onSort('name')}>
+            Player {sortField === 'name' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('matches')}>
+            Mat {sortField === 'matches' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('innings')}>
+            Inn {sortField === 'innings' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('notOuts')}>
+            NO {sortField === 'notOuts' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-highlight-col st-sortable" onClick={() => onSort('runs')}>
+            Runs {sortField === 'runs' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('highest')}>
+            HS {sortField === 'highest' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('average')}>
+            Avg {sortField === 'average' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('strikeRate')}>
+            SR {sortField === 'strikeRate' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('hundreds')}>
+            100s {sortField === 'hundreds' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('fifties')}>
+            50s {sortField === 'fifties' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('fours')}>
+            4s {sortField === 'fours' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('sixes')}>
+            6s {sortField === 'sixes' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(r => (
+        {sorted.map(r => (
           <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
             <td className="st-td-name">
               <span className="st-player-name">{r.name}</span>
@@ -138,29 +195,56 @@ function BattingTable({ rows, navigate }) {
   );
 }
 
-function BowlingTable({ rows, navigate }) {
+function BowlingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No bowling data for this format</div>;
+  const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
     <table className="st-table">
       <thead>
         <tr>
-          <th className="st-th-name">Player</th>
-          <th>Mat</th>
-          <th>Inn</th>
-          <th>Overs</th>
-          <th>Runs</th>
-          <th className="st-highlight-col">Wkts</th>
-          <th>Best</th>
-          <th>Avg</th>
-          <th>Econ</th>
-          <th>SR</th>
-          <th>Mdns</th>
-          <th>5W</th>
-          <th>3W</th>
+          <th className="st-th-name st-sortable" onClick={() => onSort('name')}>
+            Player {sortField === 'name' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('matches')}>
+            Mat {sortField === 'matches' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('innings')}>
+            Inn {sortField === 'innings' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('overs')}>
+            Overs {sortField === 'overs' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('runs')}>
+            Runs {sortField === 'runs' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-highlight-col st-sortable" onClick={() => onSort('wickets')}>
+            Wkts {sortField === 'wickets' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('best')}>
+            Best {sortField === 'best' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('average')}>
+            Avg {sortField === 'average' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('economy')}>
+            Econ {sortField === 'economy' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('strikeRate')}>
+            SR {sortField === 'strikeRate' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('maidens')}>
+            Mdns {sortField === 'maidens' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('fiveWickets')}>
+            5W {sortField === 'fiveWickets' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('threeWickets')}>
+            3W {sortField === 'threeWickets' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(r => (
+        {sorted.map(r => (
           <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
             <td className="st-td-name">
               <span className="st-player-name">{r.name}</span>
@@ -185,22 +269,35 @@ function BowlingTable({ rows, navigate }) {
   );
 }
 
-function FieldingTable({ rows, navigate }) {
+function FieldingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No fielding data for this format</div>;
+  const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
     <table className="st-table">
       <thead>
         <tr>
-          <th className="st-th-name">Player</th>
-          <th>Mat</th>
-          <th className="st-highlight-col">Ct</th>
-          <th>St</th>
-          <th>RO</th>
-          <th className="st-highlight-col">Total</th>
+          <th className="st-th-name st-sortable" onClick={() => onSort('name')}>
+            Player {sortField === 'name' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('matches')}>
+            Mat {sortField === 'matches' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-highlight-col st-sortable" onClick={() => onSort('catches')}>
+            Ct {sortField === 'catches' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('stumpings')}>
+            St {sortField === 'stumpings' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-sortable" onClick={() => onSort('runOuts')}>
+            RO {sortField === 'runOuts' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
+          <th className="st-highlight-col st-sortable" onClick={() => onSort('total')}>
+            Total {sortField === 'total' && <span className="st-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+          </th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(r => (
+        {sorted.map(r => (
           <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
             <td className="st-td-name">
               <span className="st-player-name">{r.name}</span>
