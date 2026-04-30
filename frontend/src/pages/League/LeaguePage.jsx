@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats } from '../../api/auth';
+import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getLeaguesByCountry } from '../../api/auth';
+import { COUNTRIES } from '../../constants/countries';
 import toast from 'react-hot-toast';
 import {
   HiOutlineGlobeAlt,
@@ -39,6 +40,13 @@ export default function LeaguePage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [activeStatTab, setActiveStatTab] = useState(() => sessionStorage.getItem('league_stat_tab') || 'batting');
 
+  // League Filter States
+  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedFormat, setSelectedFormat] = useState(null);
+  const [selectedDivision, setSelectedDivision] = useState(null);
+  const [availableLeaguesData, setAvailableLeaguesData] = useState(null);
+  const [filterLoading, setFilterLoading] = useState(false);
+
   useEffect(() => {
     setLoading(true);
     getLeagueDetail(id, season)
@@ -47,14 +55,46 @@ export default function LeaguePage() {
         if (season == null && res.data?.season != null) {
           setSeason(res.data.season);
         }
+        // Initialize filter selections from current league
+        if (res.data?.country && !selectedCountry) {
+          setSelectedCountry(res.data.country);
+          setSelectedFormat(res.data.format);
+          setSelectedDivision(res.data.division);
+        }
       })
       .catch(() => toast.error('Failed to load league'))
       .finally(() => setLoading(false));
   }, [id, season]);
 
+  // Load available leagues for the selected country and format
+  const loadAvailableLeagues = useCallback(async (country, format) => {
+    if (!country || !format) return;
+    setFilterLoading(true);
+    try {
+      const res = await getLeaguesByCountry(country, format);
+      setAvailableLeaguesData(res.data);
+    } catch {
+      toast.error('Failed to load available leagues');
+    } finally {
+      setFilterLoading(false);
+    }
+  }, []);
+
+  // Load available leagues when country or format changes
+  useEffect(() => {
+    if (selectedCountry && selectedFormat) {
+      loadAvailableLeagues(selectedCountry, selectedFormat);
+    }
+  }, [selectedCountry, selectedFormat, loadAvailableLeagues]);
+
   useEffect(() => {
     sessionStorage.setItem('league_tab', activeTab);
   }, [activeTab]);
+
+  // Navigate to a different league based on filter selection
+  const handleNavigateToLeague = useCallback((leagueId) => {
+    navigate(`/league/${leagueId}`);
+  }, [navigate]);
 
   useEffect(() => {
     sessionStorage.setItem('league_stat_tab', activeStatTab);
@@ -119,6 +159,87 @@ export default function LeaguePage() {
               <select value={season ?? league.season} onChange={(e) => setSeason(Number(e.target.value))}>
                 {league.availableSeasons.map((s) => (
                   <option key={s} value={s}>Season {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── League Filters ── */}
+      <div className="lp-filters-container">
+        <div className="lp-filters">
+          {/* Country Filter */}
+          <div className="lp-filter-group">
+            <label className="lp-filter-label">Country:</label>
+            <select
+              className="lp-filter-select"
+              value={selectedCountry || ''}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+            >
+              <option value="">Select country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Format Filter */}
+          {selectedCountry && (
+            <div className="lp-filter-group">
+              <span className="lp-filter-label">Format:</span>
+              <div className="lp-format-buttons">
+                {['T20', 'ODI', 'FC'].map((fmt) => (
+                  <button
+                    key={fmt}
+                    className={`lp-format-btn ${selectedFormat === fmt ? 'active' : ''}`}
+                    onClick={() => setSelectedFormat(fmt)}
+                  >
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Division Filter */}
+          {selectedCountry && selectedFormat && availableLeaguesData?.divisions && (
+            <div className="lp-filter-group">
+              <label className="lp-filter-label">Division:</label>
+              <select
+                className="lp-filter-select"
+                value={selectedDivision || ''}
+                onChange={(e) => {
+                  const div = parseInt(e.target.value);
+                  setSelectedDivision(div);
+                }}
+              >
+                <option value="">Select division</option>
+                {Object.keys(availableLeaguesData.divisions)
+                  .sort((a, b) => parseInt(a) - parseInt(b))
+                  .map((div) => (
+                    <option key={div} value={div}>
+                      Division {div}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+
+          {/* League Selection */}
+          {selectedCountry && selectedFormat && selectedDivision && availableLeaguesData?.divisions[selectedDivision]?.length > 0 && (
+            <div className="lp-filter-group">
+              <label className="lp-filter-label">League:</label>
+              <select
+                className="lp-filter-select"
+                value={id || ''}
+                onChange={(e) => handleNavigateToLeague(e.target.value)}
+              >
+                <option value="">Select league</option>
+                {availableLeaguesData.divisions[selectedDivision].map((league) => (
+                  <option key={league.id} value={league.id}>
+                    {league.format} League {league.leagueNumber}
+                  </option>
                 ))}
               </select>
             </div>

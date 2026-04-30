@@ -47,6 +47,95 @@
   margin: 0.25rem 0 0;
 }
 
+/* -- League Filters -- */
+.lp-filters-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.lp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.lp-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.lp-filter-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lp-filter-select {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-1);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+}
+
+.lp-filter-select:hover {
+  border-color: var(--accent);
+}
+
+.lp-filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lp-filter-select option {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+/* Format buttons */
+.lp-format-buttons {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.2rem;
+}
+
+.lp-format-btn {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-3);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lp-format-btn:hover {
+  color: var(--text-1);
+  background: var(--surface-hover);
+}
+
+.lp-format-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* -- Tabs -- */
 .lp-tabs {
   display: flex;
