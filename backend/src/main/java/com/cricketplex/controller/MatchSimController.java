@@ -317,6 +317,9 @@ public class MatchSimController {
 
         MatchResult mr = opt.get();
         autoCompleteIfExpired(mr);
+        if (!isResultPublic(mr.getFixture().getStatus())) {
+            return ResponseEntity.ok(buildHiddenResultResponse(mr));
+        }
         return ResponseEntity.ok(buildResultResponse(mr));
     }
 
@@ -449,6 +452,29 @@ public class MatchSimController {
             // If weather derivation fails, skip strengths
         }
 
+        return resp;
+    }
+
+    private Map<String, Object> buildHiddenResultResponse(MatchResult result) {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        Fixture fixture = result.getFixture();
+        resp.put("found", true);
+        resp.put("locked", true);
+        resp.put("message", "Result is hidden until the match is completed");
+        resp.put("fixtureId", fixture.getId());
+        resp.put("fixtureStatus", fixture.getStatus());
+        resp.put("homeTeamName", fixture.getHomeTeam().getTeamName());
+        resp.put("homeTeamId", fixture.getHomeTeam().getId());
+        resp.put("homeTeamPicUrl", fixture.getHomeTeam().getTeamProfilePicUrl());
+        resp.put("awayTeamName", fixture.getAwayTeam().getTeamName());
+        resp.put("awayTeamId", fixture.getAwayTeam().getId());
+        resp.put("awayTeamPicUrl", fixture.getAwayTeam().getTeamProfilePicUrl());
+        String format = fixture.getLeague() != null ? fixture.getLeague().getFormat() : fixture.getFormat();
+        resp.put("format", format);
+        resp.put("matchDate", fixture.getMatchDate() != null ? fixture.getMatchDate().toString() : null);
+        resp.put("matchStartTimeUtc", fixture.getLeague() != null ? fixture.getLeague().getMatchStartTime() : fixture.getMatchTime());
+        resp.put("summary", "Match in progress");
+        resp.put("innings", List.of());
         return resp;
     }
 
@@ -620,6 +646,17 @@ public class MatchSimController {
 
         MatchResult result = opt.get();
         autoCompleteIfExpired(result);
+        if (!isResultPublic(result.getFixture().getStatus())) {
+            Map<String, Object> hidden = new LinkedHashMap<>();
+            hidden.put("found", true);
+            hidden.put("locked", true);
+            hidden.put("message", "Commentary is hidden until the match is completed");
+            hidden.put("fixtureStatus", result.getFixture().getStatus());
+            hidden.put("summary", "Match in progress");
+            hidden.put("innings", List.of());
+            return ResponseEntity.ok(hidden);
+        }
+
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("found", true);
         resp.put("summary", buildSummaryLine(result));
@@ -691,6 +728,10 @@ public class MatchSimController {
         }
         resp.put("innings", inningsList);
         return ResponseEntity.ok(resp);
+    }
+
+    private boolean isResultPublic(String fixtureStatus) {
+        return "COMPLETED".equals(fixtureStatus);
     }
 
     /**

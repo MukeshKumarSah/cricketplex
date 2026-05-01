@@ -60,6 +60,20 @@ public class User {
     @Builder.Default
     private Boolean teamSetupDone = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = false;
+
+    @Column(length = 128, unique = true)
+    private String emailVerificationToken;
+
+    private LocalDateTime emailVerificationTokenExpiresAt;
+
+    @Column(length = 128, unique = true)
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetTokenExpiresAt;
+
     private LocalDateTime lastActiveAt;
 
     @CreationTimestamp

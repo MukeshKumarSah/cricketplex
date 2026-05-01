@@ -3,6 +3,11 @@ import API from './axios';
 export const signup = (data) => API.post('/auth/signup', data);
 export const login = (data) => API.post('/auth/login', data);
 export const getMe = () => API.get('/auth/me');
+export const verifyEmail = (token) => API.get('/auth/verify-email', { params: { token } });
+export const resendVerification = (email) => API.post('/auth/resend-verification', { email });
+export const forgotPassword = (email) => API.post('/auth/forgot-password', { email });
+export const resetPassword = (token, password, confirmPassword) =>
+  API.post('/auth/reset-password', { token, password, confirmPassword });
 export const setupTeam = (data) => API.post('/team/setup', data);
 export const checkCountryAvailability = (country) => API.get(`/team/check-availability?country=${encodeURIComponent(country)}`);
 export const getAllCountryAvailability = () => API.get('/team/all-country-availability');

@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signup } from '../../api/auth';
-import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './Auth.css';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { saveAuth } = useAuth();
   const [form, setForm] = useState({
     name: '',
     username: '',
@@ -42,9 +40,8 @@ export default function Signup() {
     setLoading(true);
     try {
       const res = await signup(form);
-      saveAuth(res.data);
-      toast.success('Account created successfully!');
-      navigate('/team-setup');
+      toast.success(res.data?.message || 'Account created. Please verify your email.');
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch (err) {
       const msg =
         err.response?.data?.message ||

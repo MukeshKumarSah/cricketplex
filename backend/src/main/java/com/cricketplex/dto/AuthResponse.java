@@ -24,6 +24,7 @@ public class AuthResponse {
         private Boolean isSupporter;
         private Boolean isSubAdmin;
         private Boolean teamSetupDone;
+        private Boolean emailVerified;
         private String profilePicUrl;
         private String teamId;
         private String theme;

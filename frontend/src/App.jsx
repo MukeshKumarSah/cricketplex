@@ -5,6 +5,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PublicRoute, TeamSetupGuard, HomeGuard } from './components/RouteGuards';
 import Signup from './pages/Auth/Signup';
 import Login from './pages/Auth/Login';
+import VerifyEmail from './pages/Auth/VerifyEmail';
+import ForgotPassword from './pages/Auth/ForgotPassword';
+import ResetPassword from './pages/Auth/ResetPassword';
 import TeamSetup from './pages/TeamSetup/TeamSetup';
 import Home from './pages/Home/Home';
 import './App.css';
@@ -41,6 +44,9 @@ function App() {
                 </PublicRoute>
               }
             />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route
               path="/team-setup"
               element={
