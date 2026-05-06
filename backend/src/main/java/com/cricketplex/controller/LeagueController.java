@@ -4,6 +4,7 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.service.FixtureService;
 import com.cricketplex.service.LeagueService;
+import com.cricketplex.service.LeagueSyncService;
 import com.cricketplex.service.MatchEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class LeagueController {
     private final FixtureService fixtureService;
     private final LeagueService leagueService;
     private final MatchEngine matchEngine;
+    private final LeagueSyncService leagueSyncService;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getLeagueDetail(@PathVariable UUID id,
@@ -497,6 +499,29 @@ public class LeagueController {
         int fullOvers = (int) overs;
         int extraBalls = (int) Math.round((overs - fullOvers) * 10);
         return fullOvers * 6 + extraBalls;
+    }
+
+    /**
+     * Fix orphaned team swaps for a league (user-facing).
+     * Detects match results that still reference a replaced bot team and
+     * rewrites the Innings/MatchResult to point to the correct human team.
+     * After this call succeeds the client should reload the league detail.
+     *
+     * POST /api/leagues/{id}/refresh-standings?season=<int>
+     */
+    @PostMapping("/{id}/refresh-standings")
+    public ResponseEntity<?> refreshStandings(
+            @PathVariable UUID id,
+            @RequestParam(required = false) Integer season) {
+        Optional<League> opt = leagueRepository.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        League league = opt.get();
+        int viewSeason = resolveLeagueSeason(league, season);
+
+        return ResponseEntity.ok(leagueSyncService.fixOrphanedSwaps(id, viewSeason));
     }
 
     private String formatBowlType(Player p) {

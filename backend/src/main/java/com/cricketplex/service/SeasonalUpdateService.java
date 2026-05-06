@@ -40,11 +40,11 @@ import java.util.stream.Collectors;
 /**
  * Seasonal update - runs every 56 days (8 weeks).
  *
- * Day 1:
+ * Day 56 (season end):
  *   - Prize money credited based on position
  *   - Salary update placeholder
  *
- * Day 2:
+ * Day 1 of next season:
  *   - Promotion / relegation
  *   - Season change
  *   - Next-season fixture generation
@@ -97,11 +97,11 @@ public class SeasonalUpdateService {
     public void applyMissedUpdates() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         long daysSinceStart = ChronoUnit.DAYS.between(getSeason1Start(), today);
-        if (daysSinceStart < 52) return;
+        if (daysSinceStart < 55) return;
 
-        int latestPrizeSeason = 1 + (int) ((daysSinceStart - 52) / SEASON_DAYS);
-        int latestTransitionSeason = (daysSinceStart >= 53)
-                ? 1 + (int) ((daysSinceStart - 53) / SEASON_DAYS) : 0;
+        int latestPrizeSeason = 1 + (int) ((daysSinceStart - 55) / SEASON_DAYS);
+        int latestTransitionSeason = (daysSinceStart >= 56)
+                ? 1 + (int) ((daysSinceStart - 56) / SEASON_DAYS) : 0;
 
         int lastPrize = getAppStateInt(PRIZE_KEY, 0);
         int lastTransition = getAppStateInt(TRANSITION_KEY, 0);

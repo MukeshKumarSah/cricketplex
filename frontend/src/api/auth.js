@@ -74,6 +74,7 @@ export const searchLeagues = (q) => API.get(`/search/leagues`, { params: { q } }
 
 // Game Info
 export const getCurrentSeason = () => API.get('/team/current-season');
+export const getSeasonCalendar = () => API.get('/team/season-calendar');
 export const getMyLeagues = () => API.get('/team/my-leagues');
 export const getMyMatches = (season, format) => {
   const params = {};
@@ -86,6 +87,7 @@ export const getMyMatches = (season, format) => {
 export const getLeagueDetail = (id, season) => API.get(`/leagues/${id}`, { params: season ? { season } : {} });
 export const getLeagueFixtures = (id, season) => API.get(`/leagues/${id}/fixtures`, { params: season ? { season } : {} });
 export const getLeaguePlayerStats = (id, season) => API.get(`/leagues/${id}/stats`, { params: season ? { season } : {} });
+export const refreshLeagueStandings = (id, season) => API.post(`/leagues/${id}/refresh-standings`, {}, { params: season ? { season } : {} });
 export const getAvailableLeagues = (country, format, season) => {
   const params = {};
   if (format) params.format = format;

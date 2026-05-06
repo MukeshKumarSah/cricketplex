@@ -32,6 +32,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,6 +40,10 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/team")
 @RequiredArgsConstructor
 public class TeamController {
+    @org.springframework.beans.factory.annotation.Value("${app.season1-start}")
+    private String season1StartStr;
+    private LocalDate getSeason1Start() { return LocalDate.parse(season1StartStr); }
+    private static final int SEASON_DAYS = 56;
 
     private final TeamService teamService;
     private final FixtureService fixtureService;
@@ -114,6 +119,60 @@ public class TeamController {
     public ResponseEntity<?> getCurrentSeason() {
         int season = leagueRepository.findMaxSeason();
         return ResponseEntity.ok(Map.of("season", season));
+    }
+
+    @GetMapping("/season-calendar")
+    public ResponseEntity<?> getSeasonCalendar() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate season1Start = getSeason1Start();
+        long daysSince = ChronoUnit.DAYS.between(season1Start, today);
+        int currentSeason = 1 + (int) Math.max(0, daysSince / SEASON_DAYS);
+        int dayIndex = (int) Math.floorMod(daysSince, SEASON_DAYS); // 0..55
+        int currentSeasonDay = dayIndex + 1; // 1..56
+        LocalDate currentSeasonStart = season1Start.plusDays((long) (currentSeason - 1) * SEASON_DAYS);
+
+        List<Map<String, Object>> days = new ArrayList<>();
+        for (int i = 0; i < SEASON_DAYS; i++) {
+            LocalDate date = currentSeasonStart.plusDays(i);
+            int seasonDay = i + 1;
+            List<String> events = new ArrayList<>();
+
+            if (i == 0) events.add("Season Start & Fixtures Release");
+            if (i == 55) events.add("Season End & Prize Money Distribution");
+
+            // T20: Sunday + Thursday pattern from season anchor (Thu start)
+            if (i >= 3 && ((i - 3) % 7 == 0 || (i - 7) % 7 == 0)) {
+                events.add("T20 Match Day");
+            }
+            // ODI: Monday + Friday pattern from season anchor (Thu start)
+            if (i >= 4 && ((i - 4) % 7 == 0 || (i - 8) % 7 == 0)) {
+                events.add("ODI Match Day");
+            }
+            // FC: Tuesday (first half only in this season's stored fixtures)
+            if (i >= 5 && (i - 5) % 7 == 0 && i <= 47) {
+                events.add("FC Match Day");
+            }
+
+            if (events.isEmpty()) events.add("No League Match Day");
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("seasonDay", seasonDay);
+            row.put("date", date.toString());
+            row.put("weekday", date.getDayOfWeek().toString());
+            row.put("isToday", seasonDay == currentSeasonDay);
+            row.put("events", events);
+            days.add(row);
+        }
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("season", currentSeason);
+        out.put("seasonStartDate", currentSeasonStart.toString());
+        out.put("todayUtc", today.toString());
+        out.put("currentSeasonDay", currentSeasonDay);
+        out.put("totalSeasonDays", SEASON_DAYS);
+        out.put("seasonEndDate", currentSeasonStart.plusDays(SEASON_DAYS - 1).toString());
+        out.put("days", days);
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/my-leagues")

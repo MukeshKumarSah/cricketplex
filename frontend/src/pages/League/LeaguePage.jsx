@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getAvailableLeagues } from '../../api/auth';
+import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getAvailableLeagues, refreshLeagueStandings } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import toast from 'react-hot-toast';
 import {
@@ -8,6 +8,7 @@ import {
   HiOutlineTableCells,
   HiOutlineCalendarDays,
   HiOutlineChartBar,
+  HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import './LeaguePage.css';
 
@@ -50,6 +51,9 @@ export default function LeaguePage() {
   // Sorting States
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Refresh Standings State
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -100,6 +104,30 @@ export default function LeaguePage() {
   const handleNavigateToLeague = useCallback((leagueId) => {
     navigate(`/league/${leagueId}`);
   }, [navigate]);
+
+  // Handle standings refresh
+  const handleRefreshStandings = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const fixRes = await refreshLeagueStandings(id, season);
+      const fixed = fixRes.data?.fixedMatches ?? 0;
+
+      // Reload full league detail so standings re-render from corrected DB data
+      const detailRes = await getLeagueDetail(id, season);
+      setLeague(detailRes.data);
+
+      if (fixed > 0) {
+        toast.success(`Sync complete — ${fixed} match result(s) corrected`);
+      } else {
+        toast.success(fixRes.data?.message ?? 'Standings are up to date');
+      }
+    } catch (error) {
+      console.error('Failed to sync standings:', error);
+      toast.error('Failed to sync standings');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id, season]);
 
   // Handle column sorting
   const handleSort = useCallback((field) => {
@@ -324,6 +352,17 @@ export default function LeaguePage() {
       <div className="lp-content">
         {activeTab === 'standings' && (
           <div className="lp-standings">
+            <div className="lp-standings-header">
+              <button
+                className="lp-refresh-btn"
+                onClick={handleRefreshStandings}
+                disabled={refreshing}
+                title="Refresh standings from latest match results"
+              >
+                <HiOutlineArrowPath className={`lp-refresh-icon ${refreshing ? 'spinning' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
             <table className="lp-table">
               <thead>
                 <tr>

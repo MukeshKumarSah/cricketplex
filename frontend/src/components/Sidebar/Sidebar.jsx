@@ -25,6 +25,7 @@ import {
   HiOutlineCalculator,
   HiOutlineCpuChip,
   HiOutlineBeaker,
+  HiOutlineCalendarDays,
 } from 'react-icons/hi2';
 import './Sidebar.css';
 
@@ -43,6 +44,7 @@ const menuItems = [
   { label: 'Blogs', icon: HiOutlinePencilSquare, path: '/blogs' },
   { label: 'Game Manuals', icon: HiOutlineBookOpen, path: '/game-manuals' },
   { label: 'Rules & Regulations', icon: HiOutlineDocumentText, path: '/rules' },
+  { label: 'Season Calendar', icon: HiOutlineCalendarDays, path: '/calendar' },
   { label: 'ChangeLogs', icon: HiOutlineClipboardDocumentList, path: '/changelogs' },
   { label: 'Support the Game', icon: HiOutlineHeart, path: '/support' },
   { label: 'Search', icon: HiOutlineMagnifyingGlass, path: '/search' },

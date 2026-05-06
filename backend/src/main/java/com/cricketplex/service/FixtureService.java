@@ -168,10 +168,10 @@ public class FixtureService {
     /**
      * Compute the match date for a given format, round, and season.
      *
-     * Schedule per week (season = 8 weeks, start = Sunday):
+     * Schedule per week (season = 8 weeks, season start = Thursday fixture-release day):
      *   T20: Sunday (odd rounds) + Thursday (even rounds)  → 7 weeks for 14 rounds
-     *   ODI: Monday (odd rounds) + Friday (even rounds)   → 7 weeks for 14 rounds
-     *   FC:  Tuesday, 1 round per week — R1-R7 in season 1 (weeks 1-7), dead week 8,
+     *   ODI: Monday (odd rounds) + Friday (even rounds)    → 7 weeks for 14 rounds
+     *   FC:  Tuesday, 1 round per week — R1-R7 in season 1 (weeks 1-7), week 8 off,
      *        R8-R14 in season 2 (weeks 1-7).
      */
     private LocalDate computeMatchDate(String format, int round, int season) {
@@ -181,21 +181,23 @@ public class FixtureService {
             case "T20": {
                 int week = (round + 1) / 2;         // R1,2→W1  R3,4→W2 …
                 boolean first = (round % 2 == 1);   // odd = Sunday, even = Thursday
-                return seasonStart.plusWeeks(week - 1).plusDays(first ? 0 : 4);
+                // seasonStart is Thursday fixture-release day
+                // W1 Sunday = +3, W1 Thursday = +7
+                return seasonStart.plusWeeks(week - 1).plusDays(first ? 3 : 7);
             }
             case "ODI": {
                 int week = (round + 1) / 2;
                 boolean first = (round % 2 == 1);   // odd = Monday, even = Friday
-                return seasonStart.plusWeeks(week - 1).plusDays(first ? 1 : 5);
+                // W1 Monday = +4, W1 Friday = +8
+                return seasonStart.plusWeeks(week - 1).plusDays(first ? 4 : 8);
             }
             case "FC": {
                 if (round <= 7) {
-                    // Rounds 1-7: Tuesday of weeks 1-7 in current season.
-                    // Season ends after week 7 with prize money/wage update (dead week 8).
-                    return seasonStart.plusWeeks(round - 1).plusDays(2);
+                    // Rounds 1-7: Tuesday of weeks 1-7 in current season (W1 Tue = +5)
+                    return seasonStart.plusWeeks(round - 1).plusDays(5);
                 } else {
                     // Rounds 8-14: Tuesday of weeks 1-7 of NEXT season.
-                    return seasonStart.plusDays(SEASON_DAYS).plusWeeks(round - 8).plusDays(2);
+                    return seasonStart.plusDays(SEASON_DAYS).plusWeeks(round - 8).plusDays(5);
                 }
             }
             default:

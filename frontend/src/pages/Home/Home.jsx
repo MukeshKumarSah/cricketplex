@@ -33,6 +33,7 @@ import ComingSoon from '../ComingSoon/ComingSoon';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
 import Membership from '../Membership/Membership';
+import SeasonCalendar from '../Calendar/Calendar';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -192,6 +193,10 @@ export default function Home() {
             <Route
               path="rules"
               element={<Rules />}
+            />
+            <Route
+              path="calendar"
+              element={<SeasonCalendar />}
             />
             <Route
               path="team-list"

@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.service.BotTeamService;
 import com.cricketplex.service.FitnessRecoveryService;
 import com.cricketplex.service.LeagueService;
+import com.cricketplex.service.LeagueSyncService;
 import com.cricketplex.service.PlayerAgingService;
 import com.cricketplex.service.SeasonalUpdateService;
 import com.cricketplex.service.TrainingService;
@@ -26,6 +27,7 @@ public class AdminLeagueController {
     private final FitnessRecoveryService fitnessRecoveryService;
     private final TrainingService trainingService;
     private final SeasonalUpdateService seasonalUpdateService;
+    private final LeagueSyncService leagueSyncService;
 
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {
@@ -97,5 +99,33 @@ public class AdminLeagueController {
         }
         seasonalUpdateService.applyMissedUpdates();
         return ResponseEntity.ok(Map.of("message", "Seasonal update catch-up complete"));
+    }
+
+    /**
+     * Fix orphaned team swaps for a specific league — corrects standings for
+     * teams that joined while a match was IN_PROGRESS.
+     * 
+     * POST /api/admin/leagues/sync?leagueId=<uuid>&season=<int>
+     */
+    @PostMapping("/sync")
+    public ResponseEntity<?> syncLeague(
+            @RequestParam UUID leagueId,
+            @RequestParam(required = false) Integer season) {
+        if (season == null) {
+            season = 1;
+        }
+        return ResponseEntity.ok(leagueSyncService.fixOrphanedSwaps(leagueId, season));
+    }
+
+    /**
+     * Fix orphaned swaps for all leagues of a country+format.
+     * 
+     * POST /api/admin/leagues/sync-country?country=<string>&format=<string>
+     */
+    @PostMapping("/sync-country")
+    public ResponseEntity<?> syncCountryLeagues(
+            @RequestParam String country,
+            @RequestParam String format) {
+        return ResponseEntity.ok(leagueSyncService.syncCountryLeagues(country, format));
     }
 }
