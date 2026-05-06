@@ -264,16 +264,16 @@ export default function TeamProfile() {
                       </div>
                       {displayed.map((m) => {
                         const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
+                        const matchHref =
+                          m.status === 'COMPLETED' ? `/match/${m.id}/scorecard`
+                          : (m.status === 'IN_PROGRESS' || m.status === 'LIVE') ? `/match/${m.id}/live`
+                          : m.status === 'FC_DAY1_COMPLETE' ? `/match/${m.id}/scorecard`
+                          : `/match/${m.id}/preview`;
                         return (
-                          <div
+                          <a
                             key={m.id}
                             className="tp-match-row tp-match-clickable"
-                            onClick={() => {
-                              if (m.status === 'COMPLETED') navigate(`/match/${m.id}/scorecard`);
-                              else if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') navigate(`/match/${m.id}/live`);
-                              else if (m.status === 'FC_DAY1_COMPLETE') navigate(`/match/${m.id}/fc-strategy`);
-                              else navigate(`/match/${m.id}/preview`);
-                            }}
+                            href={matchHref}
                           >
                             {/* Date */}
                             <div className="tp-mc-date">
@@ -334,7 +334,7 @@ export default function TeamProfile() {
                                 <span className="tp-res-sched">Scheduled</span>
                               )}
                             </div>
-                          </div>
+                          </a>
                         );
                       })}
                     </div>

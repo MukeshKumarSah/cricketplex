@@ -1,6 +1,5 @@
 /* ------ Transfer Market ------ */
 .tm-page {
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -475,7 +474,6 @@
 
 /* -- Responsive -- */
 @media (max-width: 740px) {
-  .tm-page { padding: 1rem; }
   .tm-listings { grid-template-columns: 1fr; }
   .tm-bid-row { flex-direction: column; }
   .tm-bid-input { width: 100%; }

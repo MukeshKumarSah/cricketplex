@@ -120,7 +120,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0 16px;
+  padding: 0;
 }
 
 /* Batsmen & Bowler strip */
@@ -335,7 +335,7 @@
 
 /* ─── Scorecard Tab ─── */
 .lm-scorecard {
-  padding: 16px;
+  padding: 0;
 }
 .lm-sc-tabs {
   display: flex;
@@ -406,6 +406,8 @@
   gap: 1px;
 }
 .lm-sc-name { color: #e2e8f0; font-size: 0.85rem; font-weight: 600; }
+.lm-sc-name a { color: inherit; text-decoration: none; }
+.lm-sc-name a:hover { color: #22d3ee; }
 .lm-sc-dismissal { color: #64748b; font-size: 0.72rem; font-weight: 400; }
 .lm-sc-num {
   color: #94a3b8;

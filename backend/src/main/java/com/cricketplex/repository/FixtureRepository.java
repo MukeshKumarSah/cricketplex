@@ -30,6 +30,7 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
     List<Fixture> findBySimSessionId(UUID simSessionId);
 
     List<Fixture> findByHomeTeamAndMatchDateGreaterThanEqualOrderByMatchDateAsc(Team homeTeam, LocalDate date);
+    List<Fixture> findByHomeTeamAndStatusAndMatchDateGreaterThanEqual(Team homeTeam, String status, LocalDate date);
 
     @Query("SELECT f FROM Fixture f WHERE (f.homeTeam = :team OR f.awayTeam = :team) ORDER BY f.matchDate ASC, f.round ASC")
     List<Fixture> findAllByTeamOrderByMatchDate(@Param("team") Team team);

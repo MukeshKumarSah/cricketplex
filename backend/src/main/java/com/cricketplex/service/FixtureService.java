@@ -4,6 +4,7 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.MatchResultRepository;
+import com.cricketplex.repository.StadiumSeatsRepository;
 import com.cricketplex.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class FixtureService {
     private final LeagueTeamRepository leagueTeamRepository;
     private final MatchResultRepository matchResultRepository;
     private final TeamRepository teamRepository;
+    private final StadiumSeatsRepository stadiumSeatsRepository;
 
     /**
      * Pending swaps for IN_PROGRESS fixtures.
@@ -130,6 +132,8 @@ public class FixtureService {
                         .awayTeam(teams[FIRST_HALF[r][m][1]])
                         .matchDate(matchDate)
                         .status("SCHEDULED")
+                        .pitchType(getDefaultPitch(teams[FIRST_HALF[r][m][0]]))
+                        .pitchLocked(false)
                         .build());
             }
         }
@@ -149,6 +153,8 @@ public class FixtureService {
                         .awayTeam(teams[FIRST_HALF[srcRound][m][0]])
                         .matchDate(matchDate)
                         .status("SCHEDULED")
+                        .pitchType(getDefaultPitch(teams[FIRST_HALF[srcRound][m][1]]))
+                        .pitchLocked(false)
                         .build());
             }
         }
@@ -404,5 +410,12 @@ public class FixtureService {
         info.put("teamProfilePicUrl", team.getTeamProfilePicUrl());
         info.put("isBot", team.getIsBot());
         return info;
+    }
+
+    private String getDefaultPitch(Team homeTeam) {
+        return stadiumSeatsRepository.findByTeam(homeTeam)
+                .map(StadiumSeats::getDefaultPitch)
+                .filter(p -> p != null && !p.isBlank())
+                .orElse("STANDARD");
     }
 }

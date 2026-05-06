@@ -134,6 +134,7 @@ public class GroundService {
         }
 
         fixture.setPitchType(normalized);
+        fixture.setPitchLocked(true);
         fixtureRepository.save(fixture);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -152,9 +153,29 @@ public class GroundService {
         }
         StadiumSeats seats = stadiumSeatsRepository.findByTeam(team)
                 .orElseGet(() -> StadiumSeats.builder().team(team).build());
+        String oldDefault = seats.getDefaultPitch() != null ? seats.getDefaultPitch() : "STANDARD";
         seats.setDefaultPitch(normalized);
         stadiumSeatsRepository.save(seats);
-        return Map.of("defaultPitch", normalized);
+
+        // Immediately propagate to future home fixtures that still inherit default pitch.
+        // Locked fixtures were manually set and must not be overridden.
+        List<Fixture> upcomingHome = fixtureRepository.findByHomeTeamAndStatusAndMatchDateGreaterThanEqual(
+                team, "SCHEDULED", LocalDate.now());
+        int updatedFixtures = 0;
+        for (Fixture fixture : upcomingHome) {
+            if (Boolean.TRUE.equals(fixture.getPitchLocked())) continue;
+            if (!oldDefault.equalsIgnoreCase(fixture.getPitchType())) continue;
+            fixture.setPitchType(normalized);
+            updatedFixtures++;
+        }
+        if (updatedFixtures > 0) {
+            fixtureRepository.saveAll(upcomingHome);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("defaultPitch", normalized);
+        result.put("updatedUpcomingHomeFixtures", updatedFixtures);
+        return result;
     }
 
     @Transactional(readOnly = true)

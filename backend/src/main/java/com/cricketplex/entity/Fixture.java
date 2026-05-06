@@ -71,6 +71,10 @@ public class Fixture {
     @Builder.Default
     private String pitchType = "STANDARD";
 
+    @Column(name = "pitch_locked", nullable = false)
+    @Builder.Default
+    private Boolean pitchLocked = false;
+
     // ─── FC day-based simulation fields ───
 
     /** FC match day: 0 = not started, 1 = day 1 complete, 2 = match done */

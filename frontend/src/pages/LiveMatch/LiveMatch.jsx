@@ -451,7 +451,13 @@ export default function LiveMatch() {
                       {(() => {
                         return (
                       <span className="lm-sc-name">
-                        {bc.playerName}{bc.notOut ? '*' : ''}
+                        {bc.playerId ? (
+                          <a className="lm-sc-name" href={`/player/${bc.playerId}`}>
+                            {bc.playerName}{bc.notOut ? '*' : ''}
+                          </a>
+                        ) : (
+                          <>{bc.playerName}{bc.notOut ? '*' : ''}</>
+                        )}
                         <span className="lm-sc-dismissal">
                           {bc.notOut ? 'not out' : formatDismissal(bc)}
                         </span>
@@ -487,7 +493,11 @@ export default function LiveMatch() {
                   {scInn.bowlingCard?.map((bc, i) => (
                     <div key={i} className={`lm-sc-row ${bc.wickets >= 3 ? 'lm-sc-haul' : ''}`}>
                       {(() => {
-                        return <span className="lm-sc-name">{bc.playerName}</span>;
+                        return bc.playerId ? (
+                          <a className="lm-sc-name" href={`/player/${bc.playerId}`}>
+                            {bc.playerName}
+                          </a>
+                        ) : <span className="lm-sc-name">{bc.playerName}</span>;
                       })()}
                       <span className="lm-sc-num">
                         {formatBowlingStyle(

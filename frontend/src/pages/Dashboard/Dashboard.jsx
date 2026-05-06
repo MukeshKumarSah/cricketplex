@@ -569,7 +569,6 @@ export default function Dashboard() {
             </div>
             <div className="dash-fans-bar-labels">
               <span>0</span>
-              <span>{formatFans(dashStats?.fanCeiling ?? 150000)} ceiling</span>
             </div>
           </div>
         </div>

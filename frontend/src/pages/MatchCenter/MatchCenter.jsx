@@ -891,12 +891,15 @@ export default function MatchCenter() {
                       <div key={i} className={`mc-sc-row ${bc.notOut ? 'mc-sc-notout' : ''}`}>
                         {(() => {
                           return (
-                        <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>
+                        <a
+                          className="mc-sc-name mc-sc-name-link"
+                          href={`/player/${bc.playerId}`}
+                        >
                           {bc.playerName}{bc.notOut ? '*' : ''}
                           <span className="mc-sc-dismissal">
                             {bc.notOut ? 'not out' : formatDismissal(bc)}
                           </span>
-                        </span>
+                        </a>
                           );
                         })()}
                         <span className="mc-sc-hand">
@@ -953,9 +956,12 @@ export default function MatchCenter() {
                       <div key={i} className={`mc-sc-row ${bc.wickets >= 3 ? 'mc-sc-haul' : ''}`}>
                         {(() => {
                           return (
-                            <span className="mc-sc-name mc-sc-name-link" onClick={() => navigate(`/player/${bc.playerId}`)}>
+                            <a
+                              className="mc-sc-name mc-sc-name-link"
+                              href={`/player/${bc.playerId}`}
+                            >
                               {bc.playerName}
-                            </span>
+                            </a>
                           );
                         })()}
                         <span className="mc-sc-type">
@@ -1440,7 +1446,12 @@ export default function MatchCenter() {
             {matchEnded && result.manOfMatch && (
               <div className="mc-summary-motm">
                 <span className="mc-motm-label">Player of the Match</span>
-                <span className="mc-motm-name" style={{ cursor: 'pointer' }} onClick={() => navigate(`/player/${result.manOfMatchId}`)}>{result.manOfMatch}</span>
+                <a
+                  className="mc-motm-name"
+                  href={`/player/${result.manOfMatchId}`}
+                >
+                  {result.manOfMatch}
+                </a>
               </div>
             )}
             {summaryData.map((sInn) => (
@@ -1485,11 +1496,12 @@ export default function MatchCenter() {
                           <div
                             key={p.id}
                             className={`mc-perf-row ${p.id === result.manOfMatchId ? 'mc-perf-motm' : ''}`}
-                            onClick={() => navigate(`/player/${p.id}`)}
                           >
                             <span className="mc-perf-col-rank">{i + 1}</span>
                             <span className="mc-perf-col-name">
-                              {p.name}
+                              <a className="mc-sc-name-link" href={`/player/${p.id}`}>
+                                {p.name}
+                              </a>
                               {p.id === result.manOfMatchId && <span className="mc-perf-motm-badge">MoM</span>}
                             </span>
                             <span className="mc-perf-col-num">{p.batPts}</span>

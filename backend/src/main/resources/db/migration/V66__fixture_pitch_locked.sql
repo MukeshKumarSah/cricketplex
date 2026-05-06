@@ -1,0 +1,3 @@
+ALTER TABLE fixtures
+    ADD COLUMN pitch_locked BOOLEAN NOT NULL DEFAULT FALSE;
+
