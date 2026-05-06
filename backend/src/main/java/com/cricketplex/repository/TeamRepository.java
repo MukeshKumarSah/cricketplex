@@ -26,5 +26,7 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     List<Team> findByIsBotTrue();
 
+    List<Team> findByIsBotFalse();
+
     long countByIsBot(boolean isBot);
 }

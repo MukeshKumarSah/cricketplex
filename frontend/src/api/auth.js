@@ -88,6 +88,11 @@ export const getLeagueDetail = (id, season) => API.get(`/leagues/${id}`, { param
 export const getLeagueFixtures = (id, season) => API.get(`/leagues/${id}/fixtures`, { params: season ? { season } : {} });
 export const getLeaguePlayerStats = (id, season) => API.get(`/leagues/${id}/stats`, { params: season ? { season } : {} });
 export const refreshLeagueStandings = (id, season) => API.post(`/leagues/${id}/refresh-standings`, {}, { params: season ? { season } : {} });
+
+// Cup
+export const getCupCurrent = () => API.get('/cup/current');
+export const getCupBySeason = (season) => API.get(`/cup/${season}`);
+export const getCupMyStatus = () => API.get('/cup/my-status');
 export const getAvailableLeagues = (country, format, season) => {
   const params = {};
   if (format) params.format = format;
@@ -145,7 +150,8 @@ export const getFixturePreview = (fixtureId) => API.get(`/match/preview/${fixtur
 export const getPlayerProfile = (playerId) => API.get(`/player/${playerId}`);
 
 // Stats
-export const getTeamStats = (format, matchType) => API.get('/stats', { params: { format, matchType } });
+export const getTeamStats = (format, matchType, season) => API.get('/stats', { params: { format, matchType, ...(season != null ? { season } : {}) } });
+export const getCupStats  = (season) => API.get('/stats/cup', { params: { season } });
 
 // Academy
 export const getAcademyOverview = () => API.get('/academy');

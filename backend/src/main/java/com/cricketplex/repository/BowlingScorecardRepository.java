@@ -29,4 +29,10 @@ public interface BowlingScorecardRepository extends JpaRepository<BowlingScoreca
            "WHERE bs.player.team.id = :teamId AND f.status = 'COMPLETED' " +
            "ORDER BY f.matchDate DESC")
     List<BowlingScorecard> findByTeamCompleted(@Param("teamId") UUID teamId);
+
+    @Query("SELECT bs FROM BowlingScorecard bs " +
+           "JOIN FETCH bs.player p JOIN FETCH p.team " +
+           "JOIN FETCH bs.innings i JOIN FETCH i.matchResult mr JOIN FETCH mr.fixture f " +
+           "WHERE f.matchType = 'CUP' AND f.season = :season AND f.status = 'COMPLETED'")
+    List<BowlingScorecard> findByCupSeason(@Param("season") int season);
 }

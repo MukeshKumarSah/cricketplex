@@ -41,4 +41,16 @@ public interface BattingScorecardRepository extends JpaRepository<BattingScoreca
            "WHERE bs.fielder.team.id = :teamId AND f.status = 'COMPLETED' " +
            "ORDER BY f.matchDate DESC")
     List<BattingScorecard> findFieldingByTeamCompleted(@Param("teamId") UUID teamId);
+
+    @Query("SELECT bs FROM BattingScorecard bs " +
+           "JOIN FETCH bs.player p JOIN FETCH p.team " +
+           "JOIN FETCH bs.innings i JOIN FETCH i.matchResult mr JOIN FETCH mr.fixture f " +
+           "WHERE f.matchType = 'CUP' AND f.season = :season AND f.status = 'COMPLETED'")
+    List<BattingScorecard> findByCupSeason(@Param("season") int season);
+
+    @Query("SELECT bs FROM BattingScorecard bs " +
+           "JOIN FETCH bs.fielder fld JOIN FETCH fld.team " +
+           "JOIN FETCH bs.innings i JOIN FETCH i.matchResult mr JOIN FETCH mr.fixture f " +
+           "WHERE bs.fielder IS NOT NULL AND f.matchType = 'CUP' AND f.season = :season AND f.status = 'COMPLETED'")
+    List<BattingScorecard> findFieldingByCupSeason(@Param("season") int season);
 }

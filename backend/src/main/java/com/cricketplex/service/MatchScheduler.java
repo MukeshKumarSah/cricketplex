@@ -6,7 +6,9 @@ import com.cricketplex.entity.Innings;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.MatchLineup;
 import com.cricketplex.entity.MatchResult;
+import com.cricketplex.entity.Cup;
 import com.cricketplex.repository.BallEventRepository;
+import com.cricketplex.repository.CupRepository;
 import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.FriendlyChallengeRepository;
 import com.cricketplex.repository.LeagueRepository;
@@ -48,6 +50,8 @@ public class MatchScheduler {
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final FixtureService fixtureService;
+    private final CupService cupService;
+    private final CupRepository cupRepository;
     private final FriendlyChallengeRepository friendlyChallengeRepository;
     private final MatchLineupRepository matchLineupRepository;
 
@@ -342,6 +346,81 @@ public class MatchScheduler {
                 }
             } catch (Exception e) {
                 log.error("Pass 5 (auto-start friendlies) error: {}", e.getMessage());
+            }
+
+            // ── Pass 6: Initialise Cup for current season if not yet done ─────
+            try {
+                int currentSeason = cupService.computeCurrentSeason();
+                LocalDate seasonStart = cupService.getSeasonStart(currentSeason);
+                if (!today.isBefore(seasonStart) && !cupRepository.existsBySeason(currentSeason)) {
+                    log.info("MatchScheduler: initialising Cup for season {}", currentSeason);
+                    txTemplate.executeWithoutResult(status ->
+                        cupService.initializeCupForSeason(currentSeason)
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Pass 6 (cup init) error: {}", e.getMessage(), e);
+            }
+
+            // ── Pass 7: Simulate SCHEDULED cup fixtures ───────────────────────
+            try {
+                List<Fixture> cupCandidates = txTemplate.execute(status ->
+                    fixtureRepository.findByMatchTypeAndStatusAndMatchDateLessThanEqual(
+                            "CUP", "SCHEDULED", today)
+                );
+                if (cupCandidates != null) {
+                    for (Fixture f : cupCandidates) {
+                        try {
+                            String startTimeStr = f.getMatchTime() != null
+                                    ? f.getMatchTime() : CupService.CUP_MATCH_TIME;
+                            LocalDateTime matchStart = LocalDateTime.of(
+                                    f.getMatchDate(), LocalTime.parse(startTimeStr));
+                            if (nowUtc.isBefore(matchStart)) continue;
+
+                            Boolean hasResult = txTemplate.execute(status ->
+                                matchResultRepository.existsByFixtureId(f.getId())
+                            );
+                            if (Boolean.TRUE.equals(hasResult)) continue;
+
+                            log.info("Auto-simulating cup fixture {} R{} M{} ({})",
+                                    f.getId(), f.getRound(), f.getMatchNumber(), f.getMatchDate());
+
+                            matchEngine.simulateMatch(f.getId());
+
+                            txTemplate.executeWithoutResult(status -> {
+                                Fixture fresh = fixtureRepository.findById(f.getId()).orElse(null);
+                                if (fresh != null && "COMPLETED".equals(fresh.getStatus())) {
+                                    fresh.setStatus("IN_PROGRESS");
+                                    fixtureRepository.save(fresh);
+                                }
+                            });
+                        } catch (Exception e) {
+                            log.error("Failed to simulate cup fixture {}: {}", f.getId(), e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Pass 7 (cup simulation) error: {}", e.getMessage(), e);
+            }
+
+            // ── Pass 8: Advance cup rounds when all matches in a round complete ─
+            try {
+                List<Cup> ongoingCups = txTemplate.execute(status ->
+                    cupRepository.findByStatus("ONGOING")
+                );
+                if (ongoingCups != null) {
+                    for (Cup cup : ongoingCups) {
+                        try {
+                            txTemplate.executeWithoutResult(status ->
+                                cupService.checkAndAdvanceCupRound(cup.getId())
+                            );
+                        } catch (Exception e) {
+                            log.error("Failed to advance cup {}: {}", cup.getId(), e.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Pass 8 (cup advance) error: {}", e.getMessage(), e);
             }
 
         } catch (Exception e) {

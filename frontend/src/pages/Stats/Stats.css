@@ -27,6 +27,8 @@
 }
 .st-controls {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 .st-format-select {
@@ -42,6 +44,30 @@
   transition: border-color 0.2s;
 }
 .st-format-select:focus {
+  border-color: var(--accent);
+}
+
+/* Season selector (shown for CUP) */
+.st-season-select {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-3);
+  font-weight: 600;
+}
+.st-season-select select {
+  background: var(--input-bg);
+  color: var(--text-1);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.st-season-select select:focus {
   border-color: var(--accent);
 }
 
@@ -63,7 +89,7 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.st-type-btn:first-child {
+.st-type-btn:not(:last-child) {
   border-right: 1px solid var(--border);
 }
 .st-type-btn:hover {

@@ -31,6 +31,7 @@ public class TeamService {
     private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final FixtureService fixtureService;
+    private final CupService cupService;
 
     @Transactional
     public Team setupTeam(User owner, TeamSetupRequest request) {
@@ -209,6 +210,13 @@ public class TeamService {
                 leagueTeamRepository.save(botEntry);
                 fixtureService.swapTeamInFixtures(targetLeague.getId(), oldBotId, team.getId());
             }
+        }
+
+        // Replace a bot slot in the current season's Cup (if one exists)
+        try {
+            cupService.replaceBotWithHuman(team);
+        } catch (Exception e) {
+            // Non-critical – cup replacement failure must not block team setup
         }
     }
 

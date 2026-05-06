@@ -1,0 +1,528 @@
+.cup-page {
+  /* padding: 1.5rem; */
+  max-width: 1200px;
+}
+
+/* ── Header ── */
+.cup-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.cup-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.cup-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cup-badge.ONGOING   { background: #22c55e22; color: #22c55e; }
+.cup-badge.UPCOMING  { background: #3b82f622; color: #3b82f6; }
+.cup-badge.COMPLETED { background: #a855f722; color: #a855f7; }
+
+.cup-format-pill {
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--text-2);
+}
+
+.cup-season-select {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.cup-season-select select {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-1);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* ── My Status Card ── */
+.cup-my-status {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.cup-my-status h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-2);
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cup-status-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.cup-status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.cup-status-label {
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.cup-alive-tag {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cup-alive-tag.alive     { background: #22c55e22; color: #22c55e; }
+.cup-alive-tag.eliminated { background: #ef444422; color: #ef4444; }
+.cup-alive-tag.champion  { background: #f59e0b22; color: #f59e0b; }
+
+/* ── Meta row ── */
+.cup-meta {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.cup-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.cup-meta-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+
+.cup-meta-val {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+/* ── Tabs ── */
+.cup-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cup-tab {
+  padding: 0.5rem 1.1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-2);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.cup-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Round sections ── */
+.cup-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Round filter ── */
+.cup-round-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cup-round-filter label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.cup-round-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cup-round-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.cup-round-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cup-round-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.cup-round-section h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  margin: 0 0 0.75rem;
+}
+
+.cup-round-section.current-round h3 {
+  color: var(--accent);
+}
+
+.cup-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.cup-match-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.cup-match-card.scheduled { border-left: 3px solid #3b82f6; }
+.cup-match-card.live      { border-left: 3px solid #22c55e; animation: cup-pulse 1.5s ease-in-out infinite; }
+.cup-match-card.completed { border-left: 3px solid var(--border); }
+
+.cup-match-card:hover {
+  background: var(--hover-bg, var(--border));
+  border-color: var(--accent);
+  cursor: pointer;
+  transform: translateY(-1px);
+  transition: transform 0.1s, background 0.15s;
+}
+
+@keyframes cup-pulse {
+  0%, 100% { border-left-color: #22c55e; }
+  50%       { border-left-color: #86efac; }
+}
+
+.cup-match-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cup-team-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-1);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cup-team-name.winner {
+  color: #22c55e;
+}
+
+.cup-team-name.loser {
+  color: var(--text-3);
+  text-decoration: line-through;
+  font-weight: 400;
+}
+
+.cup-vs {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cup-match-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.cup-match-date {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cup-match-status-tag {
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cup-match-status-tag.SCHEDULED   { background: #3b82f622; color: #3b82f6; }
+.cup-match-status-tag.IN_PROGRESS { background: #22c55e22; color: #22c55e; }
+.cup-match-status-tag.COMPLETED   { background: var(--border); color: var(--text-3); }
+
+.cup-match-cta {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* ── Seeds table ── */
+.cup-seeds-table-wrap {
+  overflow-x: auto;
+}
+
+/* ── Stats tab ── */
+.cup-stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cup-stats-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cup-stats-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.cup-stats-tab:hover {
+  color: var(--text-1);
+  border-color: var(--accent);
+}
+.cup-stats-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.cup-stats-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.cup-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  min-width: 600px;
+}
+
+.cup-stats-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  z-index: 1;
+}
+
+.cup-stats-table th {
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.cup-stats-table th.cup-hi-col,
+.cup-stats-table td.cup-hi-col {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cup-stats-table td {
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  color: var(--text-1);
+}
+
+.cup-stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cup-stats-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.cup-stats-row:hover {
+  background: var(--surface-2);
+}
+
+.cup-stats-player-col {
+  min-width: 150px;
+}
+
+.cup-stats-player {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cup-stats-name {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.cup-stats-role {
+  font-size: 0.67rem;
+  background: var(--surface-2, #1e2433);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  color: var(--text-3);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.cup-stats-team {
+  color: var(--text-3);
+  font-size: 0.78rem;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.cup-seeds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cup-seeds-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.cup-seeds-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-1);
+}
+
+.cup-seeds-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cup-seeds-table tr.my-team td {
+  background: var(--accent-subtle, #3b82f611);
+}
+
+.cup-seeds-table td.seed-alive { color: #22c55e; font-weight: 600; }
+.cup-seeds-table td.seed-out   { color: var(--text-3); }
+
+.cup-prize-tag {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* ── No cup placeholder ── */
+.cup-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-3);
+}
+
+.cup-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.cup-empty h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-2);
+  margin: 0 0 0.5rem;
+}
+
+/* ── Loading / Error ── */
+.cup-loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-3);
+}

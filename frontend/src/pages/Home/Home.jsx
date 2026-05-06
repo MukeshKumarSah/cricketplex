@@ -34,6 +34,7 @@ import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
 import Membership from '../Membership/Membership';
 import SeasonCalendar from '../Calendar/Calendar';
+import Cup from '../Cup/Cup';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -197,6 +198,10 @@ export default function Home() {
             <Route
               path="calendar"
               element={<SeasonCalendar />}
+            />
+            <Route
+              path="cup"
+              element={<Cup />}
             />
             <Route
               path="team-list"

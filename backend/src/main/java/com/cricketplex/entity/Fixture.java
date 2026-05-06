@@ -25,6 +25,11 @@ public class Fixture {
     @JoinColumn(name = "league_id")
     private League league;
 
+    /** Non-null when this fixture belongs to a cup knockout round. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cup_id")
+    private Cup cup;
+
     @Column
     @Builder.Default
     private Integer round = 0;

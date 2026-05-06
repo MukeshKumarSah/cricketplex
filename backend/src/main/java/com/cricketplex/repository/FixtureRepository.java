@@ -71,4 +71,22 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
     @Modifying
     @Query("DELETE FROM Fixture f WHERE f.simSessionId = :simId")
     void deleteBySimSessionId(@Param("simId") UUID simId);
+
+    // ── Cup fixture queries ──────────────────────────────────────────────────
+
+    List<Fixture> findByCupIdOrderByRoundAscMatchNumberAsc(UUID cupId);
+
+    List<Fixture> findByCupIdAndRoundOrderByMatchNumberAsc(UUID cupId, Integer round);
+
+    boolean existsByCupId(UUID cupId);
+
+    long countByCupIdAndRoundAndStatus(UUID cupId, Integer round, String status);
+
+    long countByCupIdAndRound(UUID cupId, Integer round);
+
+    @Query("SELECT f FROM Fixture f WHERE f.matchType = :matchType AND f.status = :status AND f.matchDate <= :date")
+    List<Fixture> findByMatchTypeAndStatusAndMatchDateLessThanEqual(
+            @Param("matchType") String matchType,
+            @Param("status") String status,
+            @Param("date") java.time.LocalDate date);
 }

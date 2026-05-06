@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTeamStats } from '../../api/auth';
+import { getTeamStats, getCupCurrent } from '../../api/auth';
 import toast from 'react-hot-toast';
 import './Stats.css';
 
@@ -8,6 +8,7 @@ const FORMATS = ['T20', 'ODI', 'FC'];
 const MATCH_TYPES = [
   { value: 'LEAGUE', label: 'Official' },
   { value: 'FRIENDLY', label: 'Friendly' },
+  { value: 'CUP', label: 'Cup' },
 ];
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 'WK' };
 
@@ -15,19 +16,42 @@ export default function Stats() {
   const navigate = useNavigate();
   const [format, setFormat] = useState(() => sessionStorage.getItem('stats_format') || 'T20');
   const [matchType, setMatchType] = useState(() => sessionStorage.getItem('stats_matchType') || 'LEAGUE');
+  const [season, setSeason] = useState(null);
+  const [maxSeason, setMaxSeason] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(() => sessionStorage.getItem('stats_tab') || 'batting');
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
 
+  // Load current cup season for the season picker
+  useEffect(() => {
+    getCupCurrent()
+      .then(r => {
+        if (r.data?.season) {
+          setMaxSeason(r.data.season);
+          if (matchType === 'CUP' && season === null) setSeason(r.data.season);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When switching to CUP, default season to maxSeason
+  useEffect(() => {
+    if (matchType === 'CUP') {
+      setSeason(s => s ?? maxSeason);
+    } else {
+      setSeason(null);
+    }
+  }, [matchType, maxSeason]);
+
   useEffect(() => {
     setLoading(true);
-    getTeamStats(format, matchType)
+    getTeamStats(format, matchType, matchType === 'CUP' ? season : null)
       .then(res => setData(res.data))
       .catch(() => toast.error('Failed to load stats'))
       .finally(() => setLoading(false));
-  }, [format, matchType]);
+  }, [format, matchType, season]);
 
   useEffect(() => {
     sessionStorage.setItem('stats_format', format);
@@ -83,15 +107,17 @@ export default function Stats() {
       <div className="st-header">
         <h1 className="st-title">Team Stats</h1>
         <div className="st-controls">
-          <select
-            className="st-format-select"
-            value={format}
-            onChange={e => setFormat(e.target.value)}
-          >
-            {FORMATS.map(f => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
+          {matchType !== 'CUP' && (
+            <select
+              className="st-format-select"
+              value={format}
+              onChange={e => setFormat(e.target.value)}
+            >
+              {FORMATS.map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          )}
           <div className="st-type-toggle">
             {MATCH_TYPES.map(mt => (
               <button
@@ -101,6 +127,16 @@ export default function Stats() {
               >{mt.label}</button>
             ))}
           </div>
+          {matchType === 'CUP' && (
+            <div className="st-season-select">
+              <label>Season:</label>
+              <select value={season ?? maxSeason} onChange={e => setSeason(Number(e.target.value))}>
+                {Array.from({ length: maxSeason }, (_, i) => maxSeason - i).map(s => (
+                  <option key={s} value={s}>Season {s}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
