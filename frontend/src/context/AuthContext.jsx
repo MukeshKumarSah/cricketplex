@@ -7,6 +7,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshUser = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const res = await getMe();
+        setUser(res.data);
+        localStorage.setItem('user', JSON.stringify(res.data));
+      } catch (error) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+      }
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -40,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, saveAuth, updateUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, saveAuth, updateUser, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

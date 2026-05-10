@@ -60,6 +60,9 @@ public class User {
     @Builder.Default
     private Boolean teamSetupDone = false;
 
+    @Column(name = "active_team_id")
+    private UUID activeTeamId;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean emailVerified = false;

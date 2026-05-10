@@ -66,9 +66,13 @@ public class Team {
     @Builder.Default
     private Long funds = 50000L;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
     private User owner;
+
+    @Column(name = "team_order")
+    @Builder.Default
+    private Integer teamOrder = 1; // 1 = primary team, 2 = secondary team
 
     @CreationTimestamp
     private LocalDateTime createdAt;

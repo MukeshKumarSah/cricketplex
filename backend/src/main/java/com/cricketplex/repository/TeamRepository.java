@@ -12,7 +12,11 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
 
     Optional<Team> findByOwner(User owner);
 
+    List<Team> findByOwnerOrderByTeamOrderAsc(User owner);
+
     Boolean existsByOwner(User owner);
+
+    long countByOwner(User owner);
 
     Boolean existsByTeamName(String teamName);
 

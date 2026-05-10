@@ -46,6 +46,13 @@
   white-space: nowrap;
 }
 
+/* ── Team Switcher in Sidebar ── */
+.sidebar-team-switcher {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 /* ── Nav ── */
 .sidebar-nav {
   display: flex;

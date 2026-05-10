@@ -190,6 +190,11 @@ export const getWeatherForecast = () => API.get('/weather/forecast');
 // Activity Feed
 export const getRecentActivities = () => API.get('/activity');
 
+// Multi-Team Management
+export const getMyTeams = () => API.get('/multi-team/my-teams');
+export const switchTeam = (teamId) => API.post(`/multi-team/switch/${teamId}`);
+export const createSecondaryTeam = (data) => API.post('/multi-team/create-secondary', data);
+
 // Admin - Simulation Lab
 export const createSimSession = (data) => API.post('/admin/sim/sessions', data);
 export const listSimSessions = () => API.get('/admin/sim/sessions');

@@ -26,7 +26,9 @@ public class AuthResponse {
         private Boolean teamSetupDone;
         private Boolean emailVerified;
         private String profilePicUrl;
-        private String teamId;
+        private String teamId; // Primary/first team ID for backwards compatibility
+        private String activeTeamId; // Currently active team ID
+        private Boolean hasMultipleTeams;
         private String theme;
     }
 }

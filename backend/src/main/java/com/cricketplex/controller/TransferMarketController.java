@@ -212,6 +212,12 @@ public class TransferMarketController {
             return ResponseEntity.badRequest().body(Map.of("error", "You cannot bid on your own listing"));
         }
 
+        // Check if bidding team and selling team have the same owner (multi-team restriction)
+        if (listing.getSellerTeam().getOwner() != null && team.getOwner() != null 
+                && listing.getSellerTeam().getOwner().getId().equals(team.getOwner().getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "You cannot bid on players from your other team"));
+        }
+
         // Check auction hasn't expired
         if (listing.getAuctionEndsAt() != null && LocalDateTime.now(ZoneOffset.UTC).isAfter(listing.getAuctionEndsAt())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Auction has ended"));
@@ -454,6 +460,13 @@ public class TransferMarketController {
     private Team getTeam(UserPrincipal principal) {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        // Use active team if set, otherwise fall back to finding first team
+        if (user.getActiveTeamId() != null) {
+            return teamRepository.findById(user.getActiveTeamId())
+                    .orElseThrow(() -> new IllegalArgumentException("Active team not found"));
+        }
+        
         return teamRepository.findByOwner(user)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
     }

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -164,6 +165,8 @@ public class AuthService {
 
     public AuthResponse.UserInfo getCurrentUser(User user) {
         Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        List<Team> allTeams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
+        
         return AuthResponse.UserInfo.builder()
                 .id(user.getId().toString())
                 .name(user.getName())
@@ -176,12 +179,16 @@ public class AuthService {
                 .emailVerified(user.getEmailVerified())
                 .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
                 .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
+                .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : teamOpt.map(t -> t.getId().toString()).orElse(null))
+                .hasMultipleTeams(allTeams.size() > 1)
                 .theme(user.getTheme())
                 .build();
     }
 
     private AuthResponse buildAuthResponse(String token, User user) {
         Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        List<Team> allTeams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
+        
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
@@ -197,6 +204,8 @@ public class AuthService {
                         .emailVerified(user.getEmailVerified())
                         .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
                         .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
+                        .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : teamOpt.map(t -> t.getId().toString()).orElse(null))
+                        .hasMultipleTeams(allTeams.size() > 1)
                         .theme(user.getTheme())
                         .build())
                 .build();

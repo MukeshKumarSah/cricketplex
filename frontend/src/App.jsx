@@ -10,6 +10,7 @@ import VerifyEmail from './pages/Auth/VerifyEmail';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
 import TeamSetup from './pages/TeamSetup/TeamSetup';
+import TeamSetupSecondary from './pages/TeamSetupSecondary/TeamSetupSecondary';
 import Home from './pages/Home/Home';
 import './App.css';
 
@@ -54,6 +55,14 @@ function App() {
               element={
                 <TeamSetupGuard>
                   <TeamSetup />
+                </TeamSetupGuard>
+              }
+            />
+            <Route
+              path="/team-setup-secondary"
+              element={
+                <TeamSetupGuard>
+                  <TeamSetupSecondary />
                 </TeamSetupGuard>
               }
             />

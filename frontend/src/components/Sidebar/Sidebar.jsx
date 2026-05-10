@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { getPendingChallengeCount } from '../../api/auth';
+import TeamSwitcher from '../TeamSwitcher/TeamSwitcher';
 import {
   HiOutlineHome,
   HiOutlineUserGroup,
@@ -82,6 +83,13 @@ export default function Sidebar({ isOpen, toggle }) {
         <span className="sidebar-logo">🏏</span>
         {isOpen && <span className="sidebar-title">CricketPlex</span>}
       </div>
+
+      {/* Team Switcher - only show when sidebar is open */}
+      {isOpen && (
+        <div className="sidebar-team-switcher">
+          <TeamSwitcher />
+        </div>
+      )}
 
       <nav className="sidebar-nav">
         {menuItems.map((item) => (
