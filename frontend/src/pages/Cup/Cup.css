@@ -229,9 +229,9 @@
   color: var(--accent);
 }
 
-.cup-matches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+.cup-matches-list {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
@@ -242,9 +242,18 @@
   padding: 0.85rem 1rem;
 }
 
+.cup-match-card.my-match {
+  background: linear-gradient(to right, rgba(34, 211, 238, 0.08), var(--card-bg));
+  border-left: 3px solid var(--accent);
+}
+
 .cup-match-card.scheduled { border-left: 3px solid #3b82f6; }
 .cup-match-card.live      { border-left: 3px solid #22c55e; animation: cup-pulse 1.5s ease-in-out infinite; }
 .cup-match-card.completed { border-left: 3px solid var(--border); }
+
+.cup-match-card.my-match.scheduled { border-left: 3px solid var(--accent); }
+.cup-match-card.my-match.live      { border-left: 3px solid #22c55e; }
+.cup-match-card.my-match.completed { border-left: 3px solid var(--accent); }
 
 .cup-match-card:hover {
   background: var(--hover-bg, var(--border));
@@ -292,6 +301,20 @@
   color: var(--text-3);
   font-weight: 600;
   flex-shrink: 0;
+}
+
+.cup-match-result {
+  margin: 0.5rem 0;
+  padding: 0.4rem 0.6rem;
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 2px solid #22c55e;
+  border-radius: 4px;
+}
+
+.cup-result-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #22c55e;
 }
 
 .cup-match-meta {

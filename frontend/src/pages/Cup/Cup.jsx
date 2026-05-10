@@ -249,7 +249,7 @@ export default function Cup() {
                   Round {r} — {getRoundName(r, totalRounds)}
                   {isCurrent && ' (Live)'}
                 </h3>
-                <div className="cup-matches-grid">
+                <div className="cup-matches-list">
                   {matches.map(m => {
                     const homeId  = m.homeTeam?.id;
                     const awayId  = m.awayTeam?.id;
@@ -259,6 +259,9 @@ export default function Cup() {
                     const cardClass = st === 'IN_PROGRESS' ? 'live'
                                     : st === 'COMPLETED'   ? 'completed'
                                     : 'scheduled';
+                    
+                    // Check if this is user's team match
+                    const isMyMatch = myTeamId && (homeId === myTeamId || awayId === myTeamId);
 
                     // Destination URL depends on match state
                     const matchLink = st === 'COMPLETED'   ? `/match/${m.fixtureId}/scorecard`
@@ -269,7 +272,7 @@ export default function Cup() {
                       <Link
                         key={m.fixtureId}
                         to={matchLink}
-                        className={`cup-match-card ${cardClass}`}
+                        className={`cup-match-card ${cardClass} ${isMyMatch ? 'my-match' : ''}`}
                         style={{ textDecoration: 'none', display: 'block' }}
                       >
                         <div className="cup-match-teams">
@@ -281,6 +284,16 @@ export default function Cup() {
                             {m.awayTeam?.name}
                           </span>
                         </div>
+                        
+                        {/* Result row for completed matches */}
+                        {st === 'COMPLETED' && winnerId && m.margin && (
+                          <div className="cup-match-result">
+                            <span className="cup-result-text">
+                              {m.winner?.name} won by {m.margin}
+                            </span>
+                          </div>
+                        )}
+                        
                         <div className="cup-match-meta">
                           <span className="cup-match-date">
                             <HiOutlineCalendarDays /> {fmtDate(m.matchDate)}
