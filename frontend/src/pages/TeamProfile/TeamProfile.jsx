@@ -7,7 +7,9 @@ import {
   getTeamLeagues,
   getTeamGround,
   getCurrentSeason,
+  sendChallenge,
 } from '../../api/auth';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import {
   HiOutlineTrophy,
@@ -16,6 +18,7 @@ import {
   HiOutlineGlobeAlt,
   HiOutlineBuildingOffice2,
   HiOutlineFunnel,
+  HiOutlineBolt,
 } from 'react-icons/hi2';
 import './TeamProfile.css';
 
@@ -29,6 +32,7 @@ const TABS = [
 const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
 const ROLE_ORDER = { BATSMAN: 0, KEEPER: 1, ALL_ROUNDER: 2, BOWLER: 3 };
 const ROLE_LABEL = { BATSMAN: 'Batsman', KEEPER: 'Keeper', ALL_ROUNDER: 'All-Rounder', BOWLER: 'Bowler' };
+const TIME_SLOTS = ['02:00', '07:00', '12:00', '17:00', '21:00'];
 
 const ratingColor = (r) => {
   if (r >= 1400) return '#22d3ee';
@@ -41,6 +45,7 @@ const ratingColor = (r) => {
 export default function TeamProfile() {
   const { teamId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('matches');
@@ -57,6 +62,15 @@ export default function TeamProfile() {
   const [leaguesLoading, setLeaguesLoading] = useState(false);
   const [ground, setGround] = useState(null);
   const [groundLoading, setGroundLoading] = useState(false);
+
+  // Challenge modal state
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [format, setFormat] = useState('T20');
+  const [pitchType, setPitchType] = useState('STANDARD');
+  const [matchDate, setMatchDate] = useState('');
+  const [matchTime, setMatchTime] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -109,6 +123,46 @@ export default function TeamProfile() {
   }, [activeTab, teamId, matchSeason]); // Only re-fetch matches when season changes, not when toggling between matches/squad/leagues/ground. Squad/Leagues/Ground data is cached after first load.
   // }, [activeTab, teamId, matches, squad, leagues, ground]);
 
+  const handleSendChallenge = async () => {
+    if (!matchDate) return toast.error('Select a match date');
+    if (!matchTime) return toast.error('Select a match time');
+    setSending(true);
+    try {
+      await sendChallenge({
+        opponentTeamId: teamId,
+        format,
+        pitchType,
+        matchDate,
+        matchTime,
+        message: message || null,
+      });
+      toast.success('Challenge sent!');
+      setShowChallengeModal(false);
+      // Reset form
+      setFormat('T20');
+      setPitchType('STANDARD');
+      setMatchDate('');
+      setMatchTime('');
+      setMessage('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send challenge');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const openChallengeModal = () => {
+    setFormat('T20');
+    setPitchType('STANDARD');
+    setMatchDate('');
+    setMatchTime('');
+    setMessage('');
+    setShowChallengeModal(true);
+  };
+
+  // Check if this is the user's own team
+  const isOwnTeam = user?.teamId === teamId;
+
   if (loading) {
     return (
       <div className="tp-page">
@@ -150,19 +204,26 @@ export default function TeamProfile() {
             </p>
           </div>
         </div>
-        <div className="tp-header-ratings">
-          <div className="tp-rating-item">
-            <span className="tp-rating-label">ODI</span>
-            <span className="tp-rating-value" style={{ color: ratingColor(team.odiRating) }}>{team.odiRating}</span>
+        <div className="tp-header-right">
+          <div className="tp-header-ratings">
+            <div className="tp-rating-item">
+              <span className="tp-rating-label">ODI</span>
+              <span className="tp-rating-value" style={{ color: ratingColor(team.odiRating) }}>{team.odiRating}</span>
+            </div>
+            <div className="tp-rating-item">
+              <span className="tp-rating-label">T20</span>
+              <span className="tp-rating-value" style={{ color: ratingColor(team.t20Rating) }}>{team.t20Rating}</span>
+            </div>
+            <div className="tp-rating-item">
+              <span className="tp-rating-label">FC</span>
+              <span className="tp-rating-value" style={{ color: ratingColor(team.fcRating) }}>{team.fcRating}</span>
+            </div>
           </div>
-          <div className="tp-rating-item">
-            <span className="tp-rating-label">T20</span>
-            <span className="tp-rating-value" style={{ color: ratingColor(team.t20Rating) }}>{team.t20Rating}</span>
-          </div>
-          <div className="tp-rating-item">
-            <span className="tp-rating-label">FC</span>
-            <span className="tp-rating-value" style={{ color: ratingColor(team.fcRating) }}>{team.fcRating}</span>
-          </div>
+          {!isOwnTeam && (
+            <button className="tp-challenge-btn" onClick={openChallengeModal}>
+              <HiOutlineBolt /> Challenge
+            </button>
+          )}
         </div>
       </div>
 
@@ -492,6 +553,76 @@ export default function TeamProfile() {
           </div>
         )}
       </div>
+
+      {/* Challenge Modal */}
+      {showChallengeModal && (
+        <div className="tp-modal-overlay" onClick={() => setShowChallengeModal(false)}>
+          <div className="tp-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="tp-modal-header">
+              <h2>Challenge {team.teamName}</h2>
+              <button className="tp-modal-close" onClick={() => setShowChallengeModal(false)}>×</button>
+            </div>
+            <div className="tp-modal-body">
+              <div className="tp-form-row">
+                <label>Format</label>
+                <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                  <option value="T20">T20</option>
+                  <option value="ODI">ODI</option>
+                  <option value="FC">First Class</option>
+                </select>
+              </div>
+              <div className="tp-form-row">
+                <label>Pitch Type</label>
+                <select value={pitchType} onChange={(e) => setPitchType(e.target.value)}>
+                  <option value="STANDARD">Standard</option>
+                  <option value="BATTING">Batting Friendly</option>
+                  <option value="BOWLING">Bowling Friendly</option>
+                  <option value="SPIN">Spin Friendly</option>
+                  <option value="PACE">Pace Friendly</option>
+                </select>
+              </div>
+              <div className="tp-form-row">
+                <label>Match Date</label>
+                <input
+                  type="date"
+                  value={matchDate}
+                  onChange={(e) => setMatchDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="tp-form-row">
+                <label>Match Time (UTC)</label>
+                <select value={matchTime} onChange={(e) => setMatchTime(e.target.value)}>
+                  <option value="">Select time...</option>
+                  {TIME_SLOTS.map((t) => (
+                    <option key={t} value={t}>
+                      {t} UTC
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="tp-form-row">
+                <label>Message (Optional)</label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Add a message to your challenge..."
+                  rows={3}
+                  maxLength={200}
+                />
+              </div>
+            </div>
+            <div className="tp-modal-footer">
+              <button className="tp-btn-cancel" onClick={() => setShowChallengeModal(false)}>
+                Cancel
+              </button>
+              <button className="tp-btn-send" onClick={handleSendChallenge} disabled={sending}>
+                {sending ? 'Sending...' : 'Send Challenge'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
