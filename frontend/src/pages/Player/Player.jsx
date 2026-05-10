@@ -197,6 +197,12 @@ export default function Player() {
   const sk = data.skills || {};
   const stats = data.stats || {};
 
+  // Determine if all skills should be visible
+  const isFreeAgent = !data.teamId; // Retired/Released players have no team
+  const isOnTM = tmStatus?.isListed; // Player is on Transfer Market
+  const isOwnPlayer = tmStatus?.isOwnPlayer; // Player belongs to user's team
+  const showAllSkills = isOwnPlayer || isFreeAgent || isOnTM;
+
   // Available format-type combos
   const availableKeys = Object.keys(stats);
   const availableFormats = [...new Set(availableKeys.map(k => k.split('_')[0]))];
@@ -364,14 +370,15 @@ export default function Player() {
         <h2 className="pp-section-title">Skills & Attributes</h2>
         <div className="pp-skills-grid">
           <div className="pp-skills-col">
-            <RatingBar label="BAT" value={sk.batRating} color="#22c55e" />
-            <RatingBar label="BOWL" value={sk.bowlRating} color="#3b82f6" />
-            <RatingBar label="WK" value={sk.keeperRating} color="#f59e0b" />
-            <RatingBar label="FLD" value={sk.fldRating} color="#8b5cf6" />
+            {showAllSkills && <RatingBar label="BAT" value={sk.batRating} color="#22c55e" />}
+            {showAllSkills && <RatingBar label="BOWL" value={sk.bowlRating} color="#3b82f6" />}
+            {showAllSkills && <RatingBar label="WK" value={sk.keeperRating} color="#f59e0b" />}
+            {showAllSkills && <RatingBar label="FLD" value={sk.fldRating} color="#8b5cf6" />}
+            {!showAllSkills && <div className="pp-skills-hidden">Primary skills hidden for players not in your team</div>}
           </div>
           <div className="pp-skills-divider" />
           <div className="pp-skills-col">
-            <RatingBar label="STA" value={sk.stamina} color="#fb923c" />
+            {showAllSkills && <RatingBar label="STA" value={sk.stamina} color="#fb923c" />}
             <RatingBar label="EXP" value={sk.experience} color="#22d3ee" />
             <RatingBar label="CONF" value={sk.confidence} color="#f472b6" />
             <RatingBar label="FIT" value={sk.fitness} color="#a3e635" />

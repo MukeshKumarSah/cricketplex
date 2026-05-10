@@ -328,6 +328,19 @@
   text-align: right;
   flex-shrink: 0;
 }
+.pp-skills-hidden {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--text-3);
+  text-align: center;
+  font-style: italic;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
 
 /* -- Format Tabs -- */
 .pp-format-tabs {
