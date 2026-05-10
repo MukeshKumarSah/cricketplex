@@ -178,6 +178,12 @@ export const getRecentSales = () => API.get('/transfer/recent-sales');
 // Finances
 export const getFinances = (type) => API.get('/finances', { params: type ? { type } : {} });
 
+// Notifications
+export const getNotifications = () => API.get('/notifications');
+export const getNotificationUnreadCount = () => API.get('/notifications/unread-count');
+export const markNotificationRead = (id) => API.post(`/notifications/${id}/read`);
+export const markAllNotificationsRead = () => API.post('/notifications/read-all');
+
 // Weather
 export const getWeatherForecast = () => API.get('/weather/forecast');
 

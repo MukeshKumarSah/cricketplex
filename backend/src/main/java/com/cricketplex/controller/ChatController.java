@@ -8,6 +8,7 @@ import com.cricketplex.repository.ChatMemberRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ChatService;
 import com.cricketplex.service.FileStorageService;
+import com.cricketplex.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,6 +28,7 @@ public class ChatController {
     private final ChatConversationRepository conversationRepo;
     private final SimpMessagingTemplate messagingTemplate;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     /** Get all conversations for the current user */
     @GetMapping("/conversations")
@@ -63,6 +65,19 @@ public class ChatController {
         List<UUID> memberIds = memberIdStrs.stream().map(UUID::fromString).toList();
 
         ChatConversation conv = chatService.createGroup(user.getId(), name, memberIds);
+
+        // Notify each non-creator member that they were added to the group
+        for (UUID memberId : memberIds) {
+            if (memberId.equals(user.getId())) continue;
+            notificationService.create(
+                    memberId,
+                    "ADDED_TO_GROUP",
+                    "Added to Group Chat",
+                    "You've been added to the group \"" + name + "\"",
+                    null
+            );
+        }
+
         return ResponseEntity.ok(Map.of("conversationId", conv.getId(), "name", name));
     }
 
@@ -73,6 +88,18 @@ public class ChatController {
             @PathVariable UUID conversationId,
             @PathVariable UUID userId) {
         chatService.addMember(conversationId, user.getId(), userId);
+
+        // Notify the newly added user
+        ChatConversation conv = conversationRepo.findById(conversationId).orElse(null);
+        String groupName = (conv != null && conv.getGroupName() != null) ? conv.getGroupName() : "a group";
+        notificationService.create(
+                userId,
+                "ADDED_TO_GROUP",
+                "Added to Group Chat",
+                "You've been added to the group \"" + groupName + "\"",
+                null
+        );
+
         return ResponseEntity.ok(Map.of("status", "added"));
     }
 

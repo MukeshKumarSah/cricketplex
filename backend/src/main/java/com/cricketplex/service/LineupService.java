@@ -99,7 +99,8 @@ public class LineupService {
 
         League league = fixture.getLeague();
         boolean isFriendly = "FRIENDLY".equals(fixture.getMatchType());
-        String format = isFriendly ? fixture.getFormat() : league.getFormat();
+        boolean isCup = "CUP".equals(fixture.getMatchType());
+        String format = (isFriendly || isCup) ? fixture.getFormat() : league.getFormat();
         boolean isHome = fixture.getHomeTeam().getId().equals(myTeam.getId());
         boolean isAway = fixture.getAwayTeam().getId().equals(myTeam.getId());
         if (!isHome && !isAway) {
@@ -114,7 +115,11 @@ public class LineupService {
         matchInfo.put("awayTeamName", fixture.getAwayTeam().getTeamName());
         matchInfo.put("awayTeamPicUrl", fixture.getAwayTeam().getTeamProfilePicUrl());
         matchInfo.put("format", format);
-        if (isFriendly) {
+        if (isCup) {
+            matchInfo.put("leagueId", null);
+            matchInfo.put("leagueLabel", "Cup – Round " + fixture.getRound());
+            matchInfo.put("matchType", "CUP");
+        } else if (isFriendly) {
             matchInfo.put("leagueId", null);
             matchInfo.put("leagueLabel", "Friendly");
             matchInfo.put("matchType", "FRIENDLY");

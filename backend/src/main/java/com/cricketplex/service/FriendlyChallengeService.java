@@ -23,6 +23,7 @@ public class FriendlyChallengeService {
     private final MatchResultRepository matchResultRepository;
     private final UserRepository userRepository;
     private final MatchEngine matchEngine;
+    private final NotificationService notificationService;
 
     private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "07:30", "12:00", "17:00", "21:00");
 
@@ -83,7 +84,20 @@ public class FriendlyChallengeService {
                 .status("PENDING")
                 .build();
 
-        return challengeRepository.save(challenge);
+        challenge = challengeRepository.save(challenge);
+
+        // Notify the challenged team's owner
+        if (opponentTeam.getOwner() != null) {
+            notificationService.create(
+                    opponentTeam.getOwner().getId(),
+                    "CHALLENGE_RECEIVED",
+                    "Friendly Challenge Received",
+                    myTeam.getTeamName() + " has challenged you to a " + format.toUpperCase() + " friendly!",
+                    "/challenges"
+            );
+        }
+
+        return challenge;
     }
 
     // ─── Accept a challenge ──────────────────────────────────────
@@ -128,7 +142,21 @@ public class FriendlyChallengeService {
 
         challenge.setFixture(fixture);
         challenge.setStatus("ACCEPTED");
-        return challengeRepository.save(challenge);
+        challenge = challengeRepository.save(challenge);
+
+        // Notify the challenger (sender) that their challenge was accepted
+        Team challengerTeam = challenge.getChallengerTeam();
+        if (challengerTeam.getOwner() != null) {
+            notificationService.create(
+                    challengerTeam.getOwner().getId(),
+                    "CHALLENGE_ACCEPTED",
+                    "Challenge Accepted!",
+                    myTeam.getTeamName() + " accepted your " + challenge.getFormat() + " challenge. Set your lineup!",
+                    "/match/" + fixture.getId() + "/lineup"
+            );
+        }
+
+        return challenge;
     }
 
     // ─── Decline a challenge ─────────────────────────────────────
@@ -149,7 +177,21 @@ public class FriendlyChallengeService {
         }
 
         challenge.setStatus("DECLINED");
-        return challengeRepository.save(challenge);
+        challenge = challengeRepository.save(challenge);
+
+        // Notify the challenger (sender) that their challenge was declined
+        Team challengerTeam = challenge.getChallengerTeam();
+        if (challengerTeam.getOwner() != null) {
+            notificationService.create(
+                    challengerTeam.getOwner().getId(),
+                    "CHALLENGE_DECLINED",
+                    "Challenge Declined",
+                    myTeam.getTeamName() + " declined your " + challenge.getFormat() + " challenge.",
+                    "/challenges"
+            );
+        }
+
+        return challenge;
     }
 
     // ─── Cancel a challenge (by sender) ──────────────────────────

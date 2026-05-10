@@ -32,6 +32,7 @@ import AdminSims from '../Admin/AdminSims';
 import ComingSoon from '../ComingSoon/ComingSoon';
 import ChatWidget from '../../components/ChatWidget/ChatWidget';
 import TutorialTour from '../../components/TutorialTour/TutorialTour';
+import NotificationBell from '../../components/NotificationBell/NotificationBell';
 import Membership from '../Membership/Membership';
 import SeasonCalendar from '../Calendar/Calendar';
 import Cup from '../Cup/Cup';
@@ -123,6 +124,7 @@ export default function Home() {
           </div>
 
           <div className="top-bar-right">
+            <NotificationBell />
             <div className="profile-wrapper">
               <button
                 className="profile-btn"

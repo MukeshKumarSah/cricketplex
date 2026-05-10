@@ -758,10 +758,13 @@ public class MatchSimController {
         resp.put("round", f.getRound());
         resp.put("matchNumber", f.getMatchNumber());
 
-        boolean isFriendly = f.getLeague() == null;
-        resp.put("matchType", isFriendly ? "FRIENDLY" : "LEAGUE");
-        resp.put("format", isFriendly ? f.getFormat() : f.getLeague().getFormat());
-        if (!isFriendly) {
+        boolean isCup = "CUP".equals(f.getMatchType());
+        boolean isFriendly = !isCup && f.getLeague() == null;
+        resp.put("matchType", isCup ? "CUP" : isFriendly ? "FRIENDLY" : "LEAGUE");
+        resp.put("format", (isFriendly || isCup) ? f.getFormat() : f.getLeague().getFormat());
+        if (isCup) {
+            resp.put("leagueLabel", "Cup – Round " + f.getRound());
+        } else if (!isFriendly) {
             resp.put("leagueLabel", f.getLeague().getDivision() + "." + f.getLeague().getLeagueNumber());
             resp.put("leagueId", f.getLeague().getId());
             resp.put("matchStartTimeUtc", f.getLeague().getMatchStartTime());

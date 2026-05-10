@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { PublicRoute, TeamSetupGuard, HomeGuard } from './components/RouteGuards';
 import Signup from './pages/Auth/Signup';
 import Login from './pages/Auth/Login';
@@ -16,7 +17,8 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <BrowserRouter>
+        <NotificationProvider>
+          <BrowserRouter>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -65,6 +67,7 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
+        </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
   );

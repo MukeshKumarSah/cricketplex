@@ -433,10 +433,11 @@ public class TeamController {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Fixture f : all) {
             League league = f.getLeague();
-            boolean isFriendly = league == null;
-            String fFormat = isFriendly ? f.getFormat() : league.getFormat();
+            boolean isCup = "CUP".equals(f.getMatchType());
+            boolean isFriendly = !isCup && league == null;
+            String fFormat = (isFriendly || isCup) ? f.getFormat() : league.getFormat();
 
-            if (season != null && !isFriendly && !includeLeagueFixtureForSeason(f, league, season, currentSeason)) continue;
+            if (season != null && !isFriendly && !isCup && !includeLeagueFixtureForSeason(f, league, season, currentSeason)) continue;
             if (format != null && (fFormat == null || !fFormat.equalsIgnoreCase(format))) continue;
 
             boolean isHome = f.getHomeTeam().getId().equals(myTeam.getId());
@@ -445,11 +446,11 @@ public class TeamController {
             Map<String, Object> match = new LinkedHashMap<>();
             match.put("id", f.getId());
             match.put("matchDate", f.getMatchDate().toString());
-            match.put("matchStartTimeUtc", isFriendly ? f.getMatchTime() : league.getMatchStartTime());
+            match.put("matchStartTimeUtc", (isFriendly || isCup) ? f.getMatchTime() : league.getMatchStartTime());
             match.put("format", fFormat);
             match.put("round", f.getRound());
-            match.put("leagueLabel", isFriendly ? "Friendly" : league.getDivision() + "." + league.getLeagueNumber());
-            match.put("matchType", isFriendly ? "FRIENDLY" : "LEAGUE");
+            match.put("leagueLabel", isCup ? "Cup – R" + f.getRound() : isFriendly ? "Friendly" : league.getDivision() + "." + league.getLeagueNumber());
+            match.put("matchType", isCup ? "CUP" : isFriendly ? "FRIENDLY" : "LEAGUE");
             match.put("homeTeamName", f.getHomeTeam().getTeamName());
             match.put("homeTeamPicUrl", f.getHomeTeam().getTeamProfilePicUrl());
             match.put("homeIsBot", f.getHomeTeam().getIsBot());
@@ -462,7 +463,7 @@ public class TeamController {
             match.put("opponentIsBot", opponent.getIsBot());
             match.put("status", f.getStatus());
             match.put("pitchType", f.getPitchType());
-            match.put("season", isFriendly ? null : fixtureSeason(f, league));
+            match.put("season", (isFriendly || isCup) ? f.getSeason() : fixtureSeason(f, league));
             match.put("lineupSet", linedUpFixtures.contains(f.getId()));
             match.put("weather", weatherService.getMatchWeather(
                     f.getHomeTeam().getCountry(), f.getMatchDate(), today));

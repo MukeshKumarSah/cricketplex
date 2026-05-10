@@ -130,13 +130,6 @@ public class MatchEngine {
         int temperature   = (int)    weather.get("temperature");
 
         String pitchType = fixture.getPitchType();
-        if ("STANDARD".equals(pitchType)) {
-            stadiumSeatsRepository.findByTeam(homeTeam).ifPresent(seats -> {
-                if (seats.getDefaultPitch() != null && !seats.getDefaultPitch().isBlank())
-                    fixture.setPitchType(seats.getDefaultPitch());
-            });
-            pitchType = fixture.getPitchType();
-        }
 
         // FIX: seed blends fixture ID + date + nano-time for simulation sessions
         // to prevent prediction attacks while keeping per-fixture determinism for replays.
@@ -185,7 +178,7 @@ public class MatchEngine {
                 .battingTeam(battingSecond).bowlingTeam(battingFirst).build();
         SimContext ctx2 = new SimContext(rng, pitchType, condition, temperature,
                 maxOvers, maxPerBowler, format, true, target,
-                battingSecondLineup, battingFirstLineup);
+                battingSecondLineup, battingFirstLineup, firstInnings.getTotalRuns());
         simulateInnings(secondInnings, ctx2);
         result.getInningsList().add(secondInnings);
 
@@ -760,11 +753,11 @@ public class MatchEngine {
         double pDot, p1, p2, p3, p4, p6, pWicket;
 
         if ("T20".equalsIgnoreCase(ctx.format)) {
-            pDot    = 0.29;
-            p1      = 0.30;
+            pDot    = 0.30;
+            p1      = 0.27;   // was 0.30 — fewer singles, more intent
             p2      = 0.09;
             p3      = 0.015;
-            p4      = 0.115;
+            p4      = 0.120;  // was 0.115
             p6      = 0.055;
             pWicket = 0.050;
         } else if ("FC".equalsIgnoreCase(ctx.format)) {
@@ -776,13 +769,13 @@ public class MatchEngine {
             p6      = 0.005;
             pWicket = 0.023;
         } else { // ODI
-            pDot    = 0.48;
-            p1      = 0.31;
+            pDot    = 0.50;   // was 0.48 — more dots means pitch-reading matters
+            p1      = 0.27;   // was 0.31 — KEY FIX: fewer singles, more decisive play
             p2      = 0.08;
             p3      = 0.015;
-            p4      = 0.075;
-            p6      = 0.020;
-            pWicket = 0.030;
+            p4      = 0.085;  // was 0.075 — more boundaries to compensate
+            p6      = 0.022;  // was 0.020
+            pWicket = 0.028;  // was 0.030 — slightly lower base wicket rate
         }
 
         // FIX: skill_diff uses sqrt-damped scale to prevent extreme probability distortion
@@ -827,12 +820,15 @@ public class MatchEngine {
             p6      += 0.006 * setBatsmanFactor * setSkillMod;
             pWicket -= 0.010 * setBatsmanFactor;
         } else {
+            // New batter — harder to score, slightly more vulnerable
+            // FIXED: reduced settling pWicket from 0.025 to 0.012 to prevent
+            // triple-compounding with chase pressure + wicket cluster in innings 2
             double settling = Math.abs(setBatsmanFactor);
-            pDot    += 0.08  * settling;
+            pDot    += 0.06  * settling;
             p1      -= 0.01  * settling;
-            p4      -= 0.035 * settling;
-            p6      -= 0.025 * settling;
-            pWicket += 0.025 * settling;
+            p4      -= 0.030 * settling;
+            p6      -= 0.020 * settling;
+            pWicket += 0.012 * settling;   // was 0.025
         }
 
         // ── Bowling aggression ──
@@ -854,54 +850,67 @@ public class MatchEngine {
         String playerAggr = batter.lineupPlayer.getBatAggression();
         if (playerAggr == null) playerAggr = "N";
 
-        // 1. Wicket-cluster pressure
+        // 1. Wicket-cluster pressure — FIXED: thresholds raised, pWicket reduced
+        // and cluster now REDUCES in chasing innings to prevent triple-compounding
         {
             double completedOvers   = Math.max(1.0, legalBallsBowled / 6.0);
             double wktsPerOver      = totalWickets / completedOvers;
-            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.60
-                    : "FC".equalsIgnoreCase(ctx.format) ? 0.35 : 0.45;
+            // RAISED thresholds — was 0.60/0.35/0.45, too trigger-happy
+            double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.75
+                    : "FC".equalsIgnoreCase(ctx.format) ? 0.45 : 0.60;
             double collapseFactor   = 0;
             if (wktsPerOver > collapseThreshold)
-                collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.7);
-            if (totalWickets >= 8)      collapseFactor = Math.max(collapseFactor, 0.60);
-            else if (totalWickets >= 6) collapseFactor = Math.max(collapseFactor, 0.30);
-            else if (totalWickets >= 4) collapseFactor = Math.max(collapseFactor, 0.10);
+                collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.9);
+            // RAISED floor thresholds — was 8/6/4, now 9/7/5
+            if (totalWickets >= 9)      collapseFactor = Math.max(collapseFactor, 0.60);
+            else if (totalWickets >= 7) collapseFactor = Math.max(collapseFactor, 0.25);
+            else if (totalWickets >= 5) collapseFactor = Math.max(collapseFactor, 0.08);
             double resistFactor     = "A".equals(playerAggr) ? 0.7 : ("D".equals(playerAggr) ? 1.2 : 1.0);
             double adjustedCollapse = collapseFactor * resistFactor;
-            pDot    += 0.060 * adjustedCollapse;
-            p1      += 0.030 * adjustedCollapse;
-            p4      -= 0.040 * adjustedCollapse;
-            p6      -= 0.030 * adjustedCollapse;
-            pWicket += 0.010 * adjustedCollapse;
+            // In chasing innings, halve the collapse wicket penalty — teams fight back
+            if (ctx.isChasing) adjustedCollapse *= 0.5;
+            pDot    += 0.050 * adjustedCollapse;  // was 0.060
+            p1      += 0.020 * adjustedCollapse;  // was 0.030
+            p4      -= 0.030 * adjustedCollapse;  // was 0.040
+            p6      -= 0.020 * adjustedCollapse;  // was 0.030
+            pWicket += 0.006 * adjustedCollapse;  // was 0.010 — significantly reduced
         }
 
-        // 2. Chase pressure
+        // 2. Chase pressure — FIXED: boundary compensation raised, pWicket reduced
+        // so teams accelerate scoring rather than just losing wickets faster.
         if (ctx.isChasing) {
             int runsNeeded     = ctx.target - totalRuns;
             int totalBalls     = ctx.maxOvers * 6;
             int ballsRemaining = Math.max(1, totalBalls - legalBallsBowled);
             double requiredRate = (runsNeeded * 6.0) / ballsRemaining;
-            double parRate      = getPitchAwareParRate(ctx.format, ctx.pitchType);
+            // Use actual first innings RPO as par — avoids false pressure spikes
+            // when batting first scored a high-but-achievable total
+            double pitchParRate = getPitchAwareParRate(ctx.format, ctx.pitchType);
+            double parRate = ctx.firstInningsTotal > 0
+                    ? Math.max(pitchParRate, ctx.firstInningsTotal * 6.0 / totalBalls)
+                    : pitchParRate;
             double progress     = legalBallsBowled / (double) totalBalls;
             double progressMult = 0.30 + (0.70 * progress);
 
             if (runsNeeded > 0) {
                 double ratio = requiredRate / parRate;
                 if (ratio > 1.0) {
+                    // Behind in chase — accelerate scoring, accept some wicket risk
                     double intensity = Math.min(1.0, (ratio - 1.0)) * progressMult;
-                    pDot    -= 0.04 * intensity;
-                    p1      -= 0.015 * intensity;
-                    p4      += 0.02  * intensity;
-                    p6      += 0.025 * intensity;
-                    pWicket += 0.015 * intensity;
+                    pDot    -= 0.05 * intensity;   // more intent
+                    p1      -= 0.02 * intensity;
+                    p4      += 0.04 * intensity;   // more boundary hunting
+                    p6      += 0.04 * intensity;   // more sixes attempted
+                    pWicket += 0.008 * intensity;  // REDUCED: less punishing
                 } else if (ratio < 1.0) {
+                    // Ahead in chase — tick singles, protect wickets
                     double intensity = Math.min(1.0, (1.0 - ratio) / 0.6) * progressMult;
                     pDot    -= 0.03 * intensity;
-                    p1      += 0.04 * intensity;
+                    p1      += 0.05 * intensity;
                     p2      += 0.01 * intensity;
-                    p4      -= 0.015 * intensity;
+                    p4      -= 0.01 * intensity;
                     p6      -= 0.005 * intensity;
-                    pWicket -= 0.002 * intensity;
+                    pWicket -= 0.005 * intensity;
                 }
             }
         }
@@ -925,12 +934,14 @@ public class MatchEngine {
             pWicket -= 0.01 * earlyPressure;
         }
 
-        // 3b. ODI middle overs consolidation
+        // 3b. ODI middle overs consolidation — FIXED: removed p1+=0.07 which was
+        // consuming too many balls on singles for BOTH innings. Now a mild
+        // dot+boundary reshuffle only. Chasing teams in particular benefit from
+        // keeping boundary probability alive in the middle overs.
         if ("ODI".equalsIgnoreCase(ctx.format) && oversDone >= 10 && oversDone < 40) {
-            pDot -= 0.04;
-            p4   -= 0.02;
-            p6   -= 0.01;
-            p1   += 0.07;
+            pDot += 0.02;   // slightly more defensive
+            p1   += 0.02;   // modest singles increase (was +0.07 — removed)
+            p4   -= 0.01;   // mild boundary reduction vs powerplay
         }
 
         // 3c. Death overs acceleration
@@ -1112,14 +1123,18 @@ public class MatchEngine {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private double getPositionalWicketMultiplier(int battingPosition) {
+        // FIXED: reduced tail multipliers — 2.10× at pos 10/11 combined with
+        // pWicket cap 0.28 was causing every tail ball to be near-fatal,
+        // making innings-1 tail batting far worse than innings-2 (which starts
+        // chasing with top order). Calibrated to real dismissal rate distributions.
         return switch (battingPosition) {
-            case 1, 2    -> 0.80;  // openers — harder to dismiss (experienced, prepared)
-            case 3       -> 0.85;  // #3 — usually best batter
-            case 4, 5    -> 0.95;  // middle order
-            case 6, 7    -> 1.10;  // lower middle / all-rounders
-            case 8       -> 1.35;  // first tailender
-            case 9       -> 1.65;  // genuine tail
-            case 10, 11  -> 2.10;  // last two — very high dismissal rate
+            case 1, 2    -> 0.75;   // openers — very hard to dismiss, experienced
+            case 3       -> 0.82;   // #3 — usually the best batter
+            case 4, 5    -> 0.95;   // solid middle order
+            case 6, 7    -> 1.10;   // lower middle / all-rounders
+            case 8       -> 1.28;   // first tailender — was 1.35
+            case 9       -> 1.48;   // genuine tail — was 1.65
+            case 10, 11  -> 1.70;   // last two — was 2.10 (way too high)
             default      -> 1.00;
         };
     }
@@ -3161,15 +3176,28 @@ public class MatchEngine {
         final int temperature, maxOvers, maxPerBowler, target;
         final boolean isChasing;
         final MatchLineup battingLineup, bowlingLineup;
+        // Actual first-innings total — used to compute a realistic par rate
+        // so chasing teams aren't penalised for high first-innings scores
+        final int firstInningsTotal;
 
         SimContext(Random rng, String pitchType, String condition, int temperature,
                    int maxOvers, int maxPerBowler, String format,
                    boolean isChasing, int target,
                    MatchLineup battingLineup, MatchLineup bowlingLineup) {
+            this(rng, pitchType, condition, temperature, maxOvers, maxPerBowler,
+                    format, isChasing, target, battingLineup, bowlingLineup, 0);
+        }
+
+        SimContext(Random rng, String pitchType, String condition, int temperature,
+                   int maxOvers, int maxPerBowler, String format,
+                   boolean isChasing, int target,
+                   MatchLineup battingLineup, MatchLineup bowlingLineup,
+                   int firstInningsTotal) {
             this.rng = rng; this.pitchType = pitchType; this.condition = condition;
             this.temperature = temperature; this.maxOvers = maxOvers; this.maxPerBowler = maxPerBowler;
             this.format = format; this.isChasing = isChasing; this.target = target;
             this.battingLineup = battingLineup; this.bowlingLineup = bowlingLineup;
+            this.firstInningsTotal = firstInningsTotal;
         }
     }
 
