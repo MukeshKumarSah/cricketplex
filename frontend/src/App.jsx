@@ -61,9 +61,9 @@ function App() {
             <Route
               path="/team-setup-secondary"
               element={
-                <TeamSetupGuard>
+                <HomeGuard>
                   <TeamSetupSecondary />
-                </TeamSetupGuard>
+                </HomeGuard>
               }
             />
             <Route
