@@ -15,9 +15,9 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   background: transparent;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  color: var(--text-color);
+  color: var(--text-1);
   font-family: inherit;
   font-size: 0.9375rem;
   cursor: pointer;
@@ -26,9 +26,9 @@
 }
 
 .tss-back-btn:hover {
-  background: var(--card-hover-bg);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background: var(--card-hover);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .tss-back-btn svg {
@@ -43,9 +43,9 @@
 .tss-title {
   font-size: 2rem;
   font-weight: 800;
-  color: var(--text-color);
+  color: var(--text-1);
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -53,7 +53,7 @@
 
 .tss-subtitle {
   font-size: 1rem;
-  color: var(--text-muted);
+  color: var(--text-2);
   margin: 0;
 }
 
@@ -61,8 +61,8 @@
   display: flex;
   gap: 1rem;
   padding: 1.5rem;
-  background: var(--info-bg, rgba(59, 130, 246, 0.1));
-  border: 1px solid var(--info-border, rgba(59, 130, 246, 0.3));
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
   border-radius: 0.75rem;
   margin-bottom: 2rem;
 }
@@ -70,7 +70,7 @@
 .tss-info-icon {
   width: 1.5rem;
   height: 1.5rem;
-  color: var(--info-color, #3b82f6);
+  color: var(--info-color);
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
@@ -78,14 +78,14 @@
 .tss-info-content h3 {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--text-1);
   margin: 0 0 0.75rem 0;
 }
 
 .tss-info-content ul {
   margin: 0;
   padding-left: 1.25rem;
-  color: var(--text-muted);
+  color: var(--text-2);
   font-size: 0.9375rem;
   line-height: 1.6;
 }
@@ -105,7 +105,7 @@
 .tss-existing-teams h3 {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--text-1);
   margin: 0 0 1rem 0;
 }
 
@@ -121,7 +121,7 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
 }
 
@@ -140,7 +140,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
   font-weight: 700;
   font-size: 1rem;
   color: white;
@@ -156,17 +156,17 @@
 .tss-team-name {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-1);
 }
 
 .tss-team-country {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--text-2);
 }
 
 .tss-form {
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 2rem;
 }
@@ -183,12 +183,12 @@
   display: block;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-1);
   margin-bottom: 0.5rem;
 }
 
 .required {
-  color: var(--error-color, #ef4444);
+  color: var(--error);
 }
 
 .tss-input,
@@ -196,9 +196,9 @@
   width: 100%;
   padding: 0.75rem 1rem;
   background: var(--input-bg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  color: var(--text-color);
+  color: var(--text-1);
   font-family: inherit;
   font-size: 0.9375rem;
   transition: all 0.2s ease;
@@ -207,13 +207,13 @@
 .tss-input:focus,
 .tss-select:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(34, 197, 94, 0.1));
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-alpha);
 }
 
 .tss-input.error,
 .tss-select.error {
-  border-color: var(--error-color, #ef4444);
+  border-color: var(--error);
 }
 
 .tss-input:disabled,
@@ -229,14 +229,14 @@
 .tss-error {
   display: block;
   font-size: 0.8125rem;
-  color: var(--error-color, #ef4444);
+  color: var(--error);
   margin-top: 0.375rem;
 }
 
 .tss-info-text {
   display: block;
   font-size: 0.8125rem;
-  color: var(--text-muted);
+  color: var(--text-2);
   margin-top: 0.375rem;
   font-style: italic;
 }
@@ -244,7 +244,7 @@
 .tss-submit-btn {
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
   border: none;
   border-radius: 0.5rem;
   color: white;
@@ -257,7 +257,7 @@
 
 .tss-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 4px 12px var(--accent-shadow);
 }
 
 .tss-submit-btn:disabled {
