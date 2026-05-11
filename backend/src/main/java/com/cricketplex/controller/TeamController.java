@@ -8,15 +8,7 @@ import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.Innings;
 import com.cricketplex.entity.MatchResult;
 import com.cricketplex.entity.Team;
-im    @GetMapping("/matches")
-    public ResponseEntity<?> getAllMatches(
-            @AuthenticationPrincipal UserPrincipal principal,
-            @RequestParam(required = false) Integer season,
-            @RequestParam(required = false) String format) {
-        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
-        if (teamOpt.isEmpty()) {
-            return ResponseEntity.ok(List.of());
-        }cketplex.entity.User;
+import com.cricketplex.entity.User;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.FixtureRepository;
