@@ -8,6 +8,7 @@ import com.cricketplex.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -21,31 +22,36 @@ public class TeamHelper {
      * Get the active team for the authenticated user.
      * Uses the activeTeamId from User if set, otherwise returns the first team found.
      */
-    public Team getActiveTeam(UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public Optional<Team> getActiveTeam(UserPrincipal principal) {
+        Optional<User> userOpt = userRepository.findById(principal.getId());
+        if (userOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        User user = userOpt.get();
         
         // Use active team if set
         if (user.getActiveTeamId() != null) {
-            return teamRepository.findById(user.getActiveTeamId())
-                    .orElseThrow(() -> new IllegalArgumentException("Active team not found"));
+            return teamRepository.findById(user.getActiveTeamId());
         }
         
         // Fall back to finding first team (for backwards compatibility)
-        return teamRepository.findByOwner(user)
-                .orElseThrow(() -> new IllegalArgumentException("No team found"));
+        return teamRepository.findByOwnerOrderByTeamOrderAsc(user)
+                .stream()
+                .findFirst();
     }
 
     /**
      * Get the active team for a user entity.
      */
-    public Team getActiveTeam(User user) {
+    public Optional<Team> getActiveTeam(User user) {
         if (user.getActiveTeamId() != null) {
-            return teamRepository.findById(user.getActiveTeamId())
-                    .orElseThrow(() -> new IllegalArgumentException("Active team not found"));
+            return teamRepository.findById(user.getActiveTeamId());
         }
         
-        return teamRepository.findByOwner(user)
-                .orElseThrow(() -> new IllegalArgumentException("No team found"));
+        return teamRepository.findByOwnerOrderByTeamOrderAsc(user)
+                .stream()
+                .findFirst();
     }
+}
 }

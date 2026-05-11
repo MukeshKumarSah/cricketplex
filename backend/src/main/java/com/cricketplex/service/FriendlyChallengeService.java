@@ -34,7 +34,7 @@ public class FriendlyChallengeService {
     @Transactional
     public FriendlyChallenge sendChallenge(User user, UUID opponentTeamId, String format,
                                            String pitchType, LocalDate matchDate, String matchTime, String message) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         Team opponentTeam = teamRepository.findById(opponentTeamId)
@@ -106,7 +106,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge acceptChallenge(User user, UUID challengeId) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -165,7 +165,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge declineChallenge(User user, UUID challengeId) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -200,7 +200,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge cancelChallenge(User user, UUID challengeId) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -221,7 +221,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public MatchResult simulateFriendly(User user, UUID challengeId) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -270,13 +270,13 @@ public class FriendlyChallengeService {
     // ─── Get all challenges for my team ──────────────────────────
 
     public long getPendingIncomingCount(User user) {
-        return teamHelper.getActiveTeam(user.getId())
+        return teamHelper.getActiveTeam(user)
                 .map(team -> challengeRepository.countByChallengedTeamIdAndStatus(team.getId(), "PENDING"))
                 .orElse(0L);
     }
 
     public List<Map<String, Object>> getChallenges(User user) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         List<FriendlyChallenge> challenges = challengeRepository.findAllByTeam(myTeam.getId());
@@ -342,7 +342,7 @@ public class FriendlyChallengeService {
     // ─── Get opponent teams to challenge (non-bot teams) ─────────
 
     public List<Map<String, Object>> getChallengeable(User user) {
-        Team myTeam = teamHelper.getActiveTeam(user.getId())
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         List<Team> allTeams = teamRepository.findAll();
