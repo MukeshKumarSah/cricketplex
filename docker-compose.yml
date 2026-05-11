@@ -10,7 +10,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cricketplex"]
       interval: 10s
@@ -29,7 +29,7 @@ services:
       - "9010:9000"
       - "9011:9001"
     volumes:
-      - miniodata:/data
+      - miniodata_dev:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -73,5 +73,5 @@ services:
       - "3000:80"
 
 volumes:
-  pgdata:
-  miniodata:
+  pgdata_dev:
+  miniodata_dev:
