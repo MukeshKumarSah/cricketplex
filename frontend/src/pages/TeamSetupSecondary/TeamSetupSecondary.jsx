@@ -48,7 +48,7 @@ export default function TeamSetupSecondary() {
 
   // Filter out countries already used by user's teams
   const availableCountries = COUNTRIES.filter(
-    (country) => !existingTeams.some((team) => team.country === country.name)
+    (country) => !existingTeams.some((team) => team.country === country)
   );
 
   const handleChange = (e) => {
@@ -196,8 +196,8 @@ export default function TeamSetupSecondary() {
             >
               <option value="">Select a country</option>
               {availableCountries.map((country) => (
-                <option key={country.code} value={country.name}>
-                  {country.flag} {country.name}
+                <option key={country} value={country}>
+                  {country}
                 </option>
               ))}
             </select>
