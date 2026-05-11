@@ -467,7 +467,9 @@ public class TransferMarketController {
                     .orElseThrow(() -> new IllegalArgumentException("Active team not found"));
         }
         
-        return teamRepository.findByOwner(user)
+        return teamRepository.findByOwnerOrderByTeamOrderAsc(user)
+                .stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
     }
 

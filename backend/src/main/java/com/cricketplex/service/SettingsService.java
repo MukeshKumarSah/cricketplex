@@ -10,6 +10,7 @@ import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.repository.PlayerRepository;
 import com.cricketplex.repository.MatchResultRepository;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class SettingsService {
     private final PasswordEncoder passwordEncoder;
     private final PlayerRepository playerRepository;
     private final MatchResultRepository matchResultRepository;
+    private final TeamHelper teamHelper;
 
     @Transactional
     public String uploadProfilePic(User user, MultipartFile file) {
@@ -44,7 +46,7 @@ public class SettingsService {
 
     @Transactional
     public String uploadTeamProfilePic(User user, MultipartFile file) {
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
         if (team.getTeamProfilePicUrl() != null) {
             fileStorageService.deleteFile(team.getTeamProfilePicUrl());
@@ -57,7 +59,7 @@ public class SettingsService {
 
     @Transactional
     public Team updateTeamDetails(User user, UpdateTeamRequest request) {
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
 
         if (request.getTeamName() != null && !request.getTeamName().isBlank()) {
@@ -91,7 +93,7 @@ public class SettingsService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getSettings(User user) {
-        Team team = teamRepository.findByOwner(user).orElse(null);
+        Team team = teamHelper.getActiveTeam(user).orElse(null);
 
         return Map.of(
                 "user", Map.of(
@@ -125,7 +127,7 @@ public class SettingsService {
     /* ─── Dashboard Stats: Morale & Fans ─── */
     @Transactional(readOnly = true)
     public Map<String, Object> getDashboardStats(User user) {
-        Team team = teamRepository.findByOwner(user).orElse(null);
+        Team team = teamHelper.getActiveTeam(user).orElse(null);
         if (team == null) return Map.of();
 
         /* Recent match record (last 10) — for display only */

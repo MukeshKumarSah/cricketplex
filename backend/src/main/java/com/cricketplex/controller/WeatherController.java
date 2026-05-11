@@ -6,6 +6,7 @@ import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.WeatherService;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,16 +23,14 @@ public class WeatherController {
     private final WeatherService weatherService;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final TeamHelper teamHelper;
 
     /**
      * 7-day forecast for the user's home country.
      */
     @GetMapping("/forecast")
     public ResponseEntity<?> getForecast(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
         if (teamOpt.isEmpty()) {
             return ResponseEntity.ok(Map.of("available", false));
         }

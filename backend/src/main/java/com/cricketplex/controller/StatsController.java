@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +23,7 @@ public class StatsController {
     private final BattingScorecardRepository battingScorecardRepository;
     private final BowlingScorecardRepository bowlingScorecardRepository;
     private final LineupPlayerRepository lineupPlayerRepository;
+    private final TeamHelper teamHelper;
 
     @GetMapping
     public ResponseEntity<?> getTeamStats(
@@ -30,9 +32,7 @@ public class StatsController {
             @RequestParam(required = false, defaultValue = "LEAGUE") String matchType,
             @RequestParam(required = false) Integer season) {
 
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
 
         List<Player> players = playerRepository.findByTeam(team);

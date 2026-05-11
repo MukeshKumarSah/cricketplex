@@ -8,7 +8,15 @@ import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.Innings;
 import com.cricketplex.entity.MatchResult;
 import com.cricketplex.entity.Team;
-import com.cricketplex.entity.User;
+im    @GetMapping("/matches")
+    public ResponseEntity<?> getAllMatches(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) Integer season,
+            @RequestParam(required = false) String format) {
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
+        if (teamOpt.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }cketplex.entity.User;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.FixtureRepository;
@@ -22,6 +30,7 @@ import com.cricketplex.service.MatchEngine;
 import com.cricketplex.service.TeamService;
 import com.cricketplex.service.FixtureService;
 import com.cricketplex.service.WeatherService;
+import com.cricketplex.util.TeamHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +66,7 @@ public class TeamController {
     private final MatchResultRepository matchResultRepository;
     private final MatchLineupRepository matchLineupRepository;
     private final WeatherService weatherService;
+    private final TeamHelper teamHelper;
 
     /**
      * Check whether a country still has available league slots for new teams.
@@ -177,10 +187,7 @@ public class TeamController {
 
     @GetMapping("/my-leagues")
     public ResponseEntity<?> getMyLeagues(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
         if (teamOpt.isEmpty()) {
             return ResponseEntity.ok(Map.of("leagues", List.of()));
         }

@@ -2,6 +2,7 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class LineupService {
     private final FixtureRepository fixtureRepository;
     private final TeamRepository teamRepository;
     private final WeatherService weatherService;
+    private final TeamHelper teamHelper;
 
     /* ═══ Bowling templates ═══ */
 
@@ -94,7 +96,7 @@ public class LineupService {
         Fixture fixture = fixtureRepository.findById(fixtureId)
                 .orElseThrow(() -> new IllegalArgumentException("Fixture not found"));
 
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
 
         League league = fixture.getLeague();
@@ -224,7 +226,7 @@ public class LineupService {
         Fixture fixture = fixtureRepository.findById(fixtureId)
                 .orElseThrow(() -> new IllegalArgumentException("Fixture not found"));
 
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
 
         boolean isHome = fixture.getHomeTeam().getId().equals(myTeam.getId());
@@ -383,7 +385,7 @@ public class LineupService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getDefaultLineup(User user) {
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
         // Return all format defaults
         Map<String, Object> result = new LinkedHashMap<>();
