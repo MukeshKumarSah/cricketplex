@@ -164,8 +164,8 @@ public class AuthService {
     }
 
     public AuthResponse.UserInfo getCurrentUser(User user) {
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
         List<Team> allTeams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
+        Optional<Team> primaryTeam = allTeams.stream().findFirst();
         
         return AuthResponse.UserInfo.builder()
                 .id(user.getId().toString())
@@ -178,16 +178,16 @@ public class AuthService {
                 .teamSetupDone(user.getTeamSetupDone())
                 .emailVerified(user.getEmailVerified())
                 .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
-                .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
-                .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : teamOpt.map(t -> t.getId().toString()).orElse(null))
+                .teamId(primaryTeam.map(t -> t.getId().toString()).orElse(null))
+                .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : primaryTeam.map(t -> t.getId().toString()).orElse(null))
                 .hasMultipleTeams(allTeams.size() > 1)
                 .theme(user.getTheme())
                 .build();
     }
 
     private AuthResponse buildAuthResponse(String token, User user) {
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
         List<Team> allTeams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
+        Optional<Team> primaryTeam = allTeams.stream().findFirst();
         
         return AuthResponse.builder()
                 .token(token)
@@ -203,8 +203,8 @@ public class AuthService {
                         .teamSetupDone(user.getTeamSetupDone())
                         .emailVerified(user.getEmailVerified())
                         .profilePicUrl(fileStorageService.buildFileUrl(user.getProfilePicUrl()))
-                        .teamId(teamOpt.map(t -> t.getId().toString()).orElse(null))
-                        .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : teamOpt.map(t -> t.getId().toString()).orElse(null))
+                        .teamId(primaryTeam.map(t -> t.getId().toString()).orElse(null))
+                        .activeTeamId(user.getActiveTeamId() != null ? user.getActiveTeamId().toString() : primaryTeam.map(t -> t.getId().toString()).orElse(null))
                         .hasMultipleTeams(allTeams.size() > 1)
                         .theme(user.getTheme())
                         .build())
