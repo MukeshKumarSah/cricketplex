@@ -11,6 +11,7 @@ import com.cricketplex.repository.TrophyRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.SettingsService;
+import com.cricketplex.util.TeamHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -33,6 +34,7 @@ public class SettingsController {
     private final UserRepository userRepository;
     private final TrophyRepository trophyRepository;
     private final TeamRepository teamRepository;
+    private final TeamHelper teamHelper;
 
     @GetMapping
     public ResponseEntity<?> getSettings(@AuthenticationPrincipal UserPrincipal principal) {
@@ -90,8 +92,7 @@ public class SettingsController {
 
     @GetMapping("/trophies")
     public ResponseEntity<?> getMyTrophies(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = getUser(principal);
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
         return ResponseEntity.ok(buildTrophyResponse(team.getId()));
     }

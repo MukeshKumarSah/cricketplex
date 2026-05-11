@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ public class FinanceController {
     private final TeamRepository teamRepository;
     private final TransactionLogRepository transactionLogRepository;
     private final PlayerRepository playerRepository;
+    private final TeamHelper teamHelper;
 
     // ════════════════════════════════════════════
     //  GET /api/finances — overview + transactions
@@ -68,9 +70,7 @@ public class FinanceController {
     }
 
     private Team getTeam(UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return teamRepository.findByOwner(user)
+        return teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
     }
 }

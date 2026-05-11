@@ -5,6 +5,7 @@ import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.MatchEngine;
 import com.cricketplex.service.WeatherService;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,6 +37,7 @@ public class MatchSimController {
     private final MatchLineupRepository matchLineupRepository;
     private final MatchFCStrategyRepository matchFCStrategyRepository;
     private final WeatherService weatherService;
+    private final TeamHelper teamHelper;
 
     /**
      * Compute session break positions for FC matches.
@@ -105,9 +107,7 @@ public class MatchSimController {
             @PathVariable UUID fixtureId,
             @RequestBody Map<String, Object> request) {
 
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Team myTeam = teamRepository.findByOwner(user).orElse(null);
+        Team myTeam = teamHelper.getActiveTeam(principal).orElse(null);
         if (myTeam == null) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", "No team found"));
         }
@@ -209,9 +209,7 @@ public class MatchSimController {
     public ResponseEntity<?> getFCState(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID fixtureId) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Team myTeam = teamRepository.findByOwner(user).orElse(null);
+        Team myTeam = teamHelper.getActiveTeam(principal).orElse(null);
         if (myTeam == null) {
             return ResponseEntity.badRequest().body(Map.of("found", false, "message", "No team found"));
         }
@@ -746,9 +744,7 @@ public class MatchSimController {
                 .orElse(null);
         if (f == null) return ResponseEntity.notFound().build();
 
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Optional<Team> userTeam = teamRepository.findByOwner(user);
+        Optional<Team> userTeam = teamHelper.getActiveTeam(principal);
 
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("fixtureId", f.getId());

@@ -7,6 +7,7 @@ import com.cricketplex.repository.PlayerRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,13 +23,11 @@ public class SquadController {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
+    private final TeamHelper teamHelper;
 
     @GetMapping
     public ResponseEntity<?> getSquad(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
 
         List<Player> players = playerRepository.findByTeam(team);

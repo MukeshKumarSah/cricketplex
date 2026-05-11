@@ -2,6 +2,7 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class FriendlyChallengeService {
     private final UserRepository userRepository;
     private final MatchEngine matchEngine;
     private final NotificationService notificationService;
+    private final TeamHelper teamHelper;
 
     private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "07:30", "12:00", "17:00", "21:00");
 
@@ -32,7 +34,7 @@ public class FriendlyChallengeService {
     @Transactional
     public FriendlyChallenge sendChallenge(User user, UUID opponentTeamId, String format,
                                            String pitchType, LocalDate matchDate, String matchTime, String message) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         Team opponentTeam = teamRepository.findById(opponentTeamId)
@@ -104,7 +106,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge acceptChallenge(User user, UUID challengeId) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -163,7 +165,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge declineChallenge(User user, UUID challengeId) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -198,7 +200,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public FriendlyChallenge cancelChallenge(User user, UUID challengeId) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -219,7 +221,7 @@ public class FriendlyChallengeService {
 
     @Transactional
     public MatchResult simulateFriendly(User user, UUID challengeId) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         FriendlyChallenge challenge = challengeRepository.findById(challengeId)
@@ -268,13 +270,13 @@ public class FriendlyChallengeService {
     // ─── Get all challenges for my team ──────────────────────────
 
     public long getPendingIncomingCount(User user) {
-        return teamRepository.findByOwner(user)
+        return teamHelper.getActiveTeam(user.getId())
                 .map(team -> challengeRepository.countByChallengedTeamIdAndStatus(team.getId(), "PENDING"))
                 .orElse(0L);
     }
 
     public List<Map<String, Object>> getChallenges(User user) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         List<FriendlyChallenge> challenges = challengeRepository.findAllByTeam(myTeam.getId());
@@ -340,7 +342,7 @@ public class FriendlyChallengeService {
     // ─── Get opponent teams to challenge (non-bot teams) ─────────
 
     public List<Map<String, Object>> getChallengeable(User user) {
-        Team myTeam = teamRepository.findByOwner(user)
+        Team myTeam = teamHelper.getActiveTeam(user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("You don't have a team"));
 
         List<Team> allTeams = teamRepository.findAll();

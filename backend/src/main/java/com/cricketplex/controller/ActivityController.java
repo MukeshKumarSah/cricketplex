@@ -3,6 +3,7 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,12 +19,11 @@ public class ActivityController {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final TeamHelper teamHelper;
 
     @GetMapping
     public ResponseEntity<?> getRecentActivities(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Team team = teamRepository.findByOwner(user)
+        Team team = teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
 
         List<ActivityLog> logs = activityLogRepository.findTop50ByTeamIdOrderByCreatedAtDesc(team.getId());

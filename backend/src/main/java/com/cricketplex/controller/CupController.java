@@ -6,6 +6,7 @@ import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.CupService;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +25,7 @@ public class CupController {
     private final CupService     cupService;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final TeamHelper teamHelper;
 
     /** Current season's cup bracket (or the latest that exists). */
     @GetMapping("/current")
@@ -48,10 +50,7 @@ public class CupController {
     /** Authenticated user's cup status for the current season. */
     @GetMapping("/my-status")
     public ResponseEntity<?> myStatus(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId()).orElse(null);
-        if (user == null) return ResponseEntity.notFound().build();
-
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
         if (teamOpt.isEmpty()) {
             return ResponseEntity.ok(Map.of("inCup", false));
         }

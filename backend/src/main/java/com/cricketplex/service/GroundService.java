@@ -5,6 +5,9 @@ import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.StadiumSeatsRepository;
 import com.cricketplex.repository.TeamRepository;
+import com.cricketplex.repository.UserRepository;
+import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +23,12 @@ public class GroundService {
     private final StadiumSeatsRepository stadiumSeatsRepository;
     private final FixtureRepository fixtureRepository;
     private final MatchResultRepository matchResultRepository;
+    private final UserRepository userRepository;
+    private final TeamHelper teamHelper;
 
     private Team getTeam(User user) {
-        return teamRepository.findByOwner(user)
+        return userRepository.findById(user.getId())
+                .flatMap(u -> teamHelper.getActiveTeam(u.getId()))
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
     }
 

@@ -4,6 +4,7 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ActivityLogService;
+import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,6 +42,7 @@ public class AcademyController {
     private final TrainingLogRepository trainingLogRepository;
     private final ActivityLogService activityLogService;
     private final TransactionLogRepository transactionLogRepository;
+    private final TeamHelper teamHelper;
 
     // ════════════════════════════════════════════
     //  GET /api/academy — overview
@@ -429,9 +431,7 @@ public class AcademyController {
     }
 
     private Team getTeam(UserPrincipal principal) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return teamRepository.findByOwner(user)
+        return teamHelper.getActiveTeam(principal)
                 .orElseThrow(() -> new IllegalArgumentException("No team found"));
     }
 
