@@ -47,7 +47,10 @@ public class LineupController {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         Object result = lineupService.saveLineup(fixtureId, user, request);
-        teamHelper.getActiveTeam(principal).ifPresent(team -> {
+        
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
+        if (teamOpt.isPresent()) {
+            Team team = teamOpt.get();
             String opponent = "";
             Fixture fixture = fixtureRepository.findById(fixtureId).orElse(null);
             if (fixture != null) {
@@ -56,7 +59,7 @@ public class LineupController {
                 opponent = " against " + opp.getTeamName();
             }
             activityLogService.log(team, "lineup", "Lineup set for upcoming match" + opponent + ".");
-        });
+        }
         return ResponseEntity.ok(result);
     }
 

@@ -27,8 +27,7 @@ public class GroundService {
     private final TeamHelper teamHelper;
 
     private Team getTeam(User user) {
-        return userRepository.findById(user.getId())
-                .flatMap(u -> teamHelper.getActiveTeam(u.getId()))
+        return teamHelper.getActiveTeam(user)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
     }
 
