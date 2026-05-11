@@ -22,7 +22,7 @@ public class TeamHelper {
      * Uses the activeTeamId from User if set, otherwise returns the first team found.
      */
     public Team getActiveTeam(UserPrincipal principal) {
-        User user = userRepository.findById(UUID.fromString(principal.getId()))
+        User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
         // Use active team if set

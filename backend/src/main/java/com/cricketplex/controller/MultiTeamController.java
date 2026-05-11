@@ -26,7 +26,7 @@ public class MultiTeamController {
     // ════════════════════════════════════════════
     @GetMapping("/my-teams")
     public ResponseEntity<?> getMyTeams(@AuthenticationPrincipal UserPrincipal principal) {
-        User user = userRepository.findById(UUID.fromString(principal.getId()))
+        User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<Team> teams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
@@ -64,7 +64,7 @@ public class MultiTeamController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID teamId) {
 
-        User user = userRepository.findById(UUID.fromString(principal.getId()))
+        User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Team team = teamRepository.findById(teamId)
@@ -95,7 +95,7 @@ public class MultiTeamController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody Map<String, String> request) {
 
-        User user = userRepository.findById(UUID.fromString(principal.getId()))
+        User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Check if user is supporter
@@ -175,7 +175,7 @@ public class MultiTeamController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable UUID listingId) {
 
-        User user = userRepository.findById(UUID.fromString(principal.getId()))
+        User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // This will be used by the transfer market to check bidding eligibility
