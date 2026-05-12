@@ -381,28 +381,28 @@ export default function AdminPlayers() {
         {teamsLoading ? (
           <div className="ap-loading">Loading teams…</div>
         ) : (
-          <div className="ap-team-list">
+          <div className="ap-teams-list">
             {teams.length === 0 ? (
-              <div className="ap-empty-msg">No teams found. Create a team first.</div>
+              <div className="ap-no-teams">No teams found.</div>
             ) : (
               teams.map((team) => (
-                <div key={team.id} className="ap-team-item">
+                <div key={team.id} className="ap-team-row">
                   <div className="ap-team-info">
-                    <span className="ap-team-name">{team.name}</span>
-                    <span className="ap-team-meta">
-                      {team.players.length} player{team.players.length !== 1 ? 's' : ''}
-                    </span>
+                    <span className="ap-team-name">{team.teamName}</span>
+                    <span className="ap-team-country">{team.country}</span>
+                    <span className="ap-team-manager">{team.managerName}</span>
                   </div>
                   <button
-                    className="ap-btn-primary ap-assign-btn"
-                    onClick={() => handleAssignSquad(team.id, team.name)}
+                    className="ap-assign-btn"
+                    onClick={() => handleAssignSquad(team.id, team.teamName)}
                     disabled={assigning}
                   >
+                    <HiOutlineUserPlus />
                     {assigning ? 'Assigning...' : 'Assign Squad'}
                   </button>
                 </div>
               ))
-            }
+            )}
           </div>
         )}
       </div>
