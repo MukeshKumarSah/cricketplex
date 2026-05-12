@@ -155,8 +155,9 @@ export default function TeamList() {
               ) : (
                 filtered.map((team) => {
                   const status = STATUS_META[team.activityStatus] || STATUS_META.RED;
+                  const isActiveTeam = team.id === user?.activeTeamId;
                   return (
-                    <tr key={team.id} className="tl-row tl-row-clickable" onClick={() => navigate(team.id === user?.teamId ? '/' : `/team/${team.id}`)}>
+                    <tr key={team.id} className="tl-row tl-row-clickable" onClick={() => navigate(isActiveTeam ? '/' : `/team/${team.id}`)}>
                       <td className="tl-cell-team">
                         <div className="tl-team-info">
                           {team.teamProfilePicUrl ? (

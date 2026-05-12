@@ -374,10 +374,7 @@ public class TeamController {
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) Integer season,
             @RequestParam(required = false) String format) {
-        User user = userRepository.findById(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        Optional<Team> teamOpt = teamRepository.findByOwner(user);
+        Optional<Team> teamOpt = teamHelper.getActiveTeam(principal);
         if (teamOpt.isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
