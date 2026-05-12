@@ -365,6 +365,82 @@
   font-size: 0.92rem;
 }
 
+/* ── Team Squad Assignment ── */
+.ap-teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ap-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+}
+
+.ap-team-row:hover {
+  background: var(--bg-3);
+}
+
+.ap-team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ap-team-name {
+  font-weight: 600;
+  color: var(--text-1);
+  font-size: 0.95rem;
+}
+
+.ap-team-country {
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+
+.ap-team-manager {
+  font-size: 0.8rem;
+  color: var(--text-3);
+}
+
+.ap-assign-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ap-assign-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.ap-assign-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ap-no-teams {
+  text-align: center;
+  color: var(--text-2);
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .ap-stats {

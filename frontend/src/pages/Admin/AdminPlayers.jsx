@@ -6,6 +6,7 @@ import {
   HiOutlinePlus,
   HiOutlineChevronDown,
   HiOutlineChevronRight,
+  HiOutlineUserPlus,
 } from 'react-icons/hi2';
 import {
   getPoolStats,
@@ -14,6 +15,8 @@ import {
   addLastNames,
   deleteFirstName,
   deleteLastName,
+  assignSquadToTeam,
+  getTeamList,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminPlayers.css';
@@ -32,6 +35,11 @@ export default function AdminPlayers() {
   const [expandedCountry, setExpandedCountry] = useState(null);
   const [countryPool, setCountryPool] = useState(null);
   const [poolLoading, setPoolLoading] = useState(false);
+
+  // Team assignment
+  const [teams, setTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   const loadStats = useCallback(async () => {
     try {
@@ -137,6 +145,34 @@ export default function AdminPlayers() {
     }
   };
 
+  const loadTeams = useCallback(async () => {
+    setTeamsLoading(true);
+    try {
+      const res = await getTeamList();
+      setTeams(res.data.filter(t => !t.isBot)); // Only user teams
+    } catch {
+      toast.error('Failed to load teams');
+    } finally {
+      setTeamsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadTeams(); }, [loadTeams]);
+
+  const handleAssignSquad = async (teamId, teamName) => {
+    if (!confirm(`Assign 15 players to ${teamName}? This will generate a new squad.`)) return;
+    setAssigning(true);
+    try {
+      await assignSquadToTeam(teamId);
+      toast.success(`Squad assigned to ${teamName} successfully!`);
+      await loadTeams();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to assign squad');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="ap-page">
@@ -172,6 +208,38 @@ export default function AdminPlayers() {
           <span className="ap-stat-label">Possible Combinations</span>
           <span className="ap-stat-value ap-stat-green">{stats.totalCombinations.toLocaleString()}</span>
         </div>
+      </div>
+
+      {/* ── Team Squad Assignment ── */}
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h2><HiOutlineUserPlus /> Assign Squad to Teams</h2>
+          <p>Use this to assign 15 players to teams that don't have any players yet.</p>
+        </div>
+
+        {teamsLoading ? (
+          <div className="ap-loading">Loading teams…</div>
+        ) : (
+          <div className="ap-teams-list">
+            {teams.map(team => (
+              <div key={team.id} className="ap-team-row">
+                <div className="ap-team-info">
+                  <span className="ap-team-name">{team.teamName}</span>
+                  <span className="ap-team-country">{team.country}</span>
+                  <span className="ap-team-manager">{team.managerName}</span>
+                </div>
+                <button
+                  className="ap-assign-btn"
+                  onClick={() => handleAssignSquad(team.id, team.teamName)}
+                  disabled={assigning}
+                >
+                  <HiOutlineUserPlus /> Assign Squad
+                </button>
+              </div>
+            ))}
+            {teams.length === 0 && <p className="ap-no-teams">No user teams found.</p>}
+          </div>
+        )}
       </div>
 
       {/* ── Add Names Form ── */}
@@ -300,6 +368,41 @@ export default function AdminPlayers() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Team Assignment ── */}
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h2>Assign Squads to Teams</h2>
+        </div>
+
+        {teamsLoading ? (
+          <div className="ap-loading">Loading teams…</div>
+        ) : (
+          <div className="ap-team-list">
+            {teams.length === 0 ? (
+              <div className="ap-empty-msg">No teams found. Create a team first.</div>
+            ) : (
+              teams.map((team) => (
+                <div key={team.id} className="ap-team-item">
+                  <div className="ap-team-info">
+                    <span className="ap-team-name">{team.name}</span>
+                    <span className="ap-team-meta">
+                      {team.players.length} player{team.players.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <button
+                    className="ap-btn-primary ap-assign-btn"
+                    onClick={() => handleAssignSquad(team.id, team.name)}
+                    disabled={assigning}
+                  >
+                    {assigning ? 'Assigning...' : 'Assign Squad'}
+                  </button>
+                </div>
+              ))
+            }
           </div>
         )}
       </div>

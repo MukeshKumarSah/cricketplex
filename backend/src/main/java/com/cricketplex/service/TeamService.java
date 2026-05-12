@@ -378,4 +378,15 @@ public class TeamService {
             default            -> (bat + bowl + fld) / 3;
         };
     }
+
+    /**
+     * Admin method: Assign squad to a team by team ID.
+     * Used when a team doesn't have players assigned.
+     */
+    @Transactional
+    public void assignSquadToTeam(UUID teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new IllegalArgumentException("Team not found"));
+        generateSquadForTeam(team);
+    }
 }

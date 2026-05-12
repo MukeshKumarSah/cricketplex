@@ -65,6 +65,7 @@ export const addFirstNames = (country, names) => API.post('/admin/players/first-
 export const addLastNames = (country, names) => API.post('/admin/players/last-names', { country, names });
 export const deleteFirstName = (id) => API.delete(`/admin/players/first-names/${id}`);
 export const deleteLastName = (id) => API.delete(`/admin/players/last-names/${id}`);
+export const assignSquadToTeam = (teamId) => API.post(`/admin/players/assign-squad/${teamId}`);
 
 // Search
 export const searchManagers = (q) => API.get(`/search/managers`, { params: { q } });

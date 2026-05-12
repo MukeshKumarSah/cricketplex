@@ -1,6 +1,7 @@
 package com.cricketplex.controller;
 
 import com.cricketplex.service.AdminPlayerService;
+import com.cricketplex.service.TeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class AdminPlayerController {
 
     private final AdminPlayerService adminPlayerService;
+    private final TeamService teamService;
 
     // ── Stats ──
     @GetMapping("/stats")
@@ -58,5 +60,22 @@ public class AdminPlayerController {
     public ResponseEntity<?> deleteLastName(@PathVariable UUID id) {
         adminPlayerService.deleteLastName(id);
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    // ── Assign Players to Team ──
+    @PostMapping("/assign-squad/{teamId}")
+    public ResponseEntity<?> assignSquadToTeam(@PathVariable UUID teamId) {
+        try {
+            teamService.assignSquadToTeam(teamId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Squad assigned successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
     }
 }
