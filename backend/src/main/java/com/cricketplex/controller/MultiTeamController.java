@@ -5,6 +5,7 @@ import com.cricketplex.entity.User;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.TeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ public class MultiTeamController {
 
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final TeamService teamService;
 
     // ════════════════════════════════════════════
     //  GET /api/multi-team/my-teams
@@ -153,6 +155,15 @@ public class MultiTeamController {
                 .build();
 
         teamRepository.save(newTeam);
+
+        // Perform full team setup: assign players, enroll in leagues, create fixtures
+        try {
+            teamService.performFullTeamSetup(newTeam);
+        } catch (Exception e) {
+            // If setup fails, still return success but log the error
+            // The team has been created, they can manually fix issues later
+            System.err.println("Error during secondary team setup: " + e.getMessage());
+        }
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("message", "Secondary team created successfully");
