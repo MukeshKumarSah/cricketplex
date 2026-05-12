@@ -158,7 +158,8 @@ public class MultiTeamController {
 
         // Perform full team setup: assign players, enroll in leagues, create fixtures
         try {
-            teamService.performFullTeamSetup(newTeam);
+            teamService.generateSquadForTeam(newTeam);
+            teamService.assignTeamToLeagues(newTeam);
         } catch (Exception e) {
             // If setup fails, still return success but log the error
             // The team has been created, they can manually fix issues later
