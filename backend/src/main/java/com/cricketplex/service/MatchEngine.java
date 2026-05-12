@@ -2134,7 +2134,7 @@ public class MatchEngine {
         int totalMatchOvers    = inningsList.stream().mapToInt(this::getOversUsed).sum();
         int dayOversUsed       = 0;
         int matchOversLimit    = 300;
-        int maxOversPerInnings = 150;
+        int maxOversPerInnings = 300;  // FIX: Allow full 300 overs per innings (unlimited in real FC)
         int maxPerBowler       = 50;
 
         // Resume interrupted innings
