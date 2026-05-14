@@ -17,6 +17,9 @@ import {
   deleteLastName,
   assignSquadToTeam,
   getTeamList,
+  getAdminSupporterUsers,
+  grantSupporterByAdmin,
+  revokeSupporterByAdmin,
 } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import './AdminPlayers.css';
@@ -40,6 +43,13 @@ export default function AdminPlayers() {
   const [teams, setTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
+
+  // Supporter admin override
+  const [supporterUsers, setSupporterUsers] = useState([]);
+  const [supporterLoading, setSupporterLoading] = useState(false);
+  const [supporterSearch, setSupporterSearch] = useState('');
+  const [overrideMonths, setOverrideMonths] = useState(1);
+  const [supporterActionUserId, setSupporterActionUserId] = useState(null);
 
   const loadStats = useCallback(async () => {
     try {
@@ -173,6 +183,52 @@ export default function AdminPlayers() {
     }
   };
 
+  const loadSupporterUsers = useCallback(async (q = '') => {
+    setSupporterLoading(true);
+    try {
+      const res = await getAdminSupporterUsers(q);
+      setSupporterUsers(res.data || []);
+    } catch {
+      toast.error('Failed to load users for supporter management');
+    } finally {
+      setSupporterLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadSupporterUsers(); }, [loadSupporterUsers]);
+
+  const handleGrantSupporter = async (userId, userLabel) => {
+    if (!confirm(`Grant supporter to ${userLabel} for ${overrideMonths} month(s)?`)) return;
+    setSupporterActionUserId(userId);
+    try {
+      await grantSupporterByAdmin(userId, overrideMonths);
+      toast.success(`Supporter granted to ${userLabel}`);
+      await loadSupporterUsers(supporterSearch);
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to grant supporter');
+    } finally {
+      setSupporterActionUserId(null);
+    }
+  };
+
+  const handleRevokeSupporter = async (userId, userLabel) => {
+    if (!confirm(`Revoke supporter from ${userLabel}?`)) return;
+    setSupporterActionUserId(userId);
+    try {
+      await revokeSupporterByAdmin(userId);
+      toast.success(`Supporter revoked from ${userLabel}`);
+      await loadSupporterUsers(supporterSearch);
+    } catch (err) {
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to revoke supporter');
+    } finally {
+      setSupporterActionUserId(null);
+    }
+  };
+
+  const handleSupporterSearch = async () => {
+    await loadSupporterUsers(supporterSearch);
+  };
+
   if (loading) {
     return (
       <div className="ap-page">
@@ -238,6 +294,83 @@ export default function AdminPlayers() {
               </div>
             ))}
             {teams.length === 0 && <p className="ap-no-teams">No user teams found.</p>}
+          </div>
+        )}
+      </div>
+
+      {/* ── Supporter Override ── */}
+      <div className="ap-card">
+        <div className="ap-card-head">
+          <h2><HiOutlineShieldCheck /> Supporter Override (No Payment)</h2>
+          <p>Grant or revoke supporter manually for any user.</p>
+        </div>
+
+        <div className="ap-supporter-toolbar">
+          <input
+            className="ap-input ap-supporter-search"
+            placeholder="Search by name, username or email"
+            value={supporterSearch}
+            onChange={(e) => setSupporterSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSupporterSearch();
+            }}
+          />
+          <select
+            className="ap-select"
+            value={overrideMonths}
+            onChange={(e) => setOverrideMonths(Number(e.target.value))}
+          >
+            <option value={1}>1 month</option>
+            <option value={3}>3 months</option>
+            <option value={6}>6 months</option>
+            <option value={12}>12 months</option>
+          </select>
+          <button className="ap-btn-primary" onClick={handleSupporterSearch} disabled={supporterLoading}>
+            Search
+          </button>
+        </div>
+
+        {supporterLoading ? (
+          <div className="ap-loading">Loading users…</div>
+        ) : supporterUsers.length === 0 ? (
+          <div className="ap-no-teams">No users found.</div>
+        ) : (
+          <div className="ap-teams-list">
+            {supporterUsers.map((user) => {
+              const label = user.name || user.username || user.email;
+              const isActing = supporterActionUserId === user.id;
+              return (
+                <div key={user.id} className="ap-team-row">
+                  <div className="ap-team-info">
+                    <span className="ap-team-name">{user.name} (@{user.username})</span>
+                    <span className="ap-team-country">{user.email}</span>
+                    <span className="ap-team-manager">
+                      {user.isSupporter
+                        ? `Supporter - ${user.supporterPlan || 'MANUAL'}${user.supporterUntil ? ` (till ${new Date(user.supporterUntil).toLocaleDateString()})` : ''}`
+                        : 'Not supporter'}
+                    </span>
+                  </div>
+                  <div className="ap-supporter-actions">
+                    <button
+                      className="ap-assign-btn"
+                      onClick={() => handleGrantSupporter(user.id, label)}
+                      disabled={isActing}
+                    >
+                      <HiOutlineUserPlus /> {isActing ? 'Saving...' : 'Grant'}
+                    </button>
+                    {user.isSupporter && (
+                      <button
+                        className="ap-revoke-btn"
+                        onClick={() => handleRevokeSupporter(user.id, label)}
+                        disabled={isActing}
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

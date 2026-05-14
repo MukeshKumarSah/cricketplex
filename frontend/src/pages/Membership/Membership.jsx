@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from 'react-hot-toast';
 import {
   HiOutlineSparkles,
   HiOutlineUser,
@@ -21,9 +22,120 @@ import {
   HiOutlineMapPin,
   HiOutlineShieldCheck,
 } from "react-icons/hi2";
+import {
+  createRazorpayOrder,
+  getIndianSupporterPlans,
+  getSupporterStatus,
+  verifyRazorpayPayment,
+} from '../../api/auth';
+import { useAuth } from '../../context/AuthContext';
 import "./Membership.css";
 
 const Membership = () => {
+  const { user, refreshUser } = useAuth();
+  const [plans, setPlans] = useState([]);
+  const [status, setStatus] = useState(null);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [payingPlanCode, setPayingPlanCode] = useState('');
+
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+
+  const loadMembershipData = async () => {
+    setLoadingPlans(true);
+    try {
+      const [plansRes, statusRes] = await Promise.all([
+        getIndianSupporterPlans(),
+        getSupporterStatus(),
+      ]);
+      setPlans(plansRes.data || []);
+      setStatus(statusRes.data || null);
+    } catch {
+      toast.error('Failed to load supporter plans');
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembershipData();
+  }, []);
+
+  const currentPlanLabel = useMemo(() => {
+    if (!status?.planCode) return '';
+    const current = plans.find((p) => p.code === status.planCode);
+    return current?.label || status.planCode;
+  }, [plans, status]);
+
+  const handlePayWithRazorpay = async (planCode) => {
+    setPayingPlanCode(planCode);
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error('Unable to load Razorpay checkout');
+        return;
+      }
+
+      const orderRes = await createRazorpayOrder(planCode);
+      const order = orderRes.data;
+
+      const options = {
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'CricketPlex Premium',
+        description: `Supporter plan: ${planCode}`,
+        order_id: order.orderId,
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+        },
+        notes: {
+          app: 'CricketPlex',
+          planCode,
+        },
+        theme: {
+          color: '#0ea5e9',
+        },
+        handler: async function (response) {
+          try {
+            await verifyRazorpayPayment({
+              planCode,
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+            });
+            toast.success('Supporter membership activated!');
+            await refreshUser();
+            await loadMembershipData();
+          } catch (err) {
+            toast.error(err?.response?.data?.message || 'Payment verification failed');
+          }
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.on('payment.failed', function (response) {
+        toast.error(response?.error?.description || 'Payment failed');
+      });
+      razorpay.open();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Unable to initiate payment');
+    } finally {
+      setPayingPlanCode('');
+    }
+  };
+
   const features = [
     { title: "Global Franchises", desc: "Expand your empire. Manage an independent secondary B-team in a completely different region.", icon: <HiOutlineGlobeAlt /> },
     { title: "Academy Scouting Network", desc: "Remove the guesswork. Reveal the exact hidden potential ceilings of youth prospects before promoting them.", icon: <HiOutlineMagnifyingGlass /> },
@@ -48,8 +160,46 @@ const Membership = () => {
         <HiOutlineSparkles className="membership-header-icon" />
         <div>
           <h1>CricketPlex Premium</h1>
-          <p className="membership-subtitle">🚀 Upcoming Feature — The Ultimate Management Experience</p>
+          <p className="membership-subtitle">Unlock supporter-only features and manage a second team.</p>
         </div>
+      </div>
+
+      <div className="membership-plans-card">
+        <div className="membership-plans-head">
+          <h2>India Plans (Razorpay)</h2>
+          <p>Choose a plan and pay securely with UPI, cards, netbanking, or wallet.</p>
+        </div>
+
+        {status?.isSupporter && (
+          <div className="membership-active-chip">
+            Active Plan: <strong>{currentPlanLabel}</strong>
+            {status.supporterUntil ? ` (valid till ${new Date(status.supporterUntil).toLocaleDateString()})` : ''}
+          </div>
+        )}
+
+        {loadingPlans ? (
+          <div className="membership-loading">Loading plans...</div>
+        ) : (
+          <div className="membership-plan-grid">
+            {plans.map((plan) => {
+              const isCurrent = status?.isSupporter && status?.planCode === plan.code;
+              const isPaying = payingPlanCode === plan.code;
+              return (
+                <div className={`membership-plan-item ${isCurrent ? 'active' : ''}`} key={plan.code}>
+                  <div className="membership-plan-title">{plan.label}</div>
+                  <div className="membership-plan-price">Rs {plan.amount}</div>
+                  <button
+                    className="membership-buy-btn"
+                    disabled={isPaying}
+                    onClick={() => handlePayWithRazorpay(plan.code)}
+                  >
+                    {isPaying ? 'Opening checkout...' : isCurrent ? 'Renew / Upgrade' : 'Pay with Razorpay'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="membership-intro-card">

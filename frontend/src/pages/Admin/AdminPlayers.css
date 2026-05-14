@@ -441,6 +441,50 @@
   font-size: 0.9rem;
 }
 
+.ap-supporter-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ap-supporter-search {
+  min-width: 280px;
+  flex: 1;
+}
+
+.ap-supporter-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ap-revoke-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ap-revoke-btn:hover:not(:disabled) {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.ap-revoke-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .ap-stats {
@@ -455,5 +499,12 @@
   }
   .ap-country-meta {
     flex-wrap: wrap;
+  }
+  .ap-supporter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ap-supporter-search {
+    min-width: 0;
   }
 }

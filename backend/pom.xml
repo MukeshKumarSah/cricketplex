@@ -88,6 +88,13 @@
             <version>8.5.9</version>
         </dependency>
 
+        <!-- Razorpay -->
+        <dependency>
+            <groupId>com.razorpay</groupId>
+            <artifactId>razorpay-java</artifactId>
+            <version>1.4.4</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

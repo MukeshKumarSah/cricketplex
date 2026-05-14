@@ -42,6 +42,22 @@ public class User {
     @Builder.Default
     private Boolean isSupporter = false;
 
+    @Column(length = 32)
+    private String supporterPlan;
+
+    private LocalDateTime supporterSince;
+
+    private LocalDateTime supporterUntil;
+
+    @Column(length = 32)
+    private String supporterProvider;
+
+    @Column(length = 128)
+    private String supporterOrderId;
+
+    @Column(length = 128)
+    private String supporterPaymentId;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean isSubAdmin = false;

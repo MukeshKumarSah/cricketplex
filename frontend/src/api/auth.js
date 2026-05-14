@@ -185,6 +185,14 @@ export const getNotificationUnreadCount = () => API.get('/notifications/unread-c
 export const markNotificationRead = (id) => API.post(`/notifications/${id}/read`);
 export const markAllNotificationsRead = () => API.post('/notifications/read-all');
 
+// Admin - Supporter Management
+export const getAdminSupporterUsers = (q) =>
+  API.get('/supporter/admin/users', { params: q ? { q } : {} });
+export const grantSupporterByAdmin = (userId, months) =>
+  API.post(`/supporter/admin/users/${userId}/grant`, { months });
+export const revokeSupporterByAdmin = (userId) =>
+  API.post(`/supporter/admin/users/${userId}/revoke`);
+
 // Weather
 export const getWeatherForecast = () => API.get('/weather/forecast');
 
@@ -201,3 +209,9 @@ export const createSimSession = (data) => API.post('/admin/sim/sessions', data);
 export const listSimSessions = () => API.get('/admin/sim/sessions');
 export const getSimSession = (id) => API.get(`/admin/sim/sessions/${id}`);
 export const deleteSimSession = (id) => API.delete(`/admin/sim/sessions/${id}`);
+
+// Supporter Membership
+export const getIndianSupporterPlans = () => API.get('/supporter/plans/india');
+export const getSupporterStatus = () => API.get('/supporter/status');
+export const createRazorpayOrder = (planCode) => API.post('/supporter/razorpay/order', { planCode });
+export const verifyRazorpayPayment = (payload) => API.post('/supporter/razorpay/verify', payload);

@@ -62,6 +62,91 @@
   color: var(--text-1);
 }
 
+.membership-plans-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.membership-plans-head h2 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 1.05rem;
+}
+
+.membership-plans-head p {
+  margin: 0.35rem 0 0;
+  color: var(--text-3);
+  font-size: 0.86rem;
+}
+
+.membership-active-chip {
+  margin-top: 0.9rem;
+  background: var(--accent-surface);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.84rem;
+}
+
+.membership-loading {
+  margin-top: 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text-3);
+}
+
+.membership-plan-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.8rem;
+}
+
+.membership-plan-item {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+
+.membership-plan-item.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-surface) inset;
+}
+
+.membership-plan-title {
+  color: var(--text-2);
+  font-size: 0.86rem;
+  margin-bottom: 0.3rem;
+}
+
+.membership-plan-price {
+  color: var(--text-1);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+}
+
+.membership-buy-btn {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.membership-buy-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .membership-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
