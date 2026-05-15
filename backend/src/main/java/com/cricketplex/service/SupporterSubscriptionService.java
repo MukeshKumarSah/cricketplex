@@ -110,19 +110,21 @@ public class SupporterSubscriptionService {
         }
 
         return stream
-                .sorted(Comparator.comparing(User::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(200)
-                .map(user -> Map.of(
-                        "id", user.getId(),
-                        "name", safe(user.getName()),
-                        "username", safe(user.getUsername()),
-                        "email", safe(user.getEmail()),
-                        "isSupporter", Boolean.TRUE.equals(user.getIsSupporter()),
-                        "supporterPlan", safe(user.getSupporterPlan()),
-                        "supporterProvider", safe(user.getSupporterProvider()),
-                        "supporterUntil", user.getSupporterUntil()
-                ))
-                .toList();
+            .sorted(Comparator.comparing(User::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+            .limit(200)
+            .map(user -> {
+                Map<String, Object> row = new HashMap<>();
+                row.put("id", user.getId());
+                row.put("name", safe(user.getName()));
+                row.put("username", safe(user.getUsername()));
+                row.put("email", safe(user.getEmail()));
+                row.put("isSupporter", Boolean.TRUE.equals(user.getIsSupporter()));
+                row.put("supporterPlan", safe(user.getSupporterPlan()));
+                row.put("supporterProvider", safe(user.getSupporterProvider()));
+                row.put("supporterUntil", user.getSupporterUntil());
+                return row;
+            })
+            .toList();
     }
 
     @Transactional
