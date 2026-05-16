@@ -1,20 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from 'react-hot-toast';
 import {
   HiOutlineSparkles,
   HiOutlineUser,
-  HiOutlineCamera,
   HiOutlineClock,
   HiOutlineTrophy,
   HiOutlineChatBubbleLeftRight,
   HiOutlineChartBar,
-  HiOutlineClipboardDocumentList,
   HiOutlinePlayCircle,
-  HiOutlineScale,
   HiOutlineHeart,
   HiOutlineCurrencyDollar,
   HiOutlineBookOpen,
-  HiOutlineBuildingOffice2,
   HiOutlineGlobeAlt,
   HiOutlineMagnifyingGlass,
   HiOutlineChartPie,
@@ -24,26 +20,146 @@ import {
 } from "react-icons/hi2";
 import {
   createRazorpayOrder,
+  createPayPalOrder,
+  capturePayPalOrder,
+  createStripePayment,
+  confirmStripePayment,
   getIndianSupporterPlans,
+  getGlobalSupporterPlans,
   getSupporterStatus,
   verifyRazorpayPayment,
 } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import "./Membership.css";
 
+/** PayPal Smart Buttons — rendered once on mount for the selected plan. */
+function PayPalButtonsComponent({ planCode, onSuccess }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !window.paypal) return;
+
+    const buttons = window.paypal.Buttons({
+      style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
+      createOrder: async () => {
+        const res = await createPayPalOrder(planCode);
+        return res.data.orderId;
+      },
+      onApprove: async (data) => {
+        try {
+          await onSuccess(data.orderID);
+        } catch {
+          /* handled by parent */
+        }
+      },
+      onError: () => toast.error('PayPal payment error. Please try again.'),
+      onCancel: () => toast('Payment cancelled.'),
+    });
+
+    buttons.render(containerRef.current);
+
+    return () => {
+      if (containerRef.current) containerRef.current.innerHTML = '';
+    };
+  }, [planCode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <div ref={containerRef} className="membership-paypal-btn-wrap" />;
+}
+
+/** Stripe Card Element form. */
+function StripeCheckoutComponent({ clientSecret, publishableKey, onSuccess }) {
+  const cardRef = useRef(null);
+  const stripeRef = useRef(null);
+  const cardElRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [cardError, setCardError] = useState('');
+
+  useEffect(() => {
+    if (!cardRef.current || !window.Stripe || !publishableKey) return;
+
+    const stripe = window.Stripe(publishableKey);
+    const elements = stripe.elements();
+    const card = elements.create('card', {
+      style: {
+        base: { fontSize: '15px', color: '#e2e8f0', '::placeholder': { color: '#64748b' }, iconColor: '#64748b' },
+        invalid: { color: '#f87171' },
+      },
+    });
+    card.mount(cardRef.current);
+    card.on('ready', () => setReady(true));
+    card.on('change', (e) => setCardError(e.error?.message || ''));
+
+    stripeRef.current = stripe;
+    cardElRef.current = card;
+
+    return () => card.unmount();
+  }, [publishableKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePay = async () => {
+    if (!stripeRef.current || !cardElRef.current) return;
+    setPaying(true);
+    setCardError('');
+    try {
+      const { error, paymentIntent } = await stripeRef.current.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardElRef.current },
+      });
+      if (error) {
+        setCardError(error.message || 'Payment failed');
+      } else if (paymentIntent?.status === 'succeeded') {
+        await onSuccess(paymentIntent.id);
+      }
+    } catch {
+      setCardError('Payment processing error. Please try again.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  return (
+    <div className="membership-stripe-wrap">
+      <div ref={cardRef} className="membership-stripe-card-element" />
+      {cardError && <div className="membership-stripe-error">{cardError}</div>}
+      <button
+        className="membership-buy-btn membership-stripe-pay-btn"
+        onClick={handlePay}
+        disabled={!ready || paying}
+      >
+        {paying ? 'Processing...' : 'Pay with Card'}
+      </button>
+    </div>
+  );
+}
+
 const Membership = () => {
   const { user, refreshUser } = useAuth();
+
+  // ── India / Razorpay state ────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState('india');
   const [plans, setPlans] = useState([]);
   const [status, setStatus] = useState(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [payingPlanCode, setPayingPlanCode] = useState('');
 
+  // ── International / PayPal + Stripe state ────────────────────────────────
+  const [globalPlans, setGlobalPlans] = useState([]);
+  const [paypalClientId, setPaypalClientId] = useState('');
+  const [stripePublishableKey, setStripePublishableKey] = useState('');
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+  const [stripeLoaded, setStripeLoaded] = useState(false);
+  const [globalPlansLoaded, setGlobalPlansLoaded] = useState(false);
+  const [loadingGlobalPlans, setLoadingGlobalPlans] = useState(false);
+  const [selectedIntlPlan, setSelectedIntlPlan] = useState(null);
+  const [intlPaymentMethod, setIntlPaymentMethod] = useState(null); // 'paypal' | 'stripe'
+  const [stripeClientSecret, setStripeClientSecret] = useState('');
+  const [loadingStripeIntent, setLoadingStripeIntent] = useState(false);
+  const [capturingPayPal, setCapturingPayPal] = useState(false);
+  const [capturingStripe, setCapturingStripe] = useState(false);
+
+  // ── Razorpay helpers ──────────────────────────────────────────────────────
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
+      if (window.Razorpay) { resolve(true); return; }
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -51,7 +167,7 @@ const Membership = () => {
       document.body.appendChild(script);
     });
 
-  const loadMembershipData = async () => {
+  const loadMembershipData = useCallback(async () => {
     setLoadingPlans(true);
     try {
       const [plansRes, statusRes] = await Promise.all([
@@ -65,11 +181,76 @@ const Membership = () => {
     } finally {
       setLoadingPlans(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadMembershipData();
-  }, []);
+  }, [loadMembershipData]);
+
+  // ── Load global (PayPal + Stripe) plans lazily when switching tab ────────
+  useEffect(() => {
+    if (activeTab !== 'international' || globalPlansLoaded) return;
+    const load = async () => {
+      setLoadingGlobalPlans(true);
+      try {
+        const res = await getGlobalSupporterPlans();
+        setGlobalPlans(res.data.plans || []);
+        const cid = res.data.paypalClientId || '';
+        const spk = res.data.stripePublishableKey || '';
+        setPaypalClientId(cid);
+        setStripePublishableKey(spk);
+
+        if (cid && !window.paypal) {
+          const s = document.createElement('script');
+          s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cid)}&currency=USD`;
+          s.onload = () => setPaypalLoaded(true);
+          s.onerror = () => toast.error('Failed to load PayPal SDK');
+          document.body.appendChild(s);
+        } else if (window.paypal) {
+          setPaypalLoaded(true);
+        }
+
+        if (spk && !window.Stripe) {
+          const s = document.createElement('script');
+          s.src = 'https://js.stripe.com/v3/';
+          s.onload = () => setStripeLoaded(true);
+          s.onerror = () => toast.error('Failed to load Stripe SDK');
+          document.body.appendChild(s);
+        } else if (window.Stripe) {
+          setStripeLoaded(true);
+        }
+      } catch {
+        toast.error('Failed to load international plans');
+      } finally {
+        setLoadingGlobalPlans(false);
+        setGlobalPlansLoaded(true);
+      }
+    };
+    load();
+  }, [activeTab, globalPlansLoaded]);
+
+  // ── Create Stripe PaymentIntent when user picks Stripe for a plan ─────────
+  useEffect(() => {
+    if (intlPaymentMethod !== 'stripe' || !selectedIntlPlan) return;
+    let cancelled = false;
+    const create = async () => {
+      setLoadingStripeIntent(true);
+      setStripeClientSecret('');
+      try {
+        const res = await createStripePayment(selectedIntlPlan.code);
+        if (!cancelled) setStripeClientSecret(res.data.clientSecret);
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err?.response?.data?.message || 'Unable to initiate Stripe payment');
+          setIntlPaymentMethod(null);
+        }
+      } finally {
+        if (!cancelled) setLoadingStripeIntent(false);
+      }
+    };
+    create();
+    return () => { cancelled = true; };
+  }, [intlPaymentMethod, selectedIntlPlan?.code]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPlanLabel = useMemo(() => {
     if (!status?.planCode) return '';
@@ -81,10 +262,7 @@ const Membership = () => {
     setPayingPlanCode(planCode);
     try {
       const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        toast.error('Unable to load Razorpay checkout');
-        return;
-      }
+      if (!scriptLoaded) { toast.error('Unable to load Razorpay checkout'); return; }
 
       const orderRes = await createRazorpayOrder(planCode);
       const order = orderRes.data;
@@ -96,17 +274,9 @@ const Membership = () => {
         name: 'CricketPlex Premium',
         description: `Supporter plan: ${planCode}`,
         order_id: order.orderId,
-        prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-        },
-        notes: {
-          app: 'CricketPlex',
-          planCode,
-        },
-        theme: {
-          color: '#0ea5e9',
-        },
+        prefill: { name: user?.name || '', email: user?.email || '' },
+        notes: { app: 'CricketPlex', planCode },
+        theme: { color: '#0ea5e9' },
         handler: async function (response) {
           try {
             await verifyRazorpayPayment({
@@ -125,7 +295,7 @@ const Membership = () => {
       };
 
       const razorpay = new window.Razorpay(options);
-      razorpay.on('payment.failed', function (response) {
+      razorpay.on('payment.failed', (response) => {
         toast.error(response?.error?.description || 'Payment failed');
       });
       razorpay.open();
@@ -133,6 +303,39 @@ const Membership = () => {
       toast.error(err?.response?.data?.message || 'Unable to initiate payment');
     } finally {
       setPayingPlanCode('');
+    }
+  };
+
+  const handlePayPalCapture = async (orderId) => {
+    setCapturingPayPal(true);
+    try {
+      await capturePayPalOrder(orderId);
+      toast.success('Supporter membership activated!');
+      await refreshUser();
+      await loadMembershipData();
+      setSelectedIntlPlan(null);
+      setIntlPaymentMethod(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Payment capture failed');
+    } finally {
+      setCapturingPayPal(false);
+    }
+  };
+
+  const handleStripeConfirm = async (paymentIntentId) => {
+    setCapturingStripe(true);
+    try {
+      await confirmStripePayment(paymentIntentId);
+      toast.success('Supporter membership activated!');
+      await refreshUser();
+      await loadMembershipData();
+      setSelectedIntlPlan(null);
+      setIntlPaymentMethod(null);
+      setStripeClientSecret('');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Payment confirmation failed');
+    } finally {
+      setCapturingStripe(false);
     }
   };
 
@@ -165,46 +368,187 @@ const Membership = () => {
       </div>
 
       <div className="membership-plans-card">
-        <div className="membership-plans-head">
-          <h2>India Plans (Razorpay)</h2>
-          <p>Choose a plan and pay securely with UPI, cards, netbanking, or wallet.</p>
+        {/* Tab switcher */}
+        <div className="membership-tabs">
+          <button
+            className={`membership-tab-btn${activeTab === 'india' ? ' active' : ''}`}
+            onClick={() => { setActiveTab('india'); setSelectedIntlPlan(null); setIntlPaymentMethod(null); setStripeClientSecret(''); }}
+          >
+            India — ₹ (Razorpay)
+          </button>
+          <button
+            className={`membership-tab-btn${activeTab === 'international' ? ' active' : ''}`}
+            onClick={() => setActiveTab('international')}
+          >
+            International — $ (PayPal)
+          </button>
         </div>
 
-        {status?.isSupporter && (
-          <div className="membership-active-chip">
-            Active Plan: <strong>{currentPlanLabel}</strong>
-            {status.supporterUntil ? ` (valid till ${new Date(status.supporterUntil).toLocaleDateString()})` : ''}
-          </div>
+        {/* ── India / Razorpay tab ── */}
+        {activeTab === 'india' && (
+          <>
+            <div className="membership-plans-head">
+              <h2>India Plans</h2>
+              <p>Pay securely with UPI, cards, netbanking, or wallet via Razorpay.</p>
+            </div>
+
+            {status?.isSupporter && status?.provider !== 'PAYPAL' && (
+              <div className="membership-active-chip">
+                Active Plan: <strong>{currentPlanLabel}</strong>
+                {status.supporterUntil ? ` (valid till ${new Date(status.supporterUntil).toLocaleDateString()})` : ''}
+              </div>
+            )}
+
+            {loadingPlans ? (
+              <div className="membership-loading">Loading plans...</div>
+            ) : (
+              <div className="membership-plan-grid">
+                {plans.map((plan) => {
+                  const isCurrent = status?.isSupporter && status?.planCode === plan.code && status?.provider !== 'PAYPAL';
+                  const isPaying = payingPlanCode === plan.code;
+                  return (
+                    <div className={`membership-plan-item${isCurrent ? ' active' : ''}`} key={plan.code}>
+                      <div className="membership-plan-title">{plan.label}</div>
+                      <div className="membership-plan-price">₹{plan.amount}</div>
+                      <button
+                        className="membership-buy-btn"
+                        disabled={isPaying}
+                        onClick={() => handlePayWithRazorpay(plan.code)}
+                      >
+                        {isPaying ? 'Opening checkout...' : isCurrent ? 'Renew / Upgrade' : 'Pay with Razorpay'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
-        {loadingPlans ? (
-          <div className="membership-loading">Loading plans...</div>
-        ) : (
-          <div className="membership-plan-grid">
-            {plans.map((plan) => {
-              const isCurrent = status?.isSupporter && status?.planCode === plan.code;
-              const isPaying = payingPlanCode === plan.code;
-              return (
-                <div className={`membership-plan-item ${isCurrent ? 'active' : ''}`} key={plan.code}>
-                  <div className="membership-plan-title">{plan.label}</div>
-                  <div className="membership-plan-price">Rs {plan.amount}</div>
-                  <button
-                    className="membership-buy-btn"
-                    disabled={isPaying}
-                    onClick={() => handlePayWithRazorpay(plan.code)}
-                  >
-                    {isPaying ? 'Opening checkout...' : isCurrent ? 'Renew / Upgrade' : 'Pay with Razorpay'}
-                  </button>
+        {/* ── International / PayPal + Stripe tab ── */}
+        {activeTab === 'international' && (
+          <>
+            <div className="membership-plans-head">
+              <h2>International Plans</h2>
+              <p>Pay securely in USD — choose PayPal or Card (Stripe).</p>
+            </div>
+
+            {status?.isSupporter && (status?.provider === 'PAYPAL' || status?.provider === 'STRIPE') && (
+              <div className="membership-active-chip">
+                Active Plan: <strong>{status.planCode}</strong> via {status.provider}
+                {status.supporterUntil ? ` (valid till ${new Date(status.supporterUntil).toLocaleDateString()})` : ''}
+              </div>
+            )}
+
+            {loadingGlobalPlans ? (
+              <div className="membership-loading">Loading international plans...</div>
+            ) : (!paypalClientId && !stripePublishableKey) ? (
+              <div className="membership-no-paypal">
+                International payments are not yet available. Check back soon!
+              </div>
+            ) : (
+              <>
+                <p className="membership-plan-select-hint">Select a plan to continue.</p>
+                <div className="membership-plan-grid">
+                  {globalPlans.map((plan) => {
+                    const isCurrent = status?.isSupporter && status?.planCode === plan.code
+                      && (status?.provider === 'PAYPAL' || status?.provider === 'STRIPE');
+                    const isSelected = selectedIntlPlan?.code === plan.code;
+                    return (
+                      <div
+                        key={plan.code}
+                        className={`membership-plan-item${isCurrent ? ' active' : ''}${isSelected ? ' selected' : ''}`}
+                        onClick={() => {
+                          if (isSelected) { setSelectedIntlPlan(null); setIntlPaymentMethod(null); setStripeClientSecret(''); }
+                          else { setSelectedIntlPlan(plan); setIntlPaymentMethod(null); setStripeClientSecret(''); }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && (isSelected
+                          ? (setSelectedIntlPlan(null), setIntlPaymentMethod(null))
+                          : setSelectedIntlPlan(plan))}
+                      >
+                        <div className="membership-plan-title">{plan.label}</div>
+                        <div className="membership-plan-price">${plan.amount}</div>
+                        <div className="membership-plan-select-label">
+                          {isSelected ? 'Selected ✓' : isCurrent ? 'Current plan' : 'Select'}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+
+                {selectedIntlPlan && (
+                  <div className="membership-paypal-checkout">
+                    <div className="membership-paypal-checkout-title">
+                      {selectedIntlPlan.label} — ${selectedIntlPlan.amount} USD
+                    </div>
+
+                    {/* Payment method picker */}
+                    <div className="membership-intl-methods">
+                      {paypalClientId && (
+                        <button
+                          className={`membership-method-btn${intlPaymentMethod === 'paypal' ? ' active' : ''}`}
+                          onClick={() => { setIntlPaymentMethod('paypal'); setStripeClientSecret(''); }}
+                        >
+                          PayPal
+                        </button>
+                      )}
+                      {stripePublishableKey && (
+                        <button
+                          className={`membership-method-btn${intlPaymentMethod === 'stripe' ? ' active' : ''}`}
+                          onClick={() => setIntlPaymentMethod('stripe')}
+                        >
+                          Card (Stripe)
+                        </button>
+                      )}
+                    </div>
+
+                    {/* PayPal */}
+                    {intlPaymentMethod === 'paypal' && (
+                      capturingPayPal ? (
+                        <div className="membership-loading">Confirming payment...</div>
+                      ) : paypalLoaded ? (
+                        <PayPalButtonsComponent
+                          key={selectedIntlPlan.code}
+                          planCode={selectedIntlPlan.code}
+                          onSuccess={handlePayPalCapture}
+                        />
+                      ) : (
+                        <div className="membership-loading">Loading PayPal...</div>
+                      )
+                    )}
+
+                    {/* Stripe */}
+                    {intlPaymentMethod === 'stripe' && (
+                      loadingStripeIntent ? (
+                        <div className="membership-loading">Preparing secure payment...</div>
+                      ) : stripeClientSecret && stripeLoaded ? (
+                        capturingStripe ? (
+                          <div className="membership-loading">Confirming payment...</div>
+                        ) : (
+                          <StripeCheckoutComponent
+                            key={selectedIntlPlan.code}
+                            clientSecret={stripeClientSecret}
+                            publishableKey={stripePublishableKey}
+                            onSuccess={handleStripeConfirm}
+                          />
+                        )
+                      ) : !stripeLoaded ? (
+                        <div className="membership-loading">Loading Stripe...</div>
+                      ) : null
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
 
       <div className="membership-intro-card">
         <p>
-          Step into the elite tier of cricket management. <strong>CricketPlex Premium</strong> unlocks a powerful suite of 
+          Step into the elite tier of cricket management. <strong>CricketPlex Premium</strong> unlocks a powerful suite of
           advanced analytics, deep customization, and exclusive features designed to give you the ultimate competitive edge.
         </p>
       </div>

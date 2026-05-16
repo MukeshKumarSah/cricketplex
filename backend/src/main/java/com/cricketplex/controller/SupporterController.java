@@ -1,11 +1,15 @@
 package com.cricketplex.controller;
 
+import com.cricketplex.dto.CapturePayPalOrderRequest;
+import com.cricketplex.dto.ConfirmStripePaymentRequest;
 import com.cricketplex.dto.CreateRazorpayOrderRequest;
 import com.cricketplex.dto.VerifyRazorpayPaymentRequest;
 import com.cricketplex.entity.User;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.PayPalService;
 import com.cricketplex.service.RazorpayService;
+import com.cricketplex.service.StripeService;
 import com.cricketplex.service.SupporterSubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,11 +30,24 @@ public class SupporterController {
 
     private final UserRepository userRepository;
     private final RazorpayService razorpayService;
+    private final PayPalService payPalService;
+    private final StripeService stripeService;
     private final SupporterSubscriptionService supporterSubscriptionService;
 
     @GetMapping("/plans/india")
     public ResponseEntity<?> getIndianPlans() {
         return ResponseEntity.ok(supporterSubscriptionService.getIndianPlans());
+    }
+
+    @GetMapping("/plans/global")
+    public ResponseEntity<?> getGlobalPlans() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("plans", supporterSubscriptionService.getGlobalPlans());
+        response.put("paypalClientId", payPalService.getClientId());
+        response.put("paypalConfigured", payPalService.isConfigured());
+        response.put("stripePublishableKey", stripeService.getPublishableKey());
+        response.put("stripeConfigured", stripeService.isConfigured());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/status")
@@ -87,6 +105,94 @@ public class SupporterController {
                 request.getOrderId(),
                 request.getPaymentId()
         );
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Supporter membership activated",
+                "isSupporter", true
+        ));
+    }
+
+    // ── PayPal ──
+
+    @PostMapping("/paypal/order")
+    public ResponseEntity<?> createPayPalOrder(@AuthenticationPrincipal UserPrincipal principal,
+                                               @Valid @RequestBody CreateRazorpayOrderRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        double amountUsd = supporterSubscriptionService.getAmountInUsd(request.getPlanCode());
+        String orderId = payPalService.createOrder(request.getPlanCode(), amountUsd, user.getId().toString());
+        supporterSubscriptionService.markPayPalOrderCreated(user, orderId, request.getPlanCode());
+
+        return ResponseEntity.ok(Map.of("orderId", orderId));
+    }
+
+    @PostMapping("/paypal/capture")
+    public ResponseEntity<?> capturePayPalOrder(@AuthenticationPrincipal UserPrincipal principal,
+                                                @Valid @RequestBody CapturePayPalOrderRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!request.getOrderId().equals(user.getSupporterOrderId())) {
+            throw new IllegalArgumentException("Order mismatch. Please retry payment.");
+        }
+        if (!"PAYPAL".equals(user.getSupporterProvider())) {
+            throw new IllegalArgumentException("Invalid payment provider for this order.");
+        }
+
+        String captureId = payPalService.captureOrder(request.getOrderId());
+        supporterSubscriptionService.activateSupporterPayPal(
+                user, user.getSupporterPlan(), request.getOrderId(), captureId);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Supporter membership activated",
+                "isSupporter", true
+        ));
+    }
+
+    // ── Stripe ──
+
+    @PostMapping("/stripe/order")
+    public ResponseEntity<?> createStripePayment(@AuthenticationPrincipal UserPrincipal principal,
+                                                 @Valid @RequestBody CreateRazorpayOrderRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        double amountUsd = supporterSubscriptionService.getAmountInUsd(request.getPlanCode());
+        Map<String, String> intentData = stripeService.createPaymentIntent(
+                request.getPlanCode(), amountUsd, user.getId().toString());
+
+        supporterSubscriptionService.markStripePaymentCreated(
+                user, intentData.get("paymentIntentId"), request.getPlanCode());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("clientSecret", intentData.get("clientSecret"));
+        response.put("publishableKey", stripeService.getPublishableKey());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/stripe/confirm")
+    public ResponseEntity<?> confirmStripePayment(@AuthenticationPrincipal UserPrincipal principal,
+                                                  @Valid @RequestBody ConfirmStripePaymentRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!request.getPaymentIntentId().equals(user.getSupporterOrderId())) {
+            throw new IllegalArgumentException("Payment mismatch. Please retry.");
+        }
+        if (!"STRIPE".equals(user.getSupporterProvider())) {
+            throw new IllegalArgumentException("Invalid payment provider for this order.");
+        }
+
+        boolean verified = stripeService.verifyPaymentIntent(request.getPaymentIntentId());
+        if (!verified) {
+            throw new IllegalArgumentException("Payment not confirmed by Stripe. Please try again.");
+        }
+
+        supporterSubscriptionService.activateSupporterStripe(
+                user, user.getSupporterPlan(), request.getPaymentIntentId());
 
         return ResponseEntity.ok(Map.of(
                 "success", true,

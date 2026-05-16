@@ -212,6 +212,11 @@ export const deleteSimSession = (id) => API.delete(`/admin/sim/sessions/${id}`);
 
 // Supporter Membership
 export const getIndianSupporterPlans = () => API.get('/supporter/plans/india');
+export const getGlobalSupporterPlans = () => API.get('/supporter/plans/global');
 export const getSupporterStatus = () => API.get('/supporter/status');
 export const createRazorpayOrder = (planCode) => API.post('/supporter/razorpay/order', { planCode });
 export const verifyRazorpayPayment = (payload) => API.post('/supporter/razorpay/verify', payload);
+export const createPayPalOrder = (planCode) => API.post('/supporter/paypal/order', { planCode });
+export const capturePayPalOrder = (orderId) => API.post('/supporter/paypal/capture', { orderId });
+export const createStripePayment = (planCode) => API.post('/supporter/stripe/order', { planCode });
+export const confirmStripePayment = (paymentIntentId) => API.post('/supporter/stripe/confirm', { paymentIntentId });
