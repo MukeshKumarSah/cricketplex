@@ -25,7 +25,25 @@
 .fcs-sub {
   font-size: 13px;
   color: var(--text-3);
-  margin: 0;
+  margin: 0 0 10px;
+}
+.fcs-scorecard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.fcs-scorecard-btn:hover {
+  background: var(--surface-hover, var(--primary));
+  color: var(--text-1);
 }
 
 /* -- Section ------------------ */

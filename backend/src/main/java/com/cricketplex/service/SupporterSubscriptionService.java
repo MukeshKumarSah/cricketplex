@@ -27,9 +27,9 @@ public class SupporterSubscriptionService {
 
     private static final Map<String, Double> USD_AMOUNTS = Map.of(
             "MONTHLY", 2.0,
-            "QUARTERLY", 5.0,
-            "HALF_YEARLY", 9.0,
-            "YEARLY", 15.0
+            "QUARTERLY", 5.5,
+            "HALF_YEARLY", 10.0,
+            "YEARLY", 18.0
     );
 
     private final UserRepository userRepository;
@@ -72,9 +72,9 @@ public class SupporterSubscriptionService {
     public List<Map<String, Object>> getGlobalPlans() {
         return List.of(
                 planUsd("MONTHLY", "Monthly", 2.0),
-                planUsd("QUARTERLY", "3 Monthly", 5.0),
-                planUsd("HALF_YEARLY", "6 Monthly", 9.0),
-                planUsd("YEARLY", "Yearly", 15.0)
+                planUsd("QUARTERLY", "3 Monthly", 5.5),
+                planUsd("HALF_YEARLY", "6 Monthly", 10.0),
+                planUsd("YEARLY", "Yearly", 18.0)
         );
     }
 

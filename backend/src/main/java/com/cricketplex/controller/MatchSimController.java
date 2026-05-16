@@ -729,7 +729,9 @@ public class MatchSimController {
     }
 
     private boolean isResultPublic(String fixtureStatus) {
-        return "COMPLETED".equals(fixtureStatus) || "IN_PROGRESS".equals(fixtureStatus);
+        return "COMPLETED".equals(fixtureStatus)
+                || "IN_PROGRESS".equals(fixtureStatus)
+                || "FC_DAY1_COMPLETE".equals(fixtureStatus);
     }
 
     /**

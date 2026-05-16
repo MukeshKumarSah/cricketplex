@@ -380,7 +380,7 @@ const Membership = () => {
             className={`membership-tab-btn${activeTab === 'international' ? ' active' : ''}`}
             onClick={() => setActiveTab('international')}
           >
-            International — $ (PayPal)
+            International — $ (PayPal / Stripe)
           </button>
         </div>
 
@@ -442,10 +442,6 @@ const Membership = () => {
 
             {loadingGlobalPlans ? (
               <div className="membership-loading">Loading international plans...</div>
-            ) : (!paypalClientId && !stripePublishableKey) ? (
-              <div className="membership-no-paypal">
-                International payments are not yet available. Check back soon!
-              </div>
             ) : (
               <>
                 <p className="membership-plan-select-hint">Select a plan to continue.</p>
@@ -501,6 +497,9 @@ const Membership = () => {
                         >
                           Card (Stripe)
                         </button>
+                      )}
+                      {!paypalClientId && !stripePublishableKey && (
+                        <p className="membership-no-paypal">Payment gateway not yet configured. Check back soon!</p>
                       )}
                     </div>
 

@@ -74,6 +74,7 @@ export default function FCStrategy() {
       <header className="fcs-header">
         <h1 className="fcs-title">Update Day 2 Strategy</h1>
         <p className="fcs-sub">Review Day 1 scorecard and adjust your strategy for Day 2.</p>
+        <button className="fcs-scorecard-btn" onClick={() => navigate(`/match/${fixtureId}/scorecard`)}>View Full Scorecard</button>
       </header>
 
       {/* Day 1 Innings Summary */}
