@@ -3,8 +3,10 @@ package com.cricketplex.controller;
 import com.cricketplex.entity.ChatConversation;
 import com.cricketplex.entity.ChatMember;
 import com.cricketplex.entity.ChatMessage;
+import com.cricketplex.entity.User;
 import com.cricketplex.repository.ChatConversationRepository;
 import com.cricketplex.repository.ChatMemberRepository;
+import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ChatService;
 import com.cricketplex.service.FileStorageService;
@@ -29,6 +31,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     /** Get all conversations for the current user */
     @GetMapping("/conversations")
@@ -51,13 +54,16 @@ public class ChatController {
         return ResponseEntity.ok(Map.of("conversationId", conv.getId()));
     }
 
-    /** Create a group conversation (admin only) */
+    /** Create a group conversation (supporters and admins only) */
     @PostMapping("/group")
     public ResponseEntity<?> createGroup(
             @AuthenticationPrincipal UserPrincipal user,
             @RequestBody Map<String, Object> body) {
-        if (!"ADMIN".equals(user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""))) {
-            return ResponseEntity.status(403).body(Map.of("error", "Only admins can create groups"));
+        boolean isAdmin = "ADMIN".equals(user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
+        User creator = userRepository.findById(user.getId()).orElseThrow();
+        boolean isSupporter = Boolean.TRUE.equals(creator.getIsSupporter());
+        if (!isAdmin && !isSupporter) {
+            return ResponseEntity.status(403).body(Map.of("error", "Only supporters or admins can create groups"));
         }
         String name = (String) body.get("name");
         @SuppressWarnings("unchecked")
@@ -87,7 +93,8 @@ public class ChatController {
             @AuthenticationPrincipal UserPrincipal user,
             @PathVariable UUID conversationId,
             @PathVariable UUID userId) {
-        chatService.addMember(conversationId, user.getId(), userId);
+        boolean isSysAdmin = "ADMIN".equals(user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
+        chatService.addMember(conversationId, user.getId(), userId, isSysAdmin);
 
         // Notify the newly added user
         ChatConversation conv = conversationRepo.findById(conversationId).orElse(null);
@@ -109,7 +116,8 @@ public class ChatController {
             @AuthenticationPrincipal UserPrincipal user,
             @PathVariable UUID conversationId,
             @PathVariable UUID userId) {
-        chatService.removeMember(conversationId, user.getId(), userId);
+        boolean isSysAdmin = "ADMIN".equals(user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
+        chatService.removeMember(conversationId, user.getId(), userId, isSysAdmin);
         return ResponseEntity.ok(Map.of("status", "removed"));
     }
 
@@ -161,7 +169,7 @@ public class ChatController {
         return ResponseEntity.ok(chatService.searchUsers(q, user.getId()));
     }
 
-    /** Upload group profile pic (admin only) */
+    /** Upload group profile pic (group admin only) */
     @PostMapping("/group/{conversationId}/pic")
     public ResponseEntity<?> uploadGroupPic(
             @AuthenticationPrincipal UserPrincipal user,
@@ -169,7 +177,8 @@ public class ChatController {
             @RequestParam("file") MultipartFile file) {
         ChatMember member = memberRepo.findByConversationIdAndUserId(conversationId, user.getId())
                 .orElseThrow(() -> new IllegalStateException("Not a member"));
-        if (!member.getIsAdmin()) {
+        boolean isSysAdmin = "ADMIN".equals(user.getAuthorities().iterator().next().getAuthority().replace("ROLE_", ""));
+        if (!member.getIsAdmin() && !isSysAdmin) {
             return ResponseEntity.status(403).body(Map.of("error", "Only group admins can change the picture"));
         }
         String objectKey = fileStorageService.uploadFile(file, "group-pics");

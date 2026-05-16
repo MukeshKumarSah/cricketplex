@@ -57,15 +57,19 @@ public class ChatService {
         return conv;
     }
 
-    /** Add a member to a group (only group admins can do this) */
+    /** Add a member to a group (group owner or system admin only) */
     @Transactional
-    public void addMember(UUID conversationId, UUID requesterId, UUID newUserId) {
+    public void addMember(UUID conversationId, UUID requesterId, UUID newUserId, boolean sysAdmin) {
         ChatConversation conv = conversationRepo.findById(conversationId).orElseThrow();
         if (!conv.getIsGroup()) throw new IllegalStateException("Cannot add members to DM");
 
-        ChatMember requester = memberRepo.findByConversationIdAndUserId(conversationId, requesterId)
-                .orElseThrow(() -> new IllegalStateException("Not a member"));
-        if (!requester.getIsAdmin()) throw new IllegalStateException("Only admins can add members");
+        if (!sysAdmin) {
+            // Must be a member AND be the group creator
+            memberRepo.findByConversationIdAndUserId(conversationId, requesterId)
+                    .orElseThrow(() -> new IllegalStateException("Not a member"));
+            boolean isCreator = conv.getCreatedBy() != null && conv.getCreatedBy().getId().equals(requesterId);
+            if (!isCreator) throw new IllegalStateException("Only the group owner can add members");
+        }
 
         if (memberRepo.existsByConversationIdAndUserId(conversationId, newUserId)) return;
 
@@ -73,15 +77,19 @@ public class ChatService {
         memberRepo.save(ChatMember.builder().conversation(conv).user(newUser).build());
     }
 
-    /** Remove a member from a group (only group admins can do this) */
+    /** Remove a member from a group (group owner or system admin only) */
     @Transactional
-    public void removeMember(UUID conversationId, UUID requesterId, UUID targetUserId) {
+    public void removeMember(UUID conversationId, UUID requesterId, UUID targetUserId, boolean sysAdmin) {
         ChatConversation conv = conversationRepo.findById(conversationId).orElseThrow();
         if (!conv.getIsGroup()) throw new IllegalStateException("Cannot remove members from DM");
 
-        ChatMember requester = memberRepo.findByConversationIdAndUserId(conversationId, requesterId)
-                .orElseThrow(() -> new IllegalStateException("Not a member"));
-        if (!requester.getIsAdmin()) throw new IllegalStateException("Only admins can remove members");
+        if (!sysAdmin) {
+            // Must be a member AND be the group creator
+            memberRepo.findByConversationIdAndUserId(conversationId, requesterId)
+                    .orElseThrow(() -> new IllegalStateException("Not a member"));
+            boolean isCreator = conv.getCreatedBy() != null && conv.getCreatedBy().getId().equals(requesterId);
+            if (!isCreator) throw new IllegalStateException("Only the group owner can remove members");
+        }
 
         memberRepo.deleteByConversationIdAndUserId(conversationId, targetUserId);
     }
@@ -134,6 +142,7 @@ public class ChatService {
             // Unread count
             ChatMember me = members.stream()
                     .filter(m -> m.getUser().getId().equals(userId)).findFirst().orElse(null);
+            item.put("isGroupAdmin", me != null && Boolean.TRUE.equals(me.getIsAdmin()));
             long unread = 0;
             if (me != null) {
                 unread = messageRepo.countUnreadMessages(conv.getId(), me.getLastReadAt(), userId);

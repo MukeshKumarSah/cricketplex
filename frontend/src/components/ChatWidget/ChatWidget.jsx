@@ -31,6 +31,8 @@ export default function ChatWidget() {
   const [groupMode, setGroupMode] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupMembers, setGroupMembers] = useState([]);
+  const [groupPicFile, setGroupPicFile] = useState(null);
+  const [groupPicPreview, setGroupPicPreview] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
   const [membersList, setMembersList] = useState([]);
   const [addMemberSearch, setAddMemberSearch] = useState('');
@@ -40,6 +42,8 @@ export default function ChatWidget() {
   const groupPicRef = useRef(null);
 
   const isAdmin = user?.role === 'ADMIN';
+  const isSupporter = user?.isSupporter === true || user?.isSupporter === 'true';
+  const canCreateGroup = isAdmin || isSupporter;
 
   /** Render avatar — shows pic if available, otherwise letter initial */
   const Avatar = React.memo(({ picUrl, name, isGroupIcon, size = 36 }) => (
@@ -175,11 +179,21 @@ export default function ChatWidget() {
         name: groupName.trim(),
         memberIds: groupMembers.map((m) => m.id),
       });
+      // Upload group logo if provided
+      if (groupPicFile) {
+        try {
+          const fd = new FormData();
+          fd.append('file', groupPicFile);
+          await API.post(`/chat/group/${data.conversationId}/pic`, fd);
+        } catch {}
+      }
       setGroupMode(false);
       setGroupName('');
       setGroupMembers([]);
+      setGroupPicFile(null);
+      setGroupPicPreview(null);
       await fetchConversations();
-      openConversation({ id: data.conversationId, name: data.name, isGroup: true });
+      openConversation({ id: data.conversationId, name: data.name, isGroup: true, isGroupAdmin: true });
     } catch {}
   };
 
@@ -268,7 +282,7 @@ export default function ChatWidget() {
                   <button onClick={() => setSearchMode(true)} title="New chat">
                     <HiOutlineMagnifyingGlass size={18} />
                   </button>
-                  {isAdmin && (
+                  {canCreateGroup && (
                     <button onClick={() => setGroupMode(true)} title="Create group">
                       <HiOutlineUserGroup size={18} />
                     </button>
@@ -337,12 +351,34 @@ export default function ChatWidget() {
             /* ── Create Group ── */
             <div className="cw-list">
               <div className="cw-header">
-                <button onClick={() => { setGroupMode(false); setGroupName(''); setGroupMembers([]); setSearchQuery(''); setSearchResults([]); }}>
+                <button onClick={() => { setGroupMode(false); setGroupName(''); setGroupMembers([]); setGroupPicFile(null); setGroupPicPreview(null); setSearchQuery(''); setSearchResults([]); }}>
                   <HiOutlineArrowLeft size={18} />
                 </button>
                 <span>Create Group</span>
               </div>
               <div className="cw-group-form">
+                <div className="cw-group-logo-picker">
+                  <label htmlFor="cw-group-logo-input" className="cw-group-logo-label" title="Add group logo">
+                    {groupPicPreview ? (
+                      <img src={groupPicPreview} alt="" className="cw-group-logo-preview" />
+                    ) : (
+                      <HiOutlineCamera size={24} />
+                    )}
+                  </label>
+                  <input
+                    id="cw-group-logo-input"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      setGroupPicFile(f);
+                      setGroupPicPreview(URL.createObjectURL(f));
+                    }}
+                  />
+                  <span className="cw-group-logo-hint">Group logo (optional)</span>
+                </div>
                 <input
                   type="text"
                   placeholder="Group name"
@@ -403,7 +439,7 @@ export default function ChatWidget() {
                 </button>
                 <span>Members</span>
               </div>
-              {isAdmin && (
+              {(isAdmin || activeConv?.isGroupAdmin) && (
                 <div className="cw-search-box">
                   <input
                     type="text"
@@ -428,7 +464,7 @@ export default function ChatWidget() {
                       <span className="cw-conv-name">{m.name}</span>
                       {m.isAdmin && <span className="cw-conv-meta">Admin</span>}
                     </div>
-                    {isAdmin && !m.isAdmin && m.userId !== user.id && (
+                    {(isAdmin || activeConv?.isGroupAdmin) && !m.isAdmin && m.userId !== user.id && (
                       <button className="cw-remove-btn" onClick={() => removeMemberFromGroup(m.userId)}>
                         <HiOutlineUserMinus size={16} />
                       </button>
@@ -445,7 +481,7 @@ export default function ChatWidget() {
                   <HiOutlineArrowLeft size={18} />
                 </button>
                 <span className="cw-header-title">{activeConv.name || 'Chat'}</span>
-                {activeConv.isGroup && isAdmin && (
+                {activeConv.isGroup && (isAdmin || activeConv.isGroupAdmin) && (
                   <>
                     <button onClick={() => groupPicRef.current?.click()} title="Change group pic">
                       <HiOutlineCamera size={18} />
