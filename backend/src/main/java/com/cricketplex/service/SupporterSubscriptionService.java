@@ -1,8 +1,12 @@
 package com.cricketplex.service;
 
+import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
+import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SupporterSubscriptionService {
@@ -33,6 +38,7 @@ public class SupporterSubscriptionService {
     );
 
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
 
     public int getAmountInPaise(String planCode) {
         Integer amount = INR_AMOUNTS.get(planCode);
@@ -242,7 +248,12 @@ public class SupporterSubscriptionService {
     public void revokeSupporterByAdmin(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        revokeSupporter(user);
+    }
 
+    /** Shared revoke logic — used by admin revoke and scheduled expiry. */
+    @Transactional
+    public void revokeSupporter(User user) {
         user.setIsSupporter(false);
         user.setSupporterPlan(null);
         user.setSupporterProvider(null);
@@ -250,7 +261,49 @@ public class SupporterSubscriptionService {
         user.setSupporterPaymentId(null);
         user.setSupporterSince(null);
         user.setSupporterUntil(null);
+        stripSupporterPerks(user);
         userRepository.save(user);
+    }
+
+    /**
+     * Strips supporter-gated perks from a user:
+     * - Converts their secondary team (teamOrder=2) to a bot and removes ownership.
+     * - Resets activeTeamId to their primary team if they were on the secondary one.
+     */
+    private void stripSupporterPerks(User user) {
+        List<Team> teams = teamRepository.findByOwnerOrderByTeamOrderAsc(user);
+        Team primary = teams.stream().filter(t -> t.getTeamOrder() == 1).findFirst().orElse(null);
+        Team secondary = teams.stream().filter(t -> t.getTeamOrder() == 2).findFirst().orElse(null);
+
+        if (secondary != null) {
+            // If user is currently playing as the secondary team, switch them back to primary.
+            if (secondary.getId().equals(user.getActiveTeamId()) && primary != null) {
+                user.setActiveTeamId(primary.getId());
+            }
+            secondary.setIsBot(true);
+            secondary.setOwner(null);
+            teamRepository.save(secondary);
+            log.info("Secondary team {} (owner {}) converted to bot on supporter revoke/expiry",
+                    secondary.getId(), user.getId());
+        }
+    }
+
+    /** Daily job — auto-expire supporters whose plan period has ended. */
+    @Scheduled(cron = "0 0 1 * * *", zone = "UTC")
+    @Transactional
+    public void expireStaleSupport() {
+        List<User> expired = userRepository.findExpiredSupporters(LocalDateTime.now());
+        for (User user : expired) {
+            try {
+                revokeSupporter(user);
+                log.info("Supporter plan expired and revoked for user {}", user.getId());
+            } catch (Exception e) {
+                log.error("Failed to expire supporter for user {}: {}", user.getId(), e.getMessage());
+            }
+        }
+        if (!expired.isEmpty()) {
+            log.info("Expired {} supporter plan(s)", expired.size());
+        }
     }
 
     private boolean containsIgnoreCase(String value, String q) {
