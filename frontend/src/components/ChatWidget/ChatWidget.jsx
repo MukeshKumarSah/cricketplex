@@ -46,8 +46,16 @@ export default function ChatWidget() {
   const canCreateGroup = isAdmin || isSupporter;
 
   /** Render avatar — shows pic if available, otherwise letter initial */
-  const Avatar = React.memo(({ picUrl, name, isGroupIcon, size = 36 }) => (
-    <div className="cw-conv-avatar" style={{ width: size, height: size, minWidth: size }}>
+  const Avatar = React.memo(({ picUrl, name, isGroupIcon, isGroup, size = 36 }) => (
+    <div
+      className="cw-conv-avatar"
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        ...(isGroup ? { outline: '2px solid #f59e0b', outlineOffset: '1px' } : {}),
+      }}
+    >
       {picUrl ? (
         <img src={picUrl} alt="" className="cw-avatar-img" />
       ) : isGroupIcon ? (
@@ -296,19 +304,23 @@ export default function ChatWidget() {
                 {conversations.map((c) => (
                   <div
                     key={c.id}
-                    className="cw-conv-item"
+                    className={`cw-conv-item${c.isGroup ? ' is-group' : ''}`}
                     onClick={() => openConversation(c)}
                   >
                     <Avatar
                       picUrl={c.isGroup ? c.groupPicUrl : c.profilePicUrl}
                       name={c.name}
                       isGroupIcon={c.isGroup && !c.groupPicUrl}
+                      isGroup={c.isGroup}
                     />
                     <div className="cw-conv-info">
-                      <span className="cw-conv-name">{c.name || 'Unknown'}</span>
-                      {c.isGroup && c.memberCount && (
-                        <span className="cw-conv-meta">{c.memberCount} members</span>
-                      )}
+                      <div className="cw-conv-name-row">
+                        <span className="cw-conv-name">{c.name || 'Unknown'}</span>
+                        {c.isGroup && <span className="cw-group-badge">GROUP</span>}
+                      </div>
+                      <span className="cw-conv-meta">
+                        {c.isGroup ? `${c.memberCount ?? ''} members` : 'Direct message'}
+                      </span>
                     </div>
                     {c.unread > 0 && (
                       <span className="cw-conv-unread">{c.unread}</span>

@@ -125,9 +125,40 @@
   padding: 10px 16px;
   cursor: pointer;
   transition: background 0.12s;
+  border-left: 3px solid transparent;
 }
 .cw-conv-item:hover {
   background: var(--surface-hover);
+}
+
+/* Group conversation — amber left accent */
+.cw-conv-item.is-group {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+.cw-conv-item.is-group:hover {
+  background: rgba(245, 158, 11, 0.09);
+}
+
+/* Name + badge inline row */
+.cw-conv-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* GROUP pill badge */
+.cw-group-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  padding: 1px 4px;
+  flex-shrink: 0;
+  line-height: 1.4;
 }
 .cw-conv-avatar {
   width: 36px;
