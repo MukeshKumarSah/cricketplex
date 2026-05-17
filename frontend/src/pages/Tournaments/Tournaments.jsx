@@ -48,7 +48,7 @@ export default function Tournaments() {
     type: 'LEAGUE',
     format: 'T20',
     scheduleType: 'WEEKLY',
-    scheduleDays: 'SATURDAY',
+    selectedDays: ['SAT'],
     isPublic: true,
     startDate: '',
   });
@@ -64,12 +64,55 @@ export default function Tournaments() {
 
   useEffect(() => { load(); }, [filter]); // eslint-disable-line
 
+  const ALL_DAYS = [
+    { key: 'MON', label: 'Mon' },
+    { key: 'TUE', label: 'Tue' },
+    { key: 'WED', label: 'Wed' },
+    { key: 'THU', label: 'Thu' },
+    { key: 'FRI', label: 'Fri' },
+    { key: 'SAT', label: 'Sat' },
+    { key: 'SUN', label: 'Sun' },
+  ];
+
+  const MAX_DAYS_PER_TYPE = { WEEKLY: 1, BIWEEKLY: 2, TRIWEEKLY: 3, DAILY: 0 };
+  const DEFAULT_DAYS = {
+    WEEKLY: ['SAT'],
+    BIWEEKLY: ['MON', 'THU'],
+    TRIWEEKLY: ['MON', 'WED', 'SAT'],
+    DAILY: [],
+  };
+
+  const handleScheduleTypeChange = (e) => {
+    const newType = e.target.value;
+    setForm((f) => ({ ...f, scheduleType: newType, selectedDays: DEFAULT_DAYS[newType] }));
+  };
+
+  const toggleDay = (day) => {
+    const max = MAX_DAYS_PER_TYPE[form.scheduleType];
+    const current = form.selectedDays;
+    if (current.includes(day)) {
+      if (current.length > 1) setForm((f) => ({ ...f, selectedDays: current.filter((d) => d !== day) }));
+    } else {
+      if (current.length < max) {
+        setForm((f) => ({ ...f, selectedDays: [...current, day] }));
+      } else {
+        setForm((f) => ({ ...f, selectedDays: [...current.slice(1), day] }));
+      }
+    }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
       const payload = {
-        ...form,
+        name: form.name,
+        type: form.type,
+        format: form.format,
+        scheduleType: form.scheduleType,
+        scheduleDays: form.scheduleType === 'DAILY'
+          ? 'MON,TUE,WED,THU,FRI,SAT,SUN'
+          : form.selectedDays.join(','),
         isPublic: form.isPublic === true || form.isPublic === 'true',
         startDate: form.startDate || undefined,
       };
@@ -214,22 +257,35 @@ export default function Tournaments() {
                   </select>
                 </label>
               </div>
-              <div className="form-row">
-                <label>Schedule
-                  <select value={form.scheduleType} onChange={(e) => setForm({ ...form, scheduleType: e.target.value })}>
-                    <option value="WEEKLY">Weekly (1/week)</option>
-                    <option value="BIWEEKLY">Bi-weekly (2/week)</option>
-                    <option value="TRIWEEKLY">Tri-weekly (3/week)</option>
-                  </select>
+              <label>Schedule
+                <select value={form.scheduleType} onChange={handleScheduleTypeChange}>
+                  <option value="WEEKLY">Weekly (1/week)</option>
+                  <option value="BIWEEKLY">Bi-weekly (2/week)</option>
+                  <option value="TRIWEEKLY">Tri-weekly (3/week)</option>
+                  <option value="DAILY">Daily (every day)</option>
+                </select>
+              </label>
+              {form.scheduleType !== 'DAILY' && (
+                <label>Match Days
+                  <div className="day-picker">
+                    {ALL_DAYS.map(({ key, label }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`day-btn${form.selectedDays.includes(key) ? ' selected' : ''}`}
+                        onClick={() => toggleDay(key)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="day-hint">
+                    {MAX_DAYS_PER_TYPE[form.scheduleType] === 1
+                      ? 'Select 1 day'
+                      : `Select ${MAX_DAYS_PER_TYPE[form.scheduleType]} days`}
+                  </span>
                 </label>
-                <label>Match Day(s)
-                  <input
-                    placeholder="e.g. SATURDAY or MON,THU"
-                    value={form.scheduleDays}
-                    onChange={(e) => setForm({ ...form, scheduleDays: e.target.value })}
-                  />
-                </label>
-              </div>
+              )}
               <label>Start Date
                 <input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
               </label>
