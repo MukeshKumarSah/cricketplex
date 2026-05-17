@@ -10,10 +10,10 @@ import './BlogCreate.css';
 export default function BlogCreate() {
   const { id }    = useParams(); // present when editing
   const navigate  = useNavigate();
-  const { user }  = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const isEdit = Boolean(id);
-  const canWrite = user?.role === 'ADMIN' || user?.isSupporter === true;
+  const canWrite = user?.role === 'ADMIN' || Boolean(user?.isSupporter);
 
   const [title,       setTitle]       = useState('');
   const [description, setDescription] = useState('');
@@ -22,10 +22,11 @@ export default function BlogCreate() {
   const [saving,      setSaving]      = useState(false);
   const [loading,     setLoading]     = useState(isEdit);
 
-  // Redirect non-writers (wait for user to load first)
+  // Redirect non-writers (wait for auth to fully load first)
   useEffect(() => {
-    if (user && !canWrite) navigate('/home/blogs');
-  }, [user, canWrite, navigate]);
+    if (!authLoading && user && !canWrite) navigate('/home/blogs');
+    if (!authLoading && !user) navigate('/login');
+  }, [authLoading, user, canWrite, navigate]);
 
   // Load existing blog for edit
   useEffect(() => {

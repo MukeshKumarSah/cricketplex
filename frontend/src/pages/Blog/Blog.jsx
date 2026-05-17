@@ -39,7 +39,7 @@ export default function Blog() {
   const [page, setPage]   = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const canWrite = user?.role === 'ADMIN' || user?.isSupporter === true;
+  const canWrite = user?.role === 'ADMIN' || Boolean(user?.isSupporter);
 
   // Mark blog page as visited — clears the sidebar new-blog badge
   useEffect(() => {
