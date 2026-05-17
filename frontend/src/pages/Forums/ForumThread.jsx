@@ -327,16 +327,6 @@ export default function ForumThread() {
   );
 }
 
-  const { threadId }        = useParams();
-  const navigate            = useNavigate();
-  const { user: authUser }  = useAuth();
-  const isAdmin             = authUser?.role === 'ADMIN';
-  const bottomRef           = useRef(null);
-
-  const [thread,   setThread]   = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [body,     setBody]     = useState('');
-  const [posting,  setPosting]  = useState(false);
 
   const load = () => {
     setLoading(true);
