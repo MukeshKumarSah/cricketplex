@@ -22,10 +22,10 @@ export default function BlogCreate() {
   const [saving,      setSaving]      = useState(false);
   const [loading,     setLoading]     = useState(isEdit);
 
-  // Redirect non-writers
+  // Redirect non-writers (wait for user to load first)
   useEffect(() => {
-    if (!canWrite) navigate('/home/blogs');
-  }, [canWrite, navigate]);
+    if (user && !canWrite) navigate('/home/blogs');
+  }, [user, canWrite, navigate]);
 
   // Load existing blog for edit
   useEffect(() => {
