@@ -66,12 +66,12 @@ function applyInlineRules(segs) {
     </a>
   ));
 
-  // Bold
+  // Bold (before italic so ** consumed first)
   segs = applyRule(segs, /\*\*(.+?)\*\*/, m => (
     <strong key={key()}>{m[1]}</strong>
   ));
 
-  // Italic (must come after bold so ** is consumed first)
+  // Italic
   segs = applyRule(segs, /\*(.+?)\*/, m => (
     <em key={key()}>{m[1]}</em>
   ));
@@ -79,6 +79,11 @@ function applyInlineRules(segs) {
   // Strikethrough
   segs = applyRule(segs, /~~(.+?)~~/, m => (
     <s key={key()}>{m[1]}</s>
+  ));
+
+  // Underline
+  segs = applyRule(segs, /__(.+?)__/, m => (
+    <u key={key()}>{m[1]}</u>
   ));
 
   // Colors — whitelist only
@@ -90,25 +95,74 @@ function applyInlineRules(segs) {
   return segs;
 }
 
+/** Render a block of pipe-separated lines as a <table> */
+function renderTable(lines) {
+  const isSep = (row) => row.every(c => /^[-: ]+$/.test(c));
+  const parsed = lines.map(l =>
+    l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim())
+  );
+  const rows = parsed.filter(r => !isSep(r));
+  const [headerRow, ...bodyRows] = rows;
+  if (!headerRow) return null;
+
+  return (
+    <table key={key()} className="rt-table">
+      <thead>
+        <tr>
+          {headerRow.map((cell, ci) => (
+            <th key={ci}>{applyInlineRules([cell])}</th>
+          ))}
+        </tr>
+      </thead>
+      {bodyRows.length > 0 && (
+        <tbody>
+          {bodyRows.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => (
+                <td key={ci}>{applyInlineRules([cell])}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      )}
+    </table>
+  );
+}
+
 function parseSegments(text) {
   const lines = text.split('\n');
   const output = [];
+  let i = 0;
 
-  for (let i = 0; i < lines.length; i++) {
-    if (i > 0) output.push(<br key={key()} />);
-
+  while (i < lines.length) {
     const line = lines[i];
+
+    // Table block: collect all consecutive lines starting with |
+    if (line.trim().startsWith('|')) {
+      if (output.length > 0) output.push(<br key={key()} />);
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const tbl = renderTable(tableLines);
+      if (tbl) output.push(tbl);
+      continue;
+    }
+
+    if (output.length > 0) output.push(<br key={key()} />);
+
+    // Heading
     const hMatch = line.match(/^(#{1,3}) (.+)/);
     if (hMatch) {
-      const level = hMatch[1].length; // 1, 2, or 3
-      // Map # → h2, ## → h3, ### → h4 (h1 reserved for page title)
-      const Tag = `h${level + 1}`;
-      const inlineContent = applyInlineRules([hMatch[2]]);
-      output.push(<Tag key={key()} className="rt-heading">{inlineContent}</Tag>);
+      const level = hMatch[1].length;
+      const Tag = `h${level + 1}`; // # → h2, ## → h3, ### → h4
+      output.push(<Tag key={key()} className="rt-heading">{applyInlineRules([hMatch[2]])}</Tag>);
     } else {
-      const inlineContent = applyInlineRules([line]);
-      output.push(...inlineContent);
+      output.push(...applyInlineRules([line]));
     }
+
+    i++;
   }
 
   return output;

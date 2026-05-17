@@ -42,6 +42,15 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
   function handleBold()          { wrap('**', '**'); }
   function handleItalic()        { wrap('*', '*'); }
   function handleStrike()        { wrap('~~', '~~'); }
+  function handleUnderline()     { wrap('__', '__'); }
+
+  function handleInsertTable() {
+    const ta = taRef.current;
+    const pos = ta ? ta.selectionStart : value.length;
+    const template = '\n| Header 1 | Header 2 | Header 3 |\n| --- | --- | --- |\n| Cell | Cell | Cell |\n';
+    const next = value.slice(0, pos) + template + value.slice(pos);
+    onChange(next);
+  }
 
   function handleLink() {
     const ta = taRef.current;
@@ -112,6 +121,7 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
         <button type="button" title="Bold" onClick={handleBold}><b>B</b></button>
         <button type="button" title="Italic" onClick={handleItalic}><i>I</i></button>
         <button type="button" title="Strikethrough" onClick={handleStrike}><s>S</s></button>
+        <button type="button" title="Underline" onClick={handleUnderline}><u>U</u></button>
         <div className="sep" />
         <button type="button" title="Link" onClick={handleLink}>🔗</button>
         <div className="sep" />
@@ -147,12 +157,13 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
             disabled={uploading}
           />
         </label>
+        <button type="button" title="Insert table" className="rt-heading-btn" onClick={handleInsertTable}>⊠</button>
         <div className="sep" />
         <button type="button" title="Heading 1" className="rt-heading-btn" onClick={() => insertHeading('# ')}>H1</button>
         <button type="button" title="Heading 2" className="rt-heading-btn" onClick={() => insertHeading('## ')}>H2</button>
         <button type="button" title="Heading 3" className="rt-heading-btn" onClick={() => insertHeading('### ')}>H3</button>
         <div className="sep" />
-        {['👍','👎','💯','🔥','😂','💀','✅','❌','🙏','👀','💪','🎉','🤝','😭','✨'].map(emoji => (
+        {['👍','👎','💯','🔥','😂','💀','✅','❌','🙏','👀','💪','🎉','🤝','😭','✨','❓','❔'].map(emoji => (
           <button key={emoji} type="button" className="rt-emoji-btn" title={emoji} onClick={() => insertEmoji(emoji)}>{emoji}</button>
         ))}
       </div>

@@ -208,14 +208,14 @@ public class ForumService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getPanel() {
-        List<ForumThread> mostActive = threadRepo.findMostActiveThreads(PageRequest.of(0, 1));
-        List<ForumThread> recentlyCreated = threadRepo.findRecentlyCreatedThreads(PageRequest.of(0, 1));
-        List<ForumThread> recentActivity = threadRepo.findRecentActivityThreads(PageRequest.of(0, 1));
+        List<ForumThread> mostActive     = threadRepo.findMostActiveThreads(PageRequest.of(0, 5));
+        List<ForumThread> recentlyCreated = threadRepo.findRecentlyCreatedThreads(PageRequest.of(0, 5));
+        List<ForumThread> recentActivity  = threadRepo.findRecentActivityThreads(PageRequest.of(0, 5));
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("mostActiveThread",     mostActive.isEmpty()     ? null : toThreadRef(mostActive.get(0)));
-        result.put("recentlyCreatedThread", recentlyCreated.isEmpty() ? null : toThreadRef(recentlyCreated.get(0)));
-        result.put("recentActivityThread", recentActivity.isEmpty()  ? null : toThreadRef(recentActivity.get(0)));
+        result.put("mostActiveThreads",      mostActive.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
+        result.put("recentlyCreatedThreads", recentlyCreated.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
+        result.put("recentActivityThreads",  recentActivity.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
         return result;
     }
 

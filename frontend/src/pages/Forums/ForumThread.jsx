@@ -17,6 +17,8 @@ import {
   HiOutlineTrash,
   HiOutlinePencil,
   HiOutlineChatBubbleOvalLeft,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
@@ -25,12 +27,14 @@ import './ForumThread.css';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  const utc = (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr)) ? dateStr : dateStr + 'Z';
+  return new Date(utc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const utc = (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr)) ? dateStr : dateStr + 'Z';
+  const diff = Date.now() - new Date(utc).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1)  return 'just now';
   if (mins < 60) return `${mins}m ago`;
@@ -38,7 +42,7 @@ function timeAgo(dateStr) {
   if (hrs  < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+  return new Date(utc).toLocaleDateString();
 }
 
 export default function ForumThread() {
@@ -52,6 +56,10 @@ export default function ForumThread() {
   const [loading, setLoading] = useState(true);
   const [body,    setBody]    = useState('');
   const [posting, setPosting] = useState(false);
+
+  // Comment pagination
+  const COMMENTS_PER_PAGE = 30;
+  const [commentPage, setCommentPage] = useState(0);
 
   // Edit thread body
   const [editingThread, setEditingThread] = useState(false);
@@ -69,7 +77,7 @@ export default function ForumThread() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [threadId]); // eslint-disable-line
+  useEffect(() => { setCommentPage(0); load(); }, [threadId]); // eslint-disable-line
 
   /* ── Reply ── */
   const handleComment = async (e) => {
@@ -79,8 +87,13 @@ export default function ForumThread() {
     try {
       await addForumComment(threadId, { body });
       setBody('');
-      load();
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+      // reload then jump to last page to see the new comment
+      getForumThread(threadId).then((r) => {
+        setThread(r.data);
+        const lastPage = Math.max(0, Math.ceil(r.data.comments.length / COMMENTS_PER_PAGE) - 1);
+        setCommentPage(lastPage);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+      });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to post comment');
     } finally {
@@ -240,7 +253,17 @@ export default function ForumThread() {
           {thread.commentCount} {thread.commentCount === 1 ? 'Reply' : 'Replies'}
         </h2>
 
-        {thread.comments.map((c, i) => (
+        {(() => {
+          const totalPages = Math.ceil(thread.comments.length / COMMENTS_PER_PAGE);
+          const pageComments = thread.comments.slice(
+            commentPage * COMMENTS_PER_PAGE,
+            (commentPage + 1) * COMMENTS_PER_PAGE
+          );
+          const startNum = commentPage * COMMENTS_PER_PAGE;
+
+          return (
+            <>
+              {pageComments.map((c, i) => (
           <div key={c.id} className={`ft-comment ${c.isOwnComment ? 'ft-comment-own' : ''}`}>
             <div className="ft-comment-avatar" title={c.authorName}>
               {c.authorName.charAt(0).toUpperCase()}
@@ -248,7 +271,7 @@ export default function ForumThread() {
             <div className="ft-comment-body-area">
               <div className="ft-comment-header">
                 <strong className="ft-comment-author">{c.authorName}</strong>
-                <span className="ft-comment-num">#{i + 1}</span>
+                <span className="ft-comment-num">#{startNum + i + 1}</span>
                 <span className="ft-comment-time" title={formatDate(c.createdAt)}>
                   {timeAgo(c.createdAt)}
                 </span>
@@ -295,9 +318,35 @@ export default function ForumThread() {
           </div>
         ))}
 
-        {thread.comments.length === 0 && (
-          <p className="ft-no-comments">No replies yet. Be the first!</p>
-        )}
+              {thread.comments.length === 0 && (
+                <p className="ft-no-comments">No replies yet. Be the first!</p>
+              )}
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="ft-pagination">
+                  <button
+                    className="btn-ghost ft-page-btn"
+                    disabled={commentPage === 0}
+                    onClick={() => { setCommentPage(p => p - 1); window.scrollTo({ top: 0 }); }}
+                  >
+                    <HiOutlineChevronLeft /> Prev
+                  </button>
+                  <span className="ft-page-info">
+                    Page {commentPage + 1} of {totalPages}
+                  </span>
+                  <button
+                    className="btn-ghost ft-page-btn"
+                    disabled={commentPage === totalPages - 1}
+                    onClick={() => { setCommentPage(p => p + 1); window.scrollTo({ top: 0 }); }}
+                  >
+                    Next <HiOutlineChevronRight />
+                  </button>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* ── Reply box ── */}

@@ -9,12 +9,11 @@
 }
 
 .ft-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding-bottom: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  max-width: 900px;
 }
 
 .ft-back {
@@ -108,6 +107,31 @@
   text-align: center;
   color: var(--text-2);
   padding: 1.5rem;
+}
+
+/* Pagination */
+.ft-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0 .5rem;
+  border-top: 1px solid var(--border);
+  margin-top: .5rem;
+}
+
+.ft-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .85rem;
+}
+
+.ft-page-info {
+  font-size: .85rem;
+  color: var(--text-2);
+  min-width: 90px;
+  text-align: center;
 }
 
 .ft-comment {

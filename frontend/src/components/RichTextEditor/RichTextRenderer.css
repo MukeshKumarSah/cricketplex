@@ -41,3 +41,28 @@
 h2.rt-heading { font-size: 1.15rem; }
 h3.rt-heading { font-size: 1rem; }
 h4.rt-heading { font-size: .9rem; }
+
+/* ── Table ── */
+.rt-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: .85rem;
+}
+
+.rt-table th,
+.rt-table td {
+  border: 1px solid var(--border);
+  padding: .35rem .65rem;
+  text-align: left;
+  color: var(--text-1);
+}
+
+.rt-table th {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.rt-table tr:nth-child(even) td {
+  background: var(--surface-2);
+}
