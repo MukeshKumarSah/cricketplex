@@ -103,6 +103,25 @@ public class Fixture {
     @Column(name = "fc_declare_inn3_lead")
     private Integer fcDeclareInn3Lead;
 
+    // ─── Friendly tournament fields ───────────────────────────────
+
+    /** Non-null when this fixture belongs to a friendly tournament. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "friendly_tournament_id")
+    private FriendlyTournament friendlyTournament;
+
+    /** 1 = first leg, 2 = second leg (double round-robin league). */
+    @Column(name = "tournament_leg")
+    private Integer tournamentLeg;
+
+    /** "Preliminary", "Quarter Final", "Semi Final", "Final" (knockout). */
+    @Column(name = "tournament_round_name", length = 30)
+    private String tournamentRoundName;
+
+    /** Slot index within the round — used to wire up bracket advancement. */
+    @Column(name = "tournament_slot")
+    private Integer tournamentSlot;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

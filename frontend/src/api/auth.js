@@ -139,6 +139,17 @@ export const declineChallenge = (id) => API.post(`/challenges/${id}/decline`);
 export const cancelChallenge = (id) => API.post(`/challenges/${id}/cancel`);
 export const simulateChallenge = (id) => API.post(`/challenges/${id}/simulate`);
 
+// Friendly Tournaments
+export const listTournaments = (filter) => API.get('/tournaments', { params: filter ? { filter } : {} });
+export const getTournamentDetail = (id) => API.get(`/tournaments/${id}`);
+export const createTournament = (data) => API.post('/tournaments', data);
+export const inviteTeamToTournament = (id, teamId) => API.post(`/tournaments/${id}/invite/${teamId}`);
+export const joinTournamentByCode = (code) => API.post('/tournaments/join', { code });
+export const respondTournamentInvite = (id, accept) => API.post(`/tournaments/${id}/respond`, { accept });
+export const startTournament = (id) => API.post(`/tournaments/${id}/start`);
+export const advanceKnockoutRound = (id) => API.post(`/tournaments/${id}/advance`);
+export const cancelTournament = (id) => API.delete(`/tournaments/${id}`);
+
 // Match Result
 export const getMatchResult = (fixtureId) => API.get(`/match/result/${fixtureId}`);
 export const getCommentary = (fixtureId) => API.get(`/match/commentary/${fixtureId}`);

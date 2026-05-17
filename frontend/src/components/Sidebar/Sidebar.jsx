@@ -27,6 +27,7 @@ import {
   HiOutlineBeaker,
   HiOutlineCalendarDays,
   HiOutlineStar,
+  HiOutlineFlag,
 } from 'react-icons/hi2';
 import './Sidebar.css';
 
@@ -35,6 +36,7 @@ const menuItems = [
   { label: 'Squad', icon: HiOutlineUserGroup, path: '/squad' },
   { label: 'Matches', icon: HiOutlineTrophy, path: '/matches' },
   { label: 'Cup', icon: HiOutlineStar, path: '/cup' },
+  { label: 'Tournaments', icon: HiOutlineFlag, path: '/tournaments' },
   { label: 'Challenges', icon: HiOutlineBolt, path: '/challenges' },
   { label: 'Academy', icon: HiOutlineAcademicCap, path: '/academy' },
   { label: 'Finances', icon: HiOutlineBanknotes, path: '/finances' },

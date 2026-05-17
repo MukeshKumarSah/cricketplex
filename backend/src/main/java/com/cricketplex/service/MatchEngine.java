@@ -4,6 +4,8 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +84,10 @@ public class MatchEngine {
     private final WeatherService               weatherService;
     private final ActivityLogService           activityLogService;
     private final FixtureService               fixtureService;
+
+    // Lazy to avoid circular dependency (FriendlyTournamentService uses FixtureRepository etc.)
+    @Autowired @Lazy
+    private FriendlyTournamentService friendlyTournamentService;
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  PUBLIC ENTRY POINT
@@ -203,6 +209,9 @@ public class MatchEngine {
             distributeGateMoney(result, fixture);
         }
         MatchResult saved = matchResultRepository.save(result);
+        if (!isSim && fixture.getFriendlyTournament() != null) {
+            friendlyTournamentService.onMatchCompleted(fixture, saved);
+        }
         if (!isSim) fixtureService.applyPendingSwap(fixture.getId(), saved);
         return saved;
     }

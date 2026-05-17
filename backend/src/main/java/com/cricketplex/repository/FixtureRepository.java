@@ -89,4 +89,15 @@ public interface FixtureRepository extends JpaRepository<Fixture, UUID> {
             @Param("matchType") String matchType,
             @Param("status") String status,
             @Param("date") java.time.LocalDate date);
+
+    // ── Friendly tournament fixture queries ──────────────────────────────────
+
+    List<Fixture> findByFriendlyTournamentIdOrderByRoundAscMatchNumberAsc(UUID tournamentId);
+
+    List<Fixture> findByFriendlyTournamentIdAndTournamentRoundName(UUID tournamentId, String roundName);
+
+    long countByFriendlyTournamentIdAndTournamentRoundNameAndStatus(
+            UUID tournamentId, String roundName, String status);
+
+    long countByFriendlyTournamentIdAndTournamentRoundName(UUID tournamentId, String roundName);
 }

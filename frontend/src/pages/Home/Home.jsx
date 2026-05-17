@@ -36,6 +36,8 @@ import NotificationBell from '../../components/NotificationBell/NotificationBell
 import Membership from '../Membership/Membership';
 import SeasonCalendar from '../Calendar/Calendar';
 import Cup from '../Cup/Cup';
+import Tournaments from '../Tournaments/Tournaments';
+import TournamentDetail from '../Tournaments/TournamentDetail';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -204,6 +206,14 @@ export default function Home() {
             <Route
               path="cup"
               element={<Cup />}
+            />
+            <Route
+              path="tournaments"
+              element={<Tournaments />}
+            />
+            <Route
+              path="tournaments/:id"
+              element={<TournamentDetail />}
             />
             <Route
               path="team-list"
