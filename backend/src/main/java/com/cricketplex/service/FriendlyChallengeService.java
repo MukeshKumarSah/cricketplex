@@ -7,10 +7,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -26,6 +29,10 @@ public class FriendlyChallengeService {
     private final MatchEngine matchEngine;
     private final NotificationService notificationService;
     private final TeamHelper teamHelper;
+
+    @Value("${app.season1-start}")
+    private String season1StartStr;
+    private static final int SEASON_DAYS = 56;
 
     private static final Set<String> ALLOWED_TIMES = Set.of("02:00", "07:00", "07:30", "12:00", "17:00", "21:00");
 
@@ -137,6 +144,7 @@ public class FriendlyChallengeService {
                 .matchType("FRIENDLY")
                 .format(challenge.getFormat())
                 .status("SCHEDULED")
+                .season(seasonForDate(challenge.getMatchDate()))
                 .round(0)
                 .matchNumber(0)
                 .build();
@@ -364,5 +372,12 @@ public class FriendlyChallengeService {
         }
 
         return result;
+    }
+
+    private int seasonForDate(LocalDate date) {
+        LocalDate s1Start = LocalDate.parse(season1StartStr);
+        if (date.isBefore(s1Start)) return 1;
+        long days = ChronoUnit.DAYS.between(s1Start, date);
+        return 1 + (int)(days / SEASON_DAYS);
     }
 }

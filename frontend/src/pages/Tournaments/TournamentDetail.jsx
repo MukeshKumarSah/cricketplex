@@ -58,7 +58,7 @@ export default function TournamentDetail() {
   useEffect(() => { load(); }, [id]); // eslint-disable-line
 
   const openInviteModal = () => {
-    getTeamList().then((r) => setAllTeams(r.data)).catch(() => {});
+    getTeamList().then((r) => setAllTeams(r.data.filter(t => !t.isBot))).catch(() => {});
     setShowInvite(true);
   };
 

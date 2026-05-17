@@ -7,9 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,6 +32,10 @@ public class FriendlyTournamentService {
     private final MatchResultRepository matchResultRepo;
     private final UserRepository userRepo;
     private final TeamRepository teamRepo;
+
+    @Value("${app.season1-start}")
+    private String season1StartStr;
+    private static final int SEASON_DAYS = 56;
 
     // ═══════════════════════════════════════════════════════════════
     //  CREATE / MANAGE TOURNAMENT
@@ -214,7 +221,7 @@ public class FriendlyTournamentService {
                         .friendlyTournament(t)
                         .matchType("FRIENDLY")
                         .format(t.getFormat())
-                        .season(1)
+                        .season(seasonForDate(date))
                         .round(round + 1)
                         .matchNumber(matchNum)
                         .homeTeam(home)
@@ -239,7 +246,7 @@ public class FriendlyTournamentService {
                     .friendlyTournament(t)
                     .matchType("FRIENDLY")
                     .format(t.getFormat())
-                    .season(1)
+                    .season(seasonForDate(date))
                     .round(leg2Round)
                     .matchNumber(f1.getMatchNumber())
                     .homeTeam(f1.getAwayTeam())
@@ -507,7 +514,7 @@ public class FriendlyTournamentService {
                 .friendlyTournament(t)
                 .matchType("FRIENDLY")
                 .format(t.getFormat())
-                .season(1)
+                .season(seasonForDate(date))
                 .round(round)
                 .matchNumber(slot)
                 .homeTeam(home)
@@ -518,6 +525,13 @@ public class FriendlyTournamentService {
                 .tournamentSlot(slot)
                 .pitchType("STANDARD")
                 .build();
+    }
+
+    private int seasonForDate(LocalDate date) {
+        LocalDate s1Start = LocalDate.parse(season1StartStr);
+        if (date.isBefore(s1Start)) return 1;
+        long days = ChronoUnit.DAYS.between(s1Start, date);
+        return 1 + (int)(days / SEASON_DAYS);
     }
 
     private FriendlyTournamentStanding getOrCreateStanding(FriendlyTournament t, Team team) {

@@ -433,7 +433,10 @@ public class TeamController {
             boolean isFriendly = !isCup && league == null;
             String fFormat = (isFriendly || isCup) ? f.getFormat() : league.getFormat();
 
-            if (season != null && !isFriendly && !isCup && !includeLeagueFixtureForSeason(f, league, season, currentSeason)) continue;
+            if (season != null) {
+                if (isFriendly && !season.equals(f.getSeason())) continue;
+                if (!isFriendly && !isCup && !includeLeagueFixtureForSeason(f, league, season, currentSeason)) continue;
+            }
             if (format != null && (fFormat == null || !fFormat.equalsIgnoreCase(format))) continue;
 
             boolean isHome = f.getHomeTeam().getId().equals(myTeam.getId());

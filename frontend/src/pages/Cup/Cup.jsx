@@ -64,11 +64,14 @@ export default function Cup() {
       // Auto-select the highest active/played round
       const r = res.data?.rounds || {};
       const allR = Object.keys(r).map(Number).sort((a, b) => a - b);
-      const liveR = allR.filter(n => (r[n] || []).some(m => m.status === 'IN_PROGRESS'));
-      const doneR = allR.filter(n => (r[n] || []).some(m => m.status === 'COMPLETED'));
-      const best  = liveR.length ? Math.max(...liveR)
-                  : doneR.length ? Math.max(...doneR)
-                  : allR[0] ?? null;
+      const liveR      = allR.filter(n => (r[n] || []).some(m => m.status === 'IN_PROGRESS'));
+      const scheduledR = allR.filter(n => (r[n] || []).some(m => m.status === 'SCHEDULED' || m.status === 'PENDING'));
+      const doneR      = allR.filter(n => (r[n] || []).some(m => m.status === 'COMPLETED'));
+      // Priority: live round > earliest upcoming round > latest completed round
+      const best = liveR.length      ? Math.max(...liveR)
+                 : scheduledR.length ? Math.min(...scheduledR)
+                 : doneR.length      ? Math.max(...doneR)
+                 : allR[0] ?? null;
       setSelectedRound(best ?? null);
     } catch {
       setError('Failed to load cup data.');
