@@ -55,13 +55,13 @@ function key() { return `rt-${++_keyCounter}`; }
 function parseSegments(text) {
   let segs = [text];
 
-  // Images — ONLY /api/files/ URLs
-  segs = applyRule(segs, /!\[([^\]]*)\]\((\/api\/files\/[^)]+)\)/, m => (
-    <img key={key()} src={m[2]} alt={m[1]} className="rt-img" />
+  // Images — only URLs that contain /api/files/ (our own storage)
+  segs = applyRule(segs, /!\[([^\]]*)\]\((https?:\/\/[^)]*\/api\/files\/[^)]+)\)/, m => (
+    <img key={key()} src={m[2]} alt={m[1] || 'image'} className="rt-img" />
   ));
 
-  // Links — only http(s) URLs
-  segs = applyRule(segs, /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/, m => (
+  // Links — only http(s) URLs (must come AFTER image rule)
+  segs = applyRule(segs, /!?\[([^\]]+)\]\((https?:\/\/[^)]+)\)/, m => (
     <a key={key()} href={m[2]} target="_blank" rel="noopener noreferrer" className="rt-link">
       {m[1]}
     </a>
