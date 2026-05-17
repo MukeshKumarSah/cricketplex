@@ -59,6 +59,35 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
     wrap(`{${colorName}}`, `{/${colorName}}`);
   }
 
+  function insertHeading(prefix) {
+    const ta = taRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const before = value.slice(0, pos);
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const lineEndIdx = value.indexOf('\n', pos);
+    const lineEnd = lineEndIdx === -1 ? value.length : lineEndIdx;
+    const lineContent = value.slice(lineStart, lineEnd);
+    const stripped = lineContent.replace(/^#{1,3} /, '');
+    const next = value.slice(0, lineStart) + prefix + stripped + value.slice(lineEnd);
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length + stripped.length);
+    });
+  }
+
+  function insertEmoji(emoji) {
+    const ta = taRef.current;
+    const pos = ta ? ta.selectionStart : value.length;
+    const next = value.slice(0, pos) + emoji + value.slice(pos);
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta?.focus();
+      ta?.setSelectionRange(pos + emoji.length, pos + emoji.length);
+    });
+  }
+
   async function handleImageUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -118,6 +147,14 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
             disabled={uploading}
           />
         </label>
+        <div className="sep" />
+        <button type="button" title="Heading 1" className="rt-heading-btn" onClick={() => insertHeading('# ')}>H1</button>
+        <button type="button" title="Heading 2" className="rt-heading-btn" onClick={() => insertHeading('## ')}>H2</button>
+        <button type="button" title="Heading 3" className="rt-heading-btn" onClick={() => insertHeading('### ')}>H3</button>
+        <div className="sep" />
+        {['👍','👎','💯','🔥','😂','💀','✅','❌','🙏','👀','💪','🎉','🤝','😭','✨'].map(emoji => (
+          <button key={emoji} type="button" className="rt-emoji-btn" title={emoji} onClick={() => insertEmoji(emoji)}>{emoji}</button>
+        ))}
       </div>
       <textarea
         ref={taRef}

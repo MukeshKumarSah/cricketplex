@@ -35,20 +35,20 @@ public class ForumService {
             m.put("displayOrder", c.getDisplayOrder());
             m.put("threadCount",  threadRepo.countByCategory(c));
 
-            // Latest thread in this category
-            Page<ForumThread> latest = threadRepo.findByCategoryOrderByIsPinnedDescLastActivityAtDesc(
-                    c, PageRequest.of(0, 1));
-            if (latest.hasContent()) {
-                ForumThread t = latest.getContent().get(0);
+            // Recent threads sorted by last activity
+            Page<ForumThread> recent = threadRepo.findByCategoryOrderByIsPinnedDescLastActivityAtDesc(
+                    c, PageRequest.of(0, 5));
+            List<Map<String, Object>> recentThreads = new ArrayList<>();
+            for (ForumThread t : recent.getContent()) {
                 Map<String, Object> lt = new LinkedHashMap<>();
-                lt.put("id",           t.getId());
-                lt.put("title",        t.getTitle());
-                lt.put("createdAt",    t.getCreatedAt());
-                lt.put("authorName",   t.getCreatedBy().getName());
-                m.put("latestThread", lt);
-            } else {
-                m.put("latestThread", null);
+                lt.put("id",             t.getId());
+                lt.put("title",          t.getTitle());
+                lt.put("lastActivityAt", t.getLastActivityAt());
+                lt.put("authorName",     t.getCreatedBy().getName());
+                lt.put("commentCount",   t.getCommentCount());
+                recentThreads.add(lt);
             }
+            m.put("recentThreads", recentThreads);
             result.add(m);
         }
         return result;

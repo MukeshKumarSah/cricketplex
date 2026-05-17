@@ -82,29 +82,48 @@ export default function Forum() {
         {/* ── Main: Category list ── */}
         <div className="forum-main">
           {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className="forum-category-card"
-              onClick={() => navigate(`category/${cat.id}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`category/${cat.id}`)}
-            >
-              <div className="fcc-body">
+            <div key={cat.id} className="forum-category-card">
+              {/* ── Category header ── */}
+              <div
+                className="fcc-header"
+                onClick={() => navigate(`category/${cat.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`category/${cat.id}`)}
+              >
                 <div className="fcc-info">
                   <h2 className="fcc-name">{cat.name}</h2>
                   {cat.description && <p className="fcc-desc">{cat.description}</p>}
                 </div>
                 <div className="fcc-meta">
                   <span className="fcc-count">{cat.threadCount ?? 0} threads</span>
-                  {cat.latestThread && (
-                    <span className="fcc-latest">
-                      Last: <strong>{cat.latestThread.title}</strong> · {timeAgo(cat.latestThread.createdAt)}
-                    </span>
-                  )}
                 </div>
+                <HiOutlineChevronRight className="fcc-arrow" />
               </div>
-              <HiOutlineChevronRight className="fcc-arrow" />
+
+              {/* ── Recent threads ── */}
+              {cat.recentThreads && cat.recentThreads.length > 0 && (
+                <div className="fcc-thread-list">
+                  {cat.recentThreads.map((t) => (
+                    <div
+                      key={t.id}
+                      className="fcc-thread-row"
+                      onClick={(e) => { e.stopPropagation(); navigate(`thread/${t.id}`); }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === 'Enter' && navigate(`thread/${t.id}`)}
+                    >
+                      <span className="fcc-tr-title">{t.title}</span>
+                      <span className="fcc-tr-meta">
+                        <HiOutlineChatBubbleLeftRight className="fcc-tr-icon" />
+                        {t.commentCount}
+                        <span className="fcc-tr-dot">·</span>
+                        {timeAgo(t.lastActivityAt)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
 

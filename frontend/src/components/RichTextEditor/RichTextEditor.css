@@ -95,3 +95,16 @@
 .rt-upload-input {
   display: none;
 }
+
+/* Heading buttons — slightly wider for H1/H2/H3 text */
+.rt-heading-btn {
+  width: 28px !important;
+  font-size: 0.68rem !important;
+  letter-spacing: -0.03em;
+}
+
+/* Emoji buttons — slightly wider for emoji character */
+.rt-emoji-btn {
+  width: 28px !important;
+  font-size: 0.9rem !important;
+}

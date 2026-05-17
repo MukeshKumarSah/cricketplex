@@ -52,9 +52,8 @@ function applyRule(segments, regex, renderFn) {
 let _keyCounter = 0;
 function key() { return `rt-${++_keyCounter}`; }
 
-function parseSegments(text) {
-  let segs = [text];
-
+/** Apply all inline formatting rules to an array of string/React segments. */
+function applyInlineRules(segs) {
   // Images — only URLs that contain /api/files/ (our own storage)
   segs = applyRule(segs, /!\[([^\]]*)\]\((https?:\/\/[^)]*\/api\/files\/[^)]+)\)/, m => (
     <img key={key()} src={m[2]} alt={m[1] || 'image'} className="rt-img" />
@@ -88,21 +87,31 @@ function parseSegments(text) {
     return <span key={key()} style={{ color }}>{m[2]}</span>;
   });
 
-  // Newlines
-  const withBreaks = [];
-  for (const seg of segs) {
-    if (typeof seg !== 'string') {
-      withBreaks.push(seg);
-      continue;
+  return segs;
+}
+
+function parseSegments(text) {
+  const lines = text.split('\n');
+  const output = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) output.push(<br key={key()} />);
+
+    const line = lines[i];
+    const hMatch = line.match(/^(#{1,3}) (.+)/);
+    if (hMatch) {
+      const level = hMatch[1].length; // 1, 2, or 3
+      // Map # → h2, ## → h3, ### → h4 (h1 reserved for page title)
+      const Tag = `h${level + 1}`;
+      const inlineContent = applyInlineRules([hMatch[2]]);
+      output.push(<Tag key={key()} className="rt-heading">{inlineContent}</Tag>);
+    } else {
+      const inlineContent = applyInlineRules([line]);
+      output.push(...inlineContent);
     }
-    const lines = seg.split('\n');
-    lines.forEach((line, i) => {
-      if (i > 0) withBreaks.push(<br key={key()} />);
-      if (line) withBreaks.push(line);
-    });
   }
 
-  return withBreaks;
+  return output;
 }
 
 export default function RichTextRenderer({ text, className }) {
