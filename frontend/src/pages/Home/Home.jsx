@@ -38,6 +38,9 @@ import SeasonCalendar from '../Calendar/Calendar';
 import Cup from '../Cup/Cup';
 import Tournaments from '../Tournaments/Tournaments';
 import TournamentDetail from '../Tournaments/TournamentDetail';
+import Forum from '../Forums/Forum';
+import ForumCategory from '../Forums/ForumCategory';
+import ForumThread from '../Forums/ForumThread';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -287,10 +290,9 @@ export default function Home() {
               path="challenges"
               element={<Challenges />}
             />
-            <Route
-              path="forums"
-              element={<ComingSoon icon="💬" title="Forums" description="A space to discuss tactics, share experiences and connect with other managers. Coming soon." />}
-            />
+            <Route path="forums" element={<Forum />} />
+            <Route path="forums/category/:categoryId" element={<ForumCategory />} />
+            <Route path="forums/thread/:threadId" element={<ForumThread />} />
             <Route
               path="blogs"
               element={<ComingSoon icon="✍️" title="Blogs" description="In-depth articles, match analysis, and community stories. Coming soon." />}

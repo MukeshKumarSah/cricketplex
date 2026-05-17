@@ -1,0 +1,248 @@
+/* ForumThread — imports shared styles from Forum.css */
+@import './Forum.css';
+
+.ft-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-2);
+}
+
+.ft-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ft-back {
+  align-self: flex-start;
+}
+
+/* ── OP card ─────────────────────────────────────────────────────── */
+.ft-thread-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .85rem;
+  padding: 1.5rem;
+}
+
+.ft-thread-header {
+  margin-bottom: 1rem;
+}
+
+.ft-thread-badges {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  flex-wrap: wrap;
+}
+
+.badge-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  font-size: .7rem;
+  font-weight: 700;
+  background: rgba(239,68,68,.15);
+  color: #ef4444;
+  padding: .1rem .45rem;
+  border-radius: .3rem;
+}
+
+.ft-thread-title {
+  margin: 0 0 .5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-1);
+  line-height: 1.3;
+}
+
+.ft-thread-meta {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .82rem;
+  color: var(--text-2);
+  flex-wrap: wrap;
+}
+
+.ft-thread-body {
+  font-size: .93rem;
+  color: var(--text-1);
+  line-height: 1.6;
+}
+
+.ft-thread-body p {
+  margin: 0 0 .5rem;
+}
+
+.ft-admin-bar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: 1rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+/* ── Comments ─────────────────────────────────────────────────────── */
+.ft-comments-heading {
+  margin: 0 0 .75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.ft-comments {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.ft-no-comments {
+  text-align: center;
+  color: var(--text-2);
+  padding: 1.5rem;
+}
+
+.ft-comment {
+  display: flex;
+  gap: .85rem;
+  align-items: flex-start;
+}
+
+.ft-comment-own .ft-comment-body-area {
+  border-color: var(--accent);
+}
+
+.ft-comment-body-area {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .65rem;
+  padding: .75rem 1rem;
+}
+
+.ft-comment-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+
+.ft-comment-author {
+  font-size: .88rem;
+  color: var(--text-1);
+}
+
+.ft-comment-num {
+  font-size: .75rem;
+  color: var(--text-3);
+  background: var(--surface-2);
+  padding: .05rem .35rem;
+  border-radius: .3rem;
+}
+
+.ft-comment-time {
+  font-size: .78rem;
+  color: var(--text-2);
+  flex: 1;
+}
+
+.ft-comment-del {
+  padding: .2rem .4rem;
+  font-size: .75rem;
+  margin-left: auto;
+}
+
+.ft-comment-text {
+  font-size: .9rem;
+  color: var(--text-1);
+  line-height: 1.55;
+}
+
+.ft-comment-text p {
+  margin: 0 0 .35rem;
+}
+
+/* ── Reply form ─────────────────────────────────────────────────── */
+.ft-locked-notice {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .65rem;
+  padding: 1rem;
+  font-size: .9rem;
+  color: var(--text-2);
+}
+
+.ft-reply-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .85rem;
+  padding: 1.25rem;
+}
+
+.ft-reply-heading {
+  margin: 0 0 .65rem;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.ft-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: .65rem;
+}
+
+/* ── Inline edit ─────────────────────────────────────────────────── */
+.ft-inline-edit {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.ft-inline-edit-actions {
+  display: flex;
+  gap: .5rem;
+}
+
+/* ── Comment action buttons ──────────────────────────────────────── */
+.ft-comment-actions {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  margin-left: auto;
+}
+
+.ft-comment-act {
+  padding: .15rem .35rem;
+  font-size: .78rem;
+  line-height: 1;
+}
+
+/* compact avatar */
+.ft-comment-avatar {
+  flex-shrink: 0;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  font-weight: 700;
+}
+

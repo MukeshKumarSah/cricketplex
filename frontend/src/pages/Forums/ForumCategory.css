@@ -1,0 +1,189 @@
+/* ForumCategory — imports shared modal/btn styles from Forum.css */
+@import './Forum.css';
+
+.fc-loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-2);
+}
+
+.fc-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.fc-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.fc-back {
+  flex-shrink: 0;
+}
+
+.fc-header-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fc-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.fc-subtitle {
+  margin: .15rem 0 0;
+  font-size: .83rem;
+  color: var(--text-2);
+}
+
+/* ── Thread list ─────────────────────────────────────────────────── */
+.fc-thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.fc-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-2);
+}
+
+.fc-thread-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: .65rem;
+  padding: .75rem 1rem;
+  transition: border-color .18s;
+}
+
+.fc-thread-row:hover {
+  border-color: var(--border-hover);
+}
+
+/* Star */
+.fc-star {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.star-red {
+  color: #ef4444;
+}
+
+.star-yellow {
+  color: #f59e0b;
+}
+
+/* Thread info */
+.fc-thread-info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.fc-thread-title-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.fc-thread-title {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.fc-thread-info:hover .fc-thread-title {
+  color: var(--accent);
+}
+
+.badge-pin {
+  font-size: .7rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  padding: .1rem .4rem;
+  border-radius: .3rem;
+}
+
+.lock-icon {
+  font-size: .85rem;
+  color: var(--text-3);
+}
+
+.fc-thread-meta {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  color: var(--text-2);
+  margin-top: .2rem;
+}
+
+/* Stats */
+.fc-thread-stats {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-shrink: 0;
+}
+
+.fc-stat-comments {
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  font-size: .83rem;
+  color: var(--text-2);
+}
+
+.fc-unread-badge {
+  background: #ef4444;
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .15rem .45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Admin actions */
+.fc-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex-shrink: 0;
+}
+
+/* Pagination */
+.fc-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: 1.5rem;
+}
+
+.fc-page-info {
+  font-size: .85rem;
+  color: var(--text-2);
+}
+
+/* Wider modal for thread creation */
+.modal-box-lg {
+  max-width: 600px;
+}

@@ -231,3 +231,23 @@ export const createPayPalOrder = (planCode) => API.post('/supporter/paypal/order
 export const capturePayPalOrder = (orderId) => API.post('/supporter/paypal/capture', { orderId });
 export const createStripePayment = (planCode) => API.post('/supporter/stripe/order', { planCode });
 export const confirmStripePayment = (paymentIntentId) => API.post('/supporter/stripe/confirm', { paymentIntentId });
+
+// Forum
+export const getForumCategories  = ()              => API.get('/forum/categories');
+export const createForumCategory = (data)          => API.post('/forum/categories', data);
+export const getForumThreads     = (catId, page)   => API.get(`/forum/categories/${catId}/threads`, { params: { page } });
+export const createForumThread   = (catId, data)   => API.post(`/forum/categories/${catId}/threads`, data);
+export const getForumThread      = (threadId)      => API.get(`/forum/threads/${threadId}`);
+export const addForumComment     = (threadId, data) => API.post(`/forum/threads/${threadId}/comments`, data);
+export const getForumPanel       = ()              => API.get('/forum/panel');
+export const pinForumThread      = (threadId, pinned)  => API.post(`/forum/threads/${threadId}/pin`, { pinned });
+export const lockForumThread     = (threadId, locked)  => API.post(`/forum/threads/${threadId}/lock`, { locked });
+export const deleteForumThread   = (threadId)      => API.delete(`/forum/threads/${threadId}`);
+export const deleteForumComment  = (commentId)     => API.delete(`/forum/comments/${commentId}`);
+export const editForumComment    = (commentId, data) => API.put(`/forum/comments/${commentId}`, data);
+export const editForumThread     = (threadId, data)  => API.put(`/forum/threads/${threadId}/body`, data);
+export const uploadForumImage    = (file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return API.post('/forum/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};

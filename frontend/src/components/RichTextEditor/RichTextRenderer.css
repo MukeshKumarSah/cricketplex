@@ -1,0 +1,24 @@
+.rt-content {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-1);
+  word-break: break-word;
+}
+
+.rt-content strong { font-weight: 700; }
+.rt-content em     { font-style: italic; }
+.rt-content s      { text-decoration: line-through; opacity: 0.75; }
+
+.rt-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.rt-img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  border-radius: 6px;
+  margin: 6px 0;
+  object-fit: contain;
+}
