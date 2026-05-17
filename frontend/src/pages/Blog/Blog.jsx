@@ -65,7 +65,7 @@ export default function Blog() {
           </div>
         </div>
         {canWrite && (
-          <button className="btn-primary" onClick={() => navigate('/home/blogs/create')}>
+          <button className="btn-primary" onClick={() => navigate('/blogs/create')}>
             <HiOutlinePencilSquare /> New Blog
           </button>
         )}
@@ -84,7 +84,7 @@ export default function Blog() {
               <div
                 key={blog.id}
                 className={`blog-card${blog.isPinned ? ' blog-card-pinned' : ''}`}
-                onClick={() => navigate(`/home/blogs/${blog.id}`)}
+                onClick={() => navigate(`/blogs/${blog.id}`)}
               >
                 <div className="blog-card-top">
                   <h2 className="blog-card-title">{blog.title}</h2>

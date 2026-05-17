@@ -24,7 +24,7 @@ export default function BlogCreate() {
 
   // Redirect non-writers (wait for auth to fully load first)
   useEffect(() => {
-    if (!authLoading && user && !canWrite) navigate('/home/blogs');
+    if (!authLoading && user && !canWrite) navigate('/blogs');
     if (!authLoading && !user) navigate('/login');
   }, [authLoading, user, canWrite, navigate]);
 
@@ -37,7 +37,7 @@ export default function BlogCreate() {
         setDescription(r.data.description || '');
         setBody(r.data.body || '');
       })
-      .catch(() => navigate('/home/blogs'))
+      .catch(() => navigate('/blogs'))
       .finally(() => setLoading(false));
   }, [id, isEdit, navigate]);
 
@@ -49,10 +49,10 @@ export default function BlogCreate() {
     try {
       if (isEdit) {
         await editBlog(id, { title, description, body });
-        navigate(`/home/blogs/${id}`);
+        navigate(`/blogs/${id}`);
       } else {
         const res = await createBlog({ title, description, body });
-        navigate(`/home/blogs/${res.data.id}`);
+        navigate(`/blogs/${res.data.id}`);
       }
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to save blog');
@@ -65,7 +65,7 @@ export default function BlogCreate() {
 
   return (
     <div className="blog-create-page">
-      <button className="blog-post-back" onClick={() => navigate(isEdit ? `/home/blogs/${id}` : '/home/blogs')}>
+      <button className="blog-post-back" onClick={() => navigate(isEdit ? `/blogs/${id}` : '/blogs')}>
         <HiOutlineArrowLeft /> {isEdit ? 'Back to Blog' : 'Back to Blogs'}
       </button>
 
@@ -135,7 +135,7 @@ export default function BlogCreate() {
             <button
               type="button"
               className="btn-secondary"
-              onClick={() => navigate(isEdit ? `/home/blogs/${id}` : '/home/blogs')}
+              onClick={() => navigate(isEdit ? `/blogs/${id}` : '/blogs')}
             >
               Cancel
             </button>

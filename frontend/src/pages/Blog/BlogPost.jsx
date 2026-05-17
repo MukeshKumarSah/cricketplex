@@ -71,7 +71,7 @@ export default function BlogPost() {
     setDeleting(true);
     try {
       await deleteBlog(id);
-      navigate('/home/blogs');
+      navigate('/blogs');
     } catch (e) {
       alert(e.response?.data?.error || 'Failed to delete blog');
       setDeleting(false);
@@ -84,7 +84,7 @@ export default function BlogPost() {
   return (
     <div className="blog-post-page">
       {/* Back */}
-      <button className="blog-post-back" onClick={() => navigate('/home/blogs')}>
+      <button className="blog-post-back" onClick={() => navigate('/blogs')}>
         <HiOutlineArrowLeft /> Back to Blog
       </button>
 
@@ -108,7 +108,7 @@ export default function BlogPost() {
           {canEdit && (
             <button
               className="btn-ghost"
-              onClick={() => navigate(`/home/blogs/${id}/edit`)}
+              onClick={() => navigate(`/blogs/${id}/edit`)}
             >
               <HiOutlinePencil /> Edit
             </button>
