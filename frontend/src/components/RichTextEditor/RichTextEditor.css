@@ -108,3 +108,10 @@
   width: 28px !important;
   font-size: 0.9rem !important;
 }
+
+/* Blog layout buttons */
+.rt-layout-btn {
+  width: 28px !important;
+  font-size: 1rem !important;
+  color: var(--accent) !important;
+}

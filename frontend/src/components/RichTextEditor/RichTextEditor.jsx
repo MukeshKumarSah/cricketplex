@@ -13,15 +13,19 @@ const COLORS = [
 /**
  * RichTextEditor
  * Props:
- *  value        string   controlled value
- *  onChange     fn(str)  value setter
- *  placeholder  string
- *  minHeight    string   CSS min-height for textarea (default '90px')
+ *  value          string   controlled value
+ *  onChange       fn(str)  value setter
+ *  placeholder    string
+ *  minHeight      string   CSS min-height for textarea (default '90px')
+ *  uploadImageFn  fn       custom image upload fn (default: uploadForumImage)
+ *  blogMode       bool     show gallery + float-left/right buttons
  */
-export default function RichTextEditor({ value, onChange, placeholder, minHeight }) {
+export default function RichTextEditor({ value, onChange, placeholder, minHeight, uploadImageFn, blogMode }) {
   const taRef = useRef(null);
   const [showColors, setShowColors] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const doUploadImage = uploadImageFn || uploadForumImage;
 
   // Wrap selected text with a prefix and suffix
   function wrap(prefix, suffix) {
@@ -97,13 +101,29 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
     });
   }
 
+  function handleInsertGallery() {
+    const ta = taRef.current;
+    const pos = ta ? ta.selectionStart : value.length;
+    const template = '\n[gallery]\n![image1](url1)\n![image2](url2)\n[/gallery]\n';
+    const next = value.slice(0, pos) + template + value.slice(pos);
+    onChange(next);
+  }
+
+  function handleInsertFloat(dir) {
+    const ta = taRef.current;
+    const pos = ta ? ta.selectionStart : value.length;
+    const template = `\n[${dir}]\n![image](url)\nYour text here\n[/${dir}]\n`;
+    const next = value.slice(0, pos) + template + value.slice(pos);
+    onChange(next);
+  }
+
   async function handleImageUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     setUploading(true);
     try {
-      const res = await uploadForumImage(file);
+      const res = await doUploadImage(file);
       const url = res.data.url;
       const pos = taRef.current ? taRef.current.selectionStart : value.length;
       const next = value.slice(0, pos) + `![image](${url})` + value.slice(pos);
@@ -158,6 +178,13 @@ export default function RichTextEditor({ value, onChange, placeholder, minHeight
           />
         </label>
         <button type="button" title="Insert table" className="rt-heading-btn" onClick={handleInsertTable}>⊠</button>
+        {blogMode && (
+          <>
+            <button type="button" title="Gallery row (multiple images)" className="rt-heading-btn rt-layout-btn" onClick={handleInsertGallery}>⊞</button>
+            <button type="button" title="Float left (image left, text right)" className="rt-heading-btn rt-layout-btn" onClick={() => handleInsertFloat('float-left')}>◧</button>
+            <button type="button" title="Float right (image right, text left)" className="rt-heading-btn rt-layout-btn" onClick={() => handleInsertFloat('float-right')}>◨</button>
+          </>
+        )}
         <div className="sep" />
         <button type="button" title="Heading 1" className="rt-heading-btn" onClick={() => insertHeading('# ')}>H1</button>
         <button type="button" title="Heading 2" className="rt-heading-btn" onClick={() => insertHeading('## ')}>H2</button>

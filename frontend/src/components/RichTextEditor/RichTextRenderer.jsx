@@ -8,9 +8,15 @@
  *   **text**            → <strong>
  *   *text*              → <em>
  *   ~~text~~            → <s>
+ *   __text__            → <u>
  *   {color}text{/color} → <span style={{color: ...}}> (red/blue/green/orange/purple only)
  *   [label](url)        → <a> (only https:// or http:// URLs)
  *   ![alt](/api/files/) → <img> (ONLY /api/files/ prefix — security restriction)
+ *   | col | col |       → <table>
+ *   # Heading           → <h2/h3/h4>
+ *   [gallery]...[/gallery]           → flex image row
+ *   [float-left]...[/float-left]     → image left, text right
+ *   [float-right]...[/float-right]   → image right, text left
  *   \n                  → <br />
  */
 
@@ -129,6 +135,17 @@ function renderTable(lines) {
   );
 }
 
+/** Extract all safe image references from a string */
+function extractImages(text) {
+  const re = /!\[([^\]]*)\]\((https?:\/\/[^)]*\/api\/files\/[^)]+)\)/g;
+  const imgs = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    imgs.push({ alt: m[1] || 'image', url: m[2] });
+  }
+  return imgs;
+}
+
 function parseSegments(text) {
   const lines = text.split('\n');
   const output = [];
@@ -136,6 +153,59 @@ function parseSegments(text) {
 
   while (i < lines.length) {
     const line = lines[i];
+
+    // ── [gallery] block ──────────────────────────────────────────────────────
+    if (line.trim() === '[gallery]') {
+      i++;
+      const inner = [];
+      while (i < lines.length && lines[i].trim() !== '[/gallery]') {
+        inner.push(lines[i]);
+        i++;
+      }
+      i++; // skip [/gallery]
+      const imgs = extractImages(inner.join('\n'));
+      if (imgs.length > 0) {
+        output.push(
+          <div key={key()} className="rt-gallery">
+            {imgs.map((src, idx) => (
+              <img key={idx} src={src.url} alt={src.alt} className="rt-gallery-img" />
+            ))}
+          </div>
+        );
+      }
+      continue;
+    }
+
+    // ── [float-left] / [float-right] block ───────────────────────────────────
+    const floatMatch = line.trim().match(/^\[(float-left|float-right)\]$/);
+    if (floatMatch) {
+      const dir = floatMatch[1]; // 'float-left' or 'float-right'
+      i++;
+      const inner = [];
+      const closeTag = `[/${dir}]`;
+      while (i < lines.length && lines[i].trim() !== closeTag) {
+        inner.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing tag
+
+      const imgs = extractImages(inner.join('\n'));
+      const firstImg = imgs[0] || null;
+      // Text = all inner lines except the first image line
+      const textLines = inner.filter(l => {
+        const m = l.match(/!\[([^\]]*)\]\((https?:\/\/[^)]*\/api\/files\/[^)]+)\)/);
+        return !m;
+      });
+      const textContent = parseSegments(textLines.join('\n'));
+
+      output.push(
+        <div key={key()} className={dir === 'float-left' ? 'rt-float-left' : 'rt-float-right'}>
+          {firstImg && <img src={firstImg.url} alt={firstImg.alt} className="rt-float-img" />}
+          <div className="rt-float-text">{textContent}</div>
+        </div>
+      );
+      continue;
+    }
 
     // Table block: collect all consecutive lines starting with |
     if (line.trim().startsWith('|')) {

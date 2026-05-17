@@ -41,6 +41,9 @@ import TournamentDetail from '../Tournaments/TournamentDetail';
 import Forum from '../Forums/Forum';
 import ForumCategory from '../Forums/ForumCategory';
 import ForumThread from '../Forums/ForumThread';
+import Blog from '../Blog/Blog';
+import BlogPost from '../Blog/BlogPost';
+import BlogCreate from '../Blog/BlogCreate';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -293,10 +296,10 @@ export default function Home() {
             <Route path="forums" element={<Forum />} />
             <Route path="forums/category/:categoryId" element={<ForumCategory />} />
             <Route path="forums/thread/:threadId" element={<ForumThread />} />
-            <Route
-              path="blogs"
-              element={<ComingSoon icon="✍️" title="Blogs" description="In-depth articles, match analysis, and community stories. Coming soon." />}
-            />
+            <Route path="blogs" element={<Blog />} />
+            <Route path="blogs/create" element={<BlogCreate />} />
+            <Route path="blogs/:id" element={<BlogPost />} />
+            <Route path="blogs/:id/edit" element={<BlogCreate />} />
             <Route
               path="changelogs"
               element={<ComingSoon icon="📋" title="Changelogs" description="Track every update, bug fix, and new feature added to CricketPlex. Coming soon." />}

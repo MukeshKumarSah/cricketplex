@@ -251,3 +251,18 @@ export const uploadForumImage    = (file) => {
   fd.append('file', file);
   return API.post('/forum/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
 };
+
+// Blog
+export const getBlogs      = (page = 0)     => API.get('/blogs', { params: { page } });
+export const getBlog       = (id)            => API.get(`/blogs/${id}`);
+export const getNewBlogCount = (since)       => API.get('/blogs/new-count', { params: since ? { since } : {} });
+export const createBlog    = (data)          => API.post('/blogs', data);
+export const editBlog      = (id, data)      => API.put(`/blogs/${id}`, data);
+export const deleteBlog    = (id)            => API.delete(`/blogs/${id}`);
+export const pinBlog       = (id, pinned)    => API.post(`/blogs/${id}/pin`, { pinned });
+export const reactToBlog   = (id, reaction)  => API.post(`/blogs/${id}/react`, { reaction });
+export const uploadBlogImage = (file) => {
+  const fd = new FormData();
+  fd.append('file', file);
+  return API.post('/blogs/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+};

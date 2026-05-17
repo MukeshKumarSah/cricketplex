@@ -66,3 +66,59 @@ h4.rt-heading { font-size: .9rem; }
 .rt-table tr:nth-child(even) td {
   background: var(--surface-2);
 }
+
+/* ── Gallery block (multiple images in a row) ── */
+.rt-gallery {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin: .75rem 0;
+}
+
+.rt-gallery-img {
+  flex: 1 1 0;
+  min-width: 80px;
+  max-height: 260px;
+  object-fit: cover;
+  border-radius: .5rem;
+  background: var(--surface-2);
+}
+
+/* ── Float left / right (image beside text) ── */
+.rt-float-left,
+.rt-float-right {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin: .75rem 0;
+}
+
+.rt-float-right {
+  flex-direction: row-reverse;
+}
+
+.rt-float-img {
+  flex-shrink: 0;
+  width: 42%;
+  max-width: 280px;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: .5rem;
+  background: var(--surface-2);
+}
+
+.rt-float-text {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .rt-float-left,
+  .rt-float-right {
+    flex-direction: column;
+  }
+  .rt-float-img {
+    width: 100%;
+    max-width: 100%;
+  }
+}

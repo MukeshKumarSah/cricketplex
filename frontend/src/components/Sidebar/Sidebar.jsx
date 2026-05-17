@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
-import { getPendingChallengeCount } from '../../api/auth';
+import { getPendingChallengeCount, getNewBlogCount } from '../../api/auth';
 import TeamSwitcher from '../TeamSwitcher/TeamSwitcher';
 import {
   HiOutlineHome,
@@ -67,6 +67,7 @@ export default function Sidebar({ isOpen, toggle }) {
   const isAdmin = user?.role === 'ADMIN';
   const location = useLocation();
   const [pendingChallenges, setPendingChallenges] = useState(0);
+  const [newBlogCount, setNewBlogCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -78,6 +79,20 @@ export default function Sidebar({ isOpen, toggle }) {
     const interval = setInterval(fetch, 60_000); // refresh every 60s
     return () => clearInterval(interval);
   }, [user, location.pathname]); // also refresh when navigating
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchBlogCount = () => {
+      const since = localStorage.getItem('blogLastVisited');
+      if (!since) return; // no baseline yet — wait until user visits blogs page
+      getNewBlogCount(since)
+        .then((res) => setNewBlogCount(res.data.count || 0))
+        .catch(() => {});
+    };
+    fetchBlogCount();
+    const interval = setInterval(fetchBlogCount, 60_000);
+    return () => clearInterval(interval);
+  }, [user, location.pathname]);
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
@@ -108,6 +123,9 @@ export default function Sidebar({ isOpen, toggle }) {
             {isOpen && <span className="sidebar-label">{item.label}</span>}
             {item.path === '/challenges' && pendingChallenges > 0 && (
               <span className="sidebar-badge">{pendingChallenges > 99 ? '99+' : pendingChallenges}</span>
+            )}
+            {item.path === '/blogs' && newBlogCount > 0 && (
+              <span className="sidebar-badge">{newBlogCount > 99 ? '99+' : newBlogCount}</span>
             )}
           </NavLink>
         ))}
