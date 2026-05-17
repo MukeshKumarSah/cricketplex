@@ -327,14 +327,6 @@ export default function ForumThread() {
   );
 }
 
-import {
-  HiOutlineArrowLeft,
-  HiOutlineLockClosed,
-  HiOutlineTrash,
-  HiOutlineChatBubbleOvalLeft,
-} from 'react-icons/hi2';
-import toast from 'react-hot-toast';
-import './ForumThread.css';
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
