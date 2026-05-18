@@ -164,7 +164,7 @@ export default function BlogPost() {
           <span className="blog-forum-link-text">💬 Discuss this blog in the forum</span>
           <button
             className="blog-forum-link-btn"
-            onClick={() => navigate(`/home/forums/thread/${blog.forumThreadId}`)}
+            onClick={() => navigate(`/forums/thread/${blog.forumThreadId}`)}
           >
             Open thread <HiOutlineArrowTopRightOnSquare />
           </button>
