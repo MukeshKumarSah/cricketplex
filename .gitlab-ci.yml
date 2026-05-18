@@ -57,7 +57,7 @@ deploy_to_vm:
   script:
     - ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER "
         cd ~/dev/cricketplex && 
-        ls -al
+        ls -al 
       "
         # cd ~/app &&
         # sed -i 's/VERSION=.*/VERSION=$TAG_VERSION/' .env &&
