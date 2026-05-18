@@ -123,13 +123,13 @@ public class BlogService {
             if (blogCat != null) {
                 UUID blogId = blog.getId();
                 String threadBody = description.trim()
-                        + "\n\n[Read the full blog here →](/blog/" + blogId + ")";
+                        + "\n\n[Read the full blog here →](/blogs/" + blogId + ")";
                 ForumThread thread = ForumThread.builder()
                         .category(blogCat)
                         .title(title.trim())
                         .body(threadBody)
                         .createdBy(author)
-                        .isLocked(true)
+                        .isLocked(false)
                         .build();
                 thread = threadRepo.save(thread);
                 blog.setForumThread(thread);
