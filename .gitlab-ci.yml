@@ -1,0 +1,69 @@
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  TAG_VERSION: "v$CI_PIPELINE_IID"
+  DOCKER_DRIVER: overlay2
+
+before_script:
+  - docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
+
+# -------------------------
+# 1) BUILD STAGE
+# -------------------------
+build_images:
+  stage: build
+  script:
+    # Backend
+    - docker build -t $DOCKER_HUB_USER/backend:$TAG_VERSION backend/
+    - docker tag $DOCKER_HUB_USER/backend:$TAG_VERSION $DOCKER_HUB_USER/backend:latest
+
+    # Frontend
+    - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION frontend/
+    - docker tag $DOCKER_HUB_USER/frontend:$TAG_VERSION $DOCKER_HUB_USER/frontend:latest
+  only:
+    - main
+
+# -------------------------
+# 2) PUSH STAGE
+# Runs ONLY if build_images succeeds
+# -------------------------
+push_images:
+  stage: push
+  script:
+    - docker push $DOCKER_HUB_USER/backend:$TAG_VERSION
+    - docker push $DOCKER_HUB_USER/backend:latest
+    - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
+    - docker push $DOCKER_HUB_USER/frontend:latest
+  only:
+    - main
+  needs:
+    - build_images
+
+# -------------------------
+# 3) DEPLOY STAGE
+# Runs ONLY if build + push succeed
+# Uses your existing SSH private key
+# -------------------------
+deploy_to_vm:
+  stage: deploy
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+    - chmod 600 ~/.ssh/id_deploy
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER "
+        cd ~/dev/cricketplex && 
+        ls
+      "
+        # cd ~/app &&
+        # sed -i 's/VERSION=.*/VERSION=$TAG_VERSION/' .env &&
+        # docker-compose pull &&
+        # docker-compose up -d
+  only:
+    - main
+  needs:
+    - push_images
