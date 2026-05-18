@@ -182,15 +182,17 @@ export default function LiveMatch() {
     return () => clearInterval(interval);
   }, [matchEnded, fixtureId]); // eslint-disable-line
 
-  // ─── Auto-start 2nd innings when data arrives during innings break (live only) ───
+  // ─── Auto-start 2nd innings for live matches (when server delivers innings 2 data) ───
   useEffect(() => {
-    if (inningsBreak && commentary?.isLive && commentary?.innings?.length > 1) {
+    if (!commentary?.isLive) return;
+    if (commentary?.innings?.length > 1 && currentInnings === 0) {
       setCurrentInnings(1);
       setCurrentBallIdx(0);
       setInningsBreak(false);
       setIsPlaying(true);
+      pausedWaiting.current = false;
     }
-  }, [commentary?.innings?.length, inningsBreak, commentary?.isLive]); // eslint-disable-line
+  }, [commentary?.innings?.length, commentary?.isLive, currentInnings]); // eslint-disable-line
 
   const allBalls = commentary?.innings?.[currentInnings]?.ballEvents || [];
   const inn = commentary?.innings?.[currentInnings];
@@ -244,17 +246,18 @@ export default function LiveMatch() {
     setCurrentBallIdx((prev) => {
       const nextIdx = prev + 1;
       if (nextIdx > allBalls.length) {
-        const totalBallsInInnings = commentary?.ballCounts?.[currentInnings] ?? allBalls.length;
         const isLive = commentary?.isLive;
-        const hasMoreInnings = (commentary?.ballCounts?.length ?? 1) > 1;
 
-        if (isLive && allBalls.length < totalBallsInInnings) {
-          // More balls for this innings coming from server — pause and wait
+        if (isLive) {
+          // Live match: server controls innings/match end via isLive flag.
+          // ballCounts only contains REVEALED counts, not totals — never decide end locally.
           pausedWaiting.current = true;
           setIsPlaying(false);
           return prev;
         }
-        // Innings actually complete
+
+        // Completed match: use innings.length for reliable hasMoreInnings
+        const hasMoreInnings = (commentary?.innings?.length ?? 1) > currentInnings + 1;
         if (currentInnings === 0 && hasMoreInnings) {
           setIsPlaying(false);
           setInningsBreak(true);
