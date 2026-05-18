@@ -498,6 +498,13 @@
 }
 .lm-overlay-btn:hover { background: #22d3ee30; }
 
+.lm-overlay-waiting {
+  font-size: 0.9rem;
+  color: var(--text-2);
+  font-style: italic;
+  margin-top: 4px;
+}
+
 .lm-overlay-actions {
   display: flex;
   flex-direction: column;

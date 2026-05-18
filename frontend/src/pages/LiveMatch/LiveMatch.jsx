@@ -12,9 +12,24 @@ import {
 } from 'react-icons/hi2';
 import './LiveMatch.css';
 
-const BALL_INTERVAL = 5000;
 const FAST_INTERVAL = 1000;
 const STORAGE_KEY = (id) => `live_match_${id}`;
+
+/** Given live commentary response, return the current innings index and ball index within that innings. */
+function computeCurrentLivePosition(commData) {
+  const ballCounts = commData.ballCounts || [];
+  const liveStep = commData.liveStep ?? 0;
+  let cumBalls = 0;
+  for (let i = 0; i < ballCounts.length; i++) {
+    if (liveStep <= cumBalls + ballCounts[i]) {
+      return { innIdx: i, ballIdx: liveStep - cumBalls };
+    }
+    cumBalls += ballCounts[i];
+  }
+  // All balls revealed (shouldn't happen during IN_PROGRESS but be safe)
+  const lastIdx = Math.max(0, ballCounts.length - 1);
+  return { innIdx: lastIdx, ballIdx: ballCounts[lastIdx] ?? liveStep };
+}
 
 /* ─── helpers ─── */
 function buildBatsmenMap(balls) {
@@ -72,6 +87,8 @@ export default function LiveMatch() {
   const [scActiveInnings, setScActiveInnings] = useState(1);
   const timerRef = useRef(null);
   const feedRef = useRef(null);
+  const pausedWaiting = useRef(false);
+  const ballIntervalMs = (commentary?.ballIntervalSeconds ?? 24) * 1000;
 
   // ─── Save to sessionStorage on change ───
   useEffect(() => {
@@ -91,7 +108,24 @@ export default function LiveMatch() {
           getCommentary(fixtureId),
           getMatchResult(fixtureId),
         ]);
-        if (commRes.data.found) setCommentary(commRes.data);
+        if (commRes.data.found) {
+          setCommentary(commRes.data);
+          // For live matches, start from the current revealed position
+          if (commRes.data.isLive && commRes.data.liveStep != null) {
+            const { innIdx, ballIdx } = computeCurrentLivePosition(commRes.data);
+            const revealedInInn = commRes.data.innings?.[innIdx]?.ballEvents?.length ?? 0;
+            if (!saved) {
+              setCurrentInnings(innIdx);
+              setCurrentBallIdx(ballIdx);
+            } else {
+              // Cap saved position at revealed balls to avoid jumping to "match ended" state
+              const startInn = Math.min(saved.inn, innIdx);
+              const startIdx = startInn < innIdx ? saved.idx : Math.min(saved.idx, revealedInInn);
+              setCurrentInnings(startInn);
+              setCurrentBallIdx(startIdx);
+            }
+          }
+        }
         if (resRes.data.found) setResult(resRes.data);
       } catch {
         toast.error('Failed to load match data');
@@ -100,7 +134,63 @@ export default function LiveMatch() {
       }
     };
     loadData();
-  }, [fixtureId]);
+  }, [fixtureId]); // eslint-disable-line
+
+  // ─── Poll for new balls during live match ───
+  useEffect(() => {
+    if (!commentary?.isLive) return;
+    const pollTimer = setInterval(async () => {
+      try {
+        const res = await getCommentary(fixtureId);
+        if (res.data.found) {
+          setCommentary(res.data);
+          // If match has completed, fetch the full result
+          if (!res.data.isLive) {
+            const resRes = await getMatchResult(fixtureId);
+            if (resRes.data.found) setResult(resRes.data);
+          }
+        }
+      } catch { /* ignore */ }
+    }, ballIntervalMs * 2);
+    return () => clearInterval(pollTimer);
+  }, [fixtureId, commentary?.isLive, ballIntervalMs]); // eslint-disable-line
+
+  // ─── Auto-resume when new balls arrive after a "waiting" pause ───
+  useEffect(() => {
+    if (pausedWaiting.current && !matchEnded && !inningsBreak) {
+      const revealedInCurrentInn = commentary?.innings?.[currentInnings]?.ballEvents?.length ?? 0;
+      if (currentBallIdx < revealedInCurrentInn) {
+        pausedWaiting.current = false;
+        setIsPlaying(true);
+      }
+    }
+  }); // no deps — runs every render, cheap check
+
+  // ─── Fetch full result once match ends ───
+  useEffect(() => {
+    if (!matchEnded) return;
+    if (result && !result.locked) return; // already have full result
+    const interval = setInterval(async () => {
+      try {
+        const res = await getMatchResult(fixtureId);
+        if (res.data.found && !res.data.locked) {
+          setResult(res.data);
+          clearInterval(interval);
+        }
+      } catch { /* ignore */ }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [matchEnded, fixtureId]); // eslint-disable-line
+
+  // ─── Auto-start 2nd innings when data arrives during innings break (live only) ───
+  useEffect(() => {
+    if (inningsBreak && commentary?.isLive && commentary?.innings?.length > 1) {
+      setCurrentInnings(1);
+      setCurrentBallIdx(0);
+      setInningsBreak(false);
+      setIsPlaying(true);
+    }
+  }, [commentary?.innings?.length, inningsBreak, commentary?.isLive]); // eslint-disable-line
 
   const allBalls = commentary?.innings?.[currentInnings]?.ballEvents || [];
   const inn = commentary?.innings?.[currentInnings];
@@ -154,7 +244,18 @@ export default function LiveMatch() {
     setCurrentBallIdx((prev) => {
       const nextIdx = prev + 1;
       if (nextIdx > allBalls.length) {
-        if (currentInnings === 0 && commentary?.innings?.length > 1) {
+        const totalBallsInInnings = commentary?.ballCounts?.[currentInnings] ?? allBalls.length;
+        const isLive = commentary?.isLive;
+        const hasMoreInnings = (commentary?.ballCounts?.length ?? 1) > 1;
+
+        if (isLive && allBalls.length < totalBallsInInnings) {
+          // More balls for this innings coming from server — pause and wait
+          pausedWaiting.current = true;
+          setIsPlaying(false);
+          return prev;
+        }
+        // Innings actually complete
+        if (currentInnings === 0 && hasMoreInnings) {
           setIsPlaying(false);
           setInningsBreak(true);
           return prev;
@@ -173,16 +274,17 @@ export default function LiveMatch() {
     setCurrentBallIdx(0);
     setInningsBreak(false);
     setIsPlaying(true);
+    pausedWaiting.current = false;
   };
 
   // ─── Timer ───
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (isPlaying && !matchEnded && !inningsBreak && allBalls.length > 0) {
-      timerRef.current = setInterval(advanceBall, isFast ? FAST_INTERVAL : BALL_INTERVAL);
+      timerRef.current = setInterval(advanceBall, isFast ? FAST_INTERVAL : ballIntervalMs);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isPlaying, isFast, matchEnded, inningsBreak, advanceBall, allBalls.length]);
+  }, [isPlaying, isFast, matchEnded, inningsBreak, advanceBall, allBalls.length, ballIntervalMs]);
 
   // ─── Auto-scroll feed ───
   useEffect(() => {
@@ -340,7 +442,7 @@ export default function LiveMatch() {
           {target && <span className="lm-need">Need {need} runs</span>}
         </div>
         <div className="lm-bar-controls">
-          <button className={`lm-bar-btn ${isPlaying ? 'active' : ''}`} onClick={() => setIsPlaying((p) => !p)} disabled={matchEnded || inningsBreak}>
+          <button className={`lm-bar-btn ${isPlaying ? 'active' : ''}`} onClick={() => { pausedWaiting.current = false; setIsPlaying((p) => !p); }} disabled={matchEnded || inningsBreak}>
             {isPlaying ? <HiOutlinePauseCircle /> : <HiOutlinePlayCircle />}
           </button>
           <button className={`lm-bar-btn ${isFast ? 'active' : ''}`} onClick={() => setIsFast((f) => !f)} disabled={matchEnded || inningsBreak}>
@@ -525,12 +627,18 @@ export default function LiveMatch() {
           <div className="lm-overlay-card">
             <h2>Innings Break</h2>
             <p className="lm-overlay-score">{battingTeam}: {liveScore.runs}/{liveScore.wkts} ({liveScore.overs} ov)</p>
-            <p className="lm-overlay-target">
-              {commentary.innings[1]?.battingTeam} need {parseInt(firstInnScore) + 1} runs to win
-            </p>
-            <button className="lm-overlay-btn" onClick={startSecondInnings}>
-              Start 2nd Innings
-            </button>
+            {commentary.innings[1]?.battingTeam && (
+              <p className="lm-overlay-target">
+                {commentary.innings[1].battingTeam} need {parseInt(firstInnScore) + 1} runs to win
+              </p>
+            )}
+            {commentary?.innings?.length > 1 ? (
+              <button className="lm-overlay-btn" onClick={startSecondInnings}>
+                Start 2nd Innings
+              </button>
+            ) : (
+              <p className="lm-overlay-waiting">Waiting for 2nd innings...</p>
+            )}
           </div>
         </div>
       )}

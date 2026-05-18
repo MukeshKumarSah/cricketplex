@@ -22,10 +22,18 @@ import java.util.*;
 @RequiredArgsConstructor
 public class MatchSimController {
 
-    private static final int BALL_INTERVAL_SECONDS = 5;
+    private static final int BALL_INTERVAL_T20_SECONDS = 24;
+    private static final int BALL_INTERVAL_OD_SECONDS  = 22;
+    private static final int BALL_INTERVAL_FC_SECONDS  = 20;
     private static final int INNINGS_BREAK_SECONDS = 300;
     private static final int SESSION_BREAK_SECONDS = 180;  // break between sessions in FC
     private static final int SESSION_OVERS = 50;           // overs per session in FC
+
+    private int getBallIntervalSeconds(String format) {
+        if ("FC".equalsIgnoreCase(format)) return BALL_INTERVAL_FC_SECONDS;
+        if ("OD".equalsIgnoreCase(format) || "ODI".equalsIgnoreCase(format)) return BALL_INTERVAL_OD_SECONDS;
+        return BALL_INTERVAL_T20_SECONDS;
+    }
 
     private final MatchEngine matchEngine;
     private final MatchResultRepository matchResultRepository;
@@ -384,7 +392,7 @@ public class MatchSimController {
             ballCounts.add((int) count);
         }
         resp.put("ballCounts", ballCounts);
-        resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
+        resp.put("ballIntervalSeconds", getBallIntervalSeconds(format));
         resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
         if ("FC".equalsIgnoreCase(format)) {
             resp.put("sessionBreakSeconds", SESSION_BREAK_SECONDS);
@@ -611,7 +619,7 @@ public class MatchSimController {
             }
         }
 
-        long totalSeconds = totalBalls * BALL_INTERVAL_SECONDS
+        long totalSeconds = totalBalls * getBallIntervalSeconds(fmt)
                 + (long) breakCount * INNINGS_BREAK_SECONDS
                 + (long) sessionBreaks * SESSION_BREAK_SECONDS;
         long elapsed = ChronoUnit.SECONDS.between(result.getCreatedAt(), LocalDateTime.now());
@@ -644,12 +652,19 @@ public class MatchSimController {
 
         MatchResult result = opt.get();
         autoCompleteIfExpired(result);
-        if (!isResultPublic(result.getFixture().getStatus())) {
+        String fixtureStatus = result.getFixture().getStatus();
+
+        // Live match: return only balls revealed so far (time-based)
+        if ("IN_PROGRESS".equals(fixtureStatus)) {
+            return ResponseEntity.ok(buildLiveCommentaryResponse(result));
+        }
+
+        if (!isResultPublic(fixtureStatus)) {
             Map<String, Object> hidden = new LinkedHashMap<>();
             hidden.put("found", true);
             hidden.put("locked", true);
             hidden.put("message", "Commentary is hidden until the match is completed");
-            hidden.put("fixtureStatus", result.getFixture().getStatus());
+            hidden.put("fixtureStatus", fixtureStatus);
             hidden.put("summary", "Match in progress");
             hidden.put("innings", List.of());
             return ResponseEntity.ok(hidden);
@@ -670,12 +685,12 @@ public class MatchSimController {
             ballCounts.add((int) count);
         }
         resp.put("ballCounts", ballCounts);
-        resp.put("ballIntervalSeconds", BALL_INTERVAL_SECONDS);
         resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
 
         String commFormat = result.getFixture().getLeague() != null
                 ? result.getFixture().getLeague().getFormat()
                 : result.getFixture().getFormat();
+        resp.put("ballIntervalSeconds", getBallIntervalSeconds(commFormat));
         if ("FC".equalsIgnoreCase(commFormat)) {
             resp.put("sessionBreakSeconds", SESSION_BREAK_SECONDS);
             resp.put("sessionBreakPositions", computeSessionBreakPositions(result));
@@ -698,28 +713,7 @@ public class MatchSimController {
             List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
             List<Map<String, Object>> balls = new ArrayList<>();
             for (BallEvent be : events) {
-                Map<String, Object> b = new LinkedHashMap<>();
-                b.put("over", be.getOverNumber() - 1);
-                b.put("ball", be.getBallNumber());
-                b.put("overBall", (be.getOverNumber() - 1) + "." + be.getBallNumber());
-                b.put("batsman", be.getBatsman().getFirstName() + " " + be.getBatsman().getLastName());
-                b.put("batsmanId", be.getBatsman().getId());
-                b.put("bowler", be.getBowler().getFirstName() + " " + be.getBowler().getLastName());
-                b.put("bowlerId", be.getBowler().getId());
-                b.put("runs", be.getRuns());
-                b.put("isWicket", be.getIsWicket());
-                b.put("isBoundary", be.getIsBoundary());
-                b.put("isSix", be.getIsSix());
-                b.put("isWide", be.getIsWide());
-                b.put("isNoBall", be.getIsNoBall());
-                b.put("isBye", be.getIsBye());
-                b.put("isLegBye", be.getIsLegBye());
-                b.put("dismissalType", be.getDismissalType());
-                if (be.getFielder() != null) {
-                    b.put("fielder", be.getFielder().getFirstName() + " " + be.getFielder().getLastName());
-                }
-                b.put("commentary", be.getCommentary());
-                balls.add(b);
+                balls.add(buildBallEventMap(be));
             }
             innMap.put("ballEvents", balls);
             inningsList.add(innMap);
@@ -730,8 +724,162 @@ public class MatchSimController {
 
     private boolean isResultPublic(String fixtureStatus) {
         return "COMPLETED".equals(fixtureStatus)
-                || "IN_PROGRESS".equals(fixtureStatus)
                 || "FC_DAY1_COMPLETE".equals(fixtureStatus);
+    }
+
+    /**
+     * Compute how many balls have been "revealed" so far for a live match,
+     * based on elapsed time since the match started.
+     */
+    private int computeLiveStep(MatchResult result) {
+        if (result.getCreatedAt() == null) return 0;
+        long elapsed = ChronoUnit.SECONDS.between(result.getCreatedAt(), LocalDateTime.now());
+        if (elapsed < 0) return 0;
+
+        String fmt = result.getFixture().getLeague() != null
+                ? result.getFixture().getLeague().getFormat()
+                : result.getFixture().getFormat();
+        boolean isFc = "FC".equalsIgnoreCase(fmt);
+        List<List<Integer>> sessionBreakPositions = isFc ? computeSessionBreakPositions(result) : List.of();
+        int ballSecs = getBallIntervalSeconds(fmt);
+
+        long offset = 0;
+        int totalRevealed = 0;
+
+        for (int i = 0; i < result.getInningsList().size(); i++) {
+            if (i > 0) {
+                offset += INNINGS_BREAK_SECONDS;
+                if (elapsed < offset) break;
+            }
+
+            Innings inn = result.getInningsList().get(i);
+            long ballCount = ballEventRepository.countByInningsId(inn.getId());
+            List<Integer> innSessionBreaks = (isFc && i < sessionBreakPositions.size())
+                    ? sessionBreakPositions.get(i) : List.of();
+
+            long timeInInnings = elapsed - offset;
+            if (timeInInnings < 0) break;
+
+            // Compute adjusted time by subtracting elapsed session break durations
+            long totalBreakDeduction = 0;
+            for (int k = 0; k < innSessionBreaks.size(); k++) {
+                long ballPos = innSessionBreaks.get(k);
+                long breakAbsStart = ballPos * ballSecs + (long) k * SESSION_BREAK_SECONDS;
+                if (timeInInnings >= breakAbsStart + SESSION_BREAK_SECONDS) {
+                    totalBreakDeduction += SESSION_BREAK_SECONDS;
+                } else if (timeInInnings >= breakAbsStart) {
+                    totalBreakDeduction += (timeInInnings - breakAbsStart);
+                    break;
+                } else {
+                    break;
+                }
+            }
+            long adjustedTime = timeInInnings - totalBreakDeduction;
+            long revealed = Math.min(adjustedTime / ballSecs, ballCount);
+            totalRevealed += (int) Math.max(0, revealed);
+
+            offset += ballCount * ballSecs
+                    + (long) innSessionBreaks.size() * SESSION_BREAK_SECONDS;
+            if (elapsed < offset) break;
+        }
+
+        return totalRevealed;
+    }
+
+    /**
+     * Build the response for a live (IN_PROGRESS) match, revealing only balls up to the current live step.
+     */
+    private Map<String, Object> buildLiveCommentaryResponse(MatchResult result) {
+        int liveStep = computeLiveStep(result);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("found", true);
+        resp.put("isLive", true);
+        resp.put("liveStep", liveStep);
+        resp.put("fixtureStatus", "IN_PROGRESS");
+        resp.put("createdAt", result.getCreatedAt() != null
+                ? result.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                : null);
+
+        // Real ball counts per innings — frontend needs these to detect true innings/match end
+        List<Integer> ballCounts = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            ballCounts.add((int) ballEventRepository.countByInningsId(inn.getId()));
+        }
+        resp.put("ballCounts", ballCounts);
+        resp.put("inningsBreakSeconds", INNINGS_BREAK_SECONDS);
+
+        String fmt = result.getFixture().getLeague() != null
+                ? result.getFixture().getLeague().getFormat()
+                : result.getFixture().getFormat();
+        resp.put("ballIntervalSeconds", getBallIntervalSeconds(fmt));
+        if ("FC".equalsIgnoreCase(fmt)) {
+            resp.put("sessionBreakSeconds", SESSION_BREAK_SECONDS);
+            resp.put("sessionBreakPositions", computeSessionBreakPositions(result));
+        }
+
+        resp.put("tossWinner", result.getTossWinner().getTeamName());
+        resp.put("tossDecision", result.getTossDecision());
+
+        // Build innings with truncated ball events
+        int remaining = liveStep;
+        List<Map<String, Object>> inningsList = new ArrayList<>();
+        for (Innings inn : result.getInningsList()) {
+            if (remaining <= 0) break; // Innings not yet started
+
+            List<BallEvent> allEvents = ballEventRepository
+                    .findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+            int revealCount = Math.min(remaining, allEvents.size());
+            remaining -= revealCount;
+            boolean innComplete = revealCount >= allEvents.size();
+
+            Map<String, Object> innMap = new LinkedHashMap<>();
+            innMap.put("inningsNumber", inn.getInningsNumber());
+            innMap.put("battingTeam", inn.getBattingTeam().getTeamName());
+            innMap.put("bowlingTeam", inn.getBowlingTeam().getTeamName());
+            // Only reveal final score for fully completed innings
+            if (innComplete) {
+                innMap.put("scoreDisplay", inn.getTotalRuns() + "/" + inn.getTotalWickets()
+                        + " (" + formatOvers(inn.getTotalOvers()) + " ov)");
+            }
+            innMap.put("allOut", innComplete && Boolean.TRUE.equals(inn.getAllOut()));
+            innMap.put("declared", innComplete && Boolean.TRUE.equals(inn.getDeclared()));
+
+            List<Map<String, Object>> balls = new ArrayList<>();
+            for (BallEvent be : allEvents.subList(0, revealCount)) {
+                balls.add(buildBallEventMap(be));
+            }
+            innMap.put("ballEvents", balls);
+            inningsList.add(innMap);
+        }
+        resp.put("innings", inningsList);
+        return resp;
+    }
+
+    /** Build the map for a single ball event (shared by full and live commentary). */
+    private Map<String, Object> buildBallEventMap(BallEvent be) {
+        Map<String, Object> b = new LinkedHashMap<>();
+        b.put("over", be.getOverNumber() - 1);
+        b.put("ball", be.getBallNumber());
+        b.put("overBall", (be.getOverNumber() - 1) + "." + be.getBallNumber());
+        b.put("batsman", be.getBatsman().getFirstName() + " " + be.getBatsman().getLastName());
+        b.put("batsmanId", be.getBatsman().getId());
+        b.put("bowler", be.getBowler().getFirstName() + " " + be.getBowler().getLastName());
+        b.put("bowlerId", be.getBowler().getId());
+        b.put("runs", be.getRuns());
+        b.put("isWicket", be.getIsWicket());
+        b.put("isBoundary", be.getIsBoundary());
+        b.put("isSix", be.getIsSix());
+        b.put("isWide", be.getIsWide());
+        b.put("isNoBall", be.getIsNoBall());
+        b.put("isBye", be.getIsBye());
+        b.put("isLegBye", be.getIsLegBye());
+        b.put("dismissalType", be.getDismissalType());
+        if (be.getFielder() != null) {
+            b.put("fielder", be.getFielder().getFirstName() + " " + be.getFielder().getLastName());
+        }
+        b.put("commentary", be.getCommentary());
+        return b;
     }
 
     /**
