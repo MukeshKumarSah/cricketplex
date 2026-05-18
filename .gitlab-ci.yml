@@ -24,7 +24,7 @@ build_images:
     - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION frontend/
     - docker tag $DOCKER_HUB_USER/frontend:$TAG_VERSION $DOCKER_HUB_USER/frontend:latest
   only:
-    - main
+    - master
 
 # -------------------------
 # 2) PUSH STAGE
@@ -38,7 +38,7 @@ push_images:
     - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
     - docker push $DOCKER_HUB_USER/frontend:latest
   only:
-    - main
+    - master
   needs:
     - build_images
 
@@ -64,6 +64,6 @@ deploy_to_vm:
         # docker-compose pull &&
         # docker-compose up -d
   only:
-    - main
+    - master
   needs:
     - push_images
