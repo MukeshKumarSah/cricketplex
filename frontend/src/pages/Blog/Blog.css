@@ -2,7 +2,6 @@
 
 .blog-page {
   padding-bottom: 1.5rem;
-  max-width: 1000px;
 }
 
 .blog-page-header {
@@ -201,7 +200,6 @@
 
 /* ── Blog post ───────────────────────────────────────────────────────────── */
 .blog-post-page {
-  max-width: 820px;
   padding-bottom: 2rem;
 }
 

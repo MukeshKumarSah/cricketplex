@@ -36,12 +36,18 @@ public class FileController {
         try {
             GetObjectResponse response = fileStorageService.getFile(objectKey);
             String contentType = response.headers().get("Content-Type");
+            String contentLength = response.headers().get("Content-Length");
 
-            return ResponseEntity.ok()
+            ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(
                             contentType != null ? contentType : "application/octet-stream"))
-                    .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
-                    .body(new InputStreamResource(response));
+                    .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400");
+
+            if (contentLength != null) {
+                builder = builder.header(HttpHeaders.CONTENT_LENGTH, contentLength);
+            }
+
+            return builder.body(new InputStreamResource(response));
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
