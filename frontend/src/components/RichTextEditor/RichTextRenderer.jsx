@@ -20,6 +20,7 @@
  *   \n                  → <br />
  */
 
+import { Link } from 'react-router-dom';
 import './RichTextRenderer.css';
 
 const ALLOWED_COLORS = {
@@ -70,6 +71,13 @@ function applyInlineRules(segs) {
     <a key={key()} href={m[2]} target="_blank" rel="noopener noreferrer" className="rt-link">
       {m[1]}
     </a>
+  ));
+
+  // Internal links — relative paths starting with / (SPA navigation, no full reload)
+  segs = applyRule(segs, /\[([^\]]+)\]\((\/[^)]+)\)/, m => (
+    <Link key={key()} to={m[2]} className="rt-link">
+      {m[1]}
+    </Link>
   ));
 
   // Bold (before italic so ** consumed first)
