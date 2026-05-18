@@ -151,9 +151,9 @@ export default function LiveMatch() {
           }
         }
       } catch { /* ignore */ }
-    }, ballIntervalMs * 2);
+    }, ballIntervalMs);
     return () => clearInterval(pollTimer);
-  }, [fixtureId, commentary?.isLive, ballIntervalMs]); // eslint-disable-line
+  }, [fixtureId, commentary?.isLive]); // eslint-disable-line — ballIntervalMs intentionally omitted (stable after first load)
 
   // ─── Auto-resume when new balls arrive after a "waiting" pause ───
   useEffect(() => {
@@ -249,10 +249,8 @@ export default function LiveMatch() {
         const isLive = commentary?.isLive;
 
         if (isLive) {
-          // Live match: server controls innings/match end via isLive flag.
-          // ballCounts only contains REVEALED counts, not totals — never decide end locally.
-          pausedWaiting.current = true;
-          setIsPlaying(false);
+          // Live match: new balls arrive via polling. Keep timer running — just stay put.
+          // Do NOT pause; next advanceBall recreation (when allBalls.length grows) will advance.
           return prev;
         }
 
