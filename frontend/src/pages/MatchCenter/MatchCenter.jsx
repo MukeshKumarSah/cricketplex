@@ -1248,12 +1248,36 @@ export default function MatchCenter() {
         {/* ═══ GRAPHS ═══ */}
         {activeTab === 'graphs' && (
           <div className="mc-graphs">
-            <h3 className="mc-section-title">Manhattan Chart <span className="mc-section-sub">Runs & Wickets per Over</span></h3>
-            <ManhattanChart data={graphData} format={result.format} />
-            <h3 className="mc-section-title">Run Rate Chart <span className="mc-section-sub">Cumulative RR per Over</span></h3>
-            <RunRateChart data={graphData} format={result.format} />
-            <h3 className="mc-section-title">Worm Chart <span className="mc-section-sub">Cumulative Runs</span></h3>
-            <WormChart data={graphData} format={result.format} />
+            <div className="mc-graphs-hero">
+              <h3 className="mc-graphs-title">Match Analytics</h3>
+              <p className="mc-graphs-sub">Interactive over-by-over visuals for scoring flow, pressure and momentum.</p>
+              <div className="mc-graphs-pills">
+                {graphData.map((g, i) => {
+                  const runs = g.cumulative?.length ? g.cumulative[g.cumulative.length - 1] : 0;
+                  const wkts = (g.wicketsPerOver || []).reduce((a, b) => a + b, 0);
+                  const overs = g.runsPerOver?.length || 0;
+                  return (
+                    <span key={i} className="mc-graphs-pill">
+                      <strong>{g.battingTeam}</strong> {runs}/{wkts} ({overs} ov)
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mc-graphs-grid">
+              <div className="mc-graph-card mc-graph-card--wide">
+                <h3 className="mc-section-title">Manhattan Chart <span className="mc-section-sub">Runs & Wickets per Over</span></h3>
+                <ManhattanChart data={graphData} format={result.format} />
+              </div>
+              <div className="mc-graph-card">
+                <h3 className="mc-section-title">Run Rate Chart <span className="mc-section-sub">Cumulative RR per Over</span></h3>
+                <RunRateChart data={graphData} format={result.format} />
+              </div>
+              <div className="mc-graph-card">
+                <h3 className="mc-section-title">Worm Chart <span className="mc-section-sub">Cumulative Runs</span></h3>
+                <WormChart data={graphData} format={result.format} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1802,8 +1826,8 @@ function ManhattanChart({ data, format }) {
                 onMouseLeave={() => setHovered(null)}>
                 {[0, Math.ceil(maxRun / 4), Math.ceil(maxRun / 2), Math.ceil(maxRun * 3 / 4), maxRun].map((v) => (
                   <g key={v}>
-                    <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
-                    <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
+                    <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="var(--mc-chart-grid)" strokeWidth="0.5" />
+                    <text x={PAD - 4} y={scaleY(v) + 4} fill="var(--mc-chart-axis)" fontSize="8" textAnchor="end">{v}</text>
                   </g>
                 ))}
                 {d.runsPerOver.map((r, o) => {
@@ -1831,7 +1855,7 @@ function ManhattanChart({ data, format }) {
                 })}
                 {Array.from({ length: maxOvers }, (_, i) => (
                   (i % labelStep === 0) && (
-                    <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+                    <text key={i} x={PAD + i * barW + barW / 2} y={H - 6} fill="var(--mc-chart-axis)" fontSize="7" textAnchor="middle">{i}</text>
                   )
                 ))}
                 {/* Hover tooltip */}
@@ -1844,8 +1868,8 @@ function ManhattanChart({ data, format }) {
                   const ty = Math.max(hovHere.y - 24, PAD);
                   return (
                     <g style={{ pointerEvents: 'none' }}>
-                      <rect x={tx} y={ty} width={tw} height={16} rx={3} fill="#0f172a" opacity={0.88} />
-                      <text x={tx + tw / 2} y={ty + 10.5} fill="#f1f5f9" fontSize="8" textAnchor="middle">{text}</text>
+                      <rect x={tx} y={ty} width={tw} height={16} rx={3} fill="var(--mc-chart-tooltip-bg)" opacity={0.92} />
+                      <text x={tx + tw / 2} y={ty + 10.5} fill="var(--mc-chart-tooltip-text)" fontSize="8" textAnchor="middle">{text}</text>
                     </g>
                   );
                 })()}
@@ -1878,8 +1902,8 @@ function WormChart({ data, format }) {
         <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
           {[0, Math.ceil(maxRuns / 4), Math.ceil(maxRuns / 2), Math.ceil(maxRuns * 3 / 4), maxRuns].map((v) => (
             <g key={v}>
-              <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="#1e293b" strokeWidth="0.5" />
-              <text x={PAD - 4} y={scaleY(v) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
+              <line x1={PAD} y1={scaleY(v)} x2={W - PAD} y2={scaleY(v)} stroke="var(--mc-chart-grid)" strokeWidth="0.5" />
+              <text x={PAD - 4} y={scaleY(v) + 4} fill="var(--mc-chart-axis)" fontSize="8" textAnchor="end">{v}</text>
             </g>
           ))}
           {data.map((d, idx) => {
@@ -1889,7 +1913,7 @@ function WormChart({ data, format }) {
           })}
           {Array.from({ length: maxOvers }, (_, i) => (
             (i % labelStep === 0) && (
-              <text key={i} x={scaleX(i)} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+              <text key={i} x={scaleX(i)} y={H - 6} fill="var(--mc-chart-axis)" fontSize="7" textAnchor="middle">{i}</text>
             )
           ))}
         </svg>
@@ -1927,8 +1951,8 @@ function RunRateChart({ data, format }) {
         <svg viewBox={`0 0 ${W} ${H}`} className="mc-chart" style={isScrollable ? { width: W, maxWidth: 'none' } : undefined}>
           {[0, (maxRR / 4).toFixed(1), (maxRR / 2).toFixed(1), (maxRR * 3 / 4).toFixed(1), maxRR.toFixed(1)].map((v, i) => (
             <g key={i}>
-              <line x1={PAD} y1={scaleY(Number(v))} x2={W - PAD} y2={scaleY(Number(v))} stroke="#1e293b" strokeWidth="0.5" />
-              <text x={PAD - 4} y={scaleY(Number(v)) + 4} fill="#64748b" fontSize="8" textAnchor="end">{v}</text>
+              <line x1={PAD} y1={scaleY(Number(v))} x2={W - PAD} y2={scaleY(Number(v))} stroke="var(--mc-chart-grid)" strokeWidth="0.5" />
+              <text x={PAD - 4} y={scaleY(Number(v)) + 4} fill="var(--mc-chart-axis)" fontSize="8" textAnchor="end">{v}</text>
             </g>
           ))}
           {data.map((d, idx) => {
@@ -1945,7 +1969,7 @@ function RunRateChart({ data, format }) {
           })}
           {Array.from({ length: maxOvers }, (_, i) => (
             (i % labelStep === 0) && (
-              <text key={i} x={scaleX(i)} y={H - 6} fill="#64748b" fontSize="7" textAnchor="middle">{i}</text>
+              <text key={i} x={scaleX(i)} y={H - 6} fill="var(--mc-chart-axis)" fontSize="7" textAnchor="middle">{i}</text>
             )
           ))}
         </svg>
