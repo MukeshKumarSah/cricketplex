@@ -97,15 +97,33 @@ export default function LiveMatch() {
   const sessionBreakRef = useRef(false);
   const ballIntervalMs = (commentary?.ballIntervalSeconds ?? 24) * 1000;
 
+  // Restore UI tab selections from session cache
+  useEffect(() => {
+    if (!saved) return;
+    if (saved.tab === 'commentary' || saved.tab === 'scorecard') {
+      setActiveTab(saved.tab);
+    }
+    if (Number.isInteger(saved.scInn) && saved.scInn > 0) {
+      setScActiveInnings(saved.scInn);
+    }
+  }, [saved]);
+
   // ─── Save to sessionStorage on change ───
   useEffect(() => {
     try {
       sessionStorage.setItem(
         STORAGE_KEY(fixtureId),
-        JSON.stringify({ inn: currentInnings, idx: currentBallIdx, ended: matchEnded, brk: inningsBreak })
+        JSON.stringify({
+          inn: currentInnings,
+          idx: currentBallIdx,
+          ended: matchEnded,
+          brk: inningsBreak,
+          tab: activeTab,
+          scInn: scActiveInnings,
+        })
       );
     } catch { /* ignore */ }
-  }, [fixtureId, currentInnings, currentBallIdx, matchEnded, inningsBreak]);
+  }, [fixtureId, currentInnings, currentBallIdx, matchEnded, inningsBreak, activeTab, scActiveInnings]);
 
   // ─── Load match data ───
   useEffect(() => {
@@ -391,12 +409,14 @@ export default function LiveMatch() {
           batMap[b.batsman] = {
             playerId: b.batsmanId,
             playerName: b.batsman,
+            batHand: b.batsmanBatHand || null,
             runs: 0, balls: 0, fours: 0, sixes: 0,
             dismissal: null, bowler: null, fielder: null, notOut: true,
           };
           batOrder.push(b.batsman);
         }
         const bm = batMap[b.batsman];
+        if (!bm.batHand && b.batsmanBatHand) bm.batHand = b.batsmanBatHand;
         bm.runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         if (!b.isWide && !b.isNoBall) bm.balls += 1;
         else if (b.isNoBall) bm.balls += 1;
@@ -417,11 +437,15 @@ export default function LiveMatch() {
           bowlMap[b.bowler] = {
             playerId: b.bowlerId,
             playerName: b.bowler,
+            bowlHand: b.bowlerBowlHand || null,
+            bowlType: b.bowlerBowlType || null,
             legalBalls: 0, maidens: 0, runs: 0, wickets: 0,
           };
           bowlOrder.push(b.bowler);
         }
         const bw = bowlMap[b.bowler];
+        if (!bw.bowlHand && b.bowlerBowlHand) bw.bowlHand = b.bowlerBowlHand;
+        if (!bw.bowlType && b.bowlerBowlType) bw.bowlType = b.bowlerBowlType;
         bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
       if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
         if (!b.isWide && !b.isNoBall) bw.legalBalls += 1;
@@ -459,6 +483,12 @@ export default function LiveMatch() {
     }
     return innings;
   }, [commentary, currentInnings, currentBallIdx, matchEnded]);
+
+  useEffect(() => {
+    if (!liveScorecard.length) return;
+    const valid = liveScorecard.some((i) => i.inningsNumber === scActiveInnings);
+    if (!valid) setScActiveInnings(liveScorecard[0].inningsNumber);
+  }, [liveScorecard, scActiveInnings]);
 
   const scorecardMetaByInnings = useMemo(() => {
     const out = {};
@@ -638,7 +668,7 @@ export default function LiveMatch() {
                       </span>
                         );
                       })()}
-                      <span className="lm-sc-num">{scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || '-'}</span>
+                      <span className="lm-sc-num">{scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || bc.batHand || '-'}</span>
                       <span className={`lm-sc-num ${bc.runs >= 50 ? 'lm-sc-milestone' : ''}`}>{bc.runs}</span>
                       <span className="lm-sc-num">{bc.balls}</span>
                       <span className="lm-sc-num">{bc.fours}</span>
@@ -675,8 +705,8 @@ export default function LiveMatch() {
                       })()}
                       <span className="lm-sc-num">
                         {formatBowlingStyle(
-                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand,
-                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType
+                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand || bc.bowlHand,
+                          scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType || bc.bowlType
                         )}
                       </span>
                       <span className="lm-sc-num">{bc.overs}</span>

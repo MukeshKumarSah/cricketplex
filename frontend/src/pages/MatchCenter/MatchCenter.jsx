@@ -13,6 +13,8 @@ import {
 import './MatchCenter.css';
 import { fileUrl } from '../../api/config';
 
+const STORAGE_KEY = (id) => `match_center_${id}`;
+
 /* ─── helpers ─── */
 function buildBatsmenMap(balls) {
   const map = {};
@@ -120,19 +122,60 @@ export default function MatchCenter() {
   const [tick, setTick] = useState(0); // drives re-renders for live
   const [overlayDismissed, setOverlayDismissed] = useState(false);
 
+  const savedUi = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY(fixtureId));
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, [fixtureId]);
+
   const isLiveRoute = location.pathname.endsWith('/live');
   const defaultTab = location.pathname.endsWith('/commentary') ? 'commentary' : 'scorecard';
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState(savedUi?.activeTab || defaultTab);
 
   useEffect(() => {
-    const tab = location.pathname.endsWith('/commentary') ? 'commentary' : 'scorecard';
-    setActiveTab(tab);
+    if (location.pathname.endsWith('/commentary')) {
+      setActiveTab('commentary');
+    } else if (location.pathname.endsWith('/scorecard')) {
+      setActiveTab('scorecard');
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location.pathname]);
-  const [scActiveInnings, setScActiveInnings] = useState(1);
+  const [scActiveInnings, setScActiveInnings] = useState(
+    Number.isInteger(savedUi?.scActiveInnings) && savedUi.scActiveInnings > 0
+      ? savedUi.scActiveInnings
+      : 1
+  );
   const [commFilter, setCommFilter] = useState('all');
   const feedRef = useRef(null);
   const userScrolledRef = useRef(false);
+
+  useEffect(() => {
+    if (!savedUi) return;
+    if (location.pathname.endsWith('/commentary')) {
+      setActiveTab('commentary');
+    } else if (location.pathname.endsWith('/scorecard')) {
+      setActiveTab('scorecard');
+    } else if (savedUi.activeTab) {
+      setActiveTab(savedUi.activeTab);
+    }
+    if (Number.isInteger(savedUi.scActiveInnings) && savedUi.scActiveInnings > 0) {
+      setScActiveInnings(savedUi.scActiveInnings);
+    }
+  }, [savedUi, location.pathname]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY(fixtureId),
+        JSON.stringify({ activeTab, scActiveInnings })
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [fixtureId, activeTab, scActiveInnings]);
 
   const TABS = [
     { id: 'scorecard', label: 'Scorecard' },
@@ -468,6 +511,12 @@ export default function MatchCenter() {
     }
     return inningsSummaries;
   }, [commentary, currentInnings, currentBallIdx, matchEnded, isLive]);
+
+  useEffect(() => {
+    if (!liveScorecard.length) return;
+    const valid = liveScorecard.some((i) => i.inningsNumber === scActiveInnings);
+    if (!valid) setScActiveInnings(liveScorecard[0].inningsNumber);
+  }, [liveScorecard, scActiveInnings]);
 
   const scorecardMetaByInnings = useMemo(() => {
     const out = {};

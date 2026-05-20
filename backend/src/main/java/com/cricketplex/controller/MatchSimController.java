@@ -864,8 +864,11 @@ public class MatchSimController {
         b.put("overBall", (be.getOverNumber() - 1) + "." + be.getBallNumber());
         b.put("batsman", be.getBatsman().getFirstName() + " " + be.getBatsman().getLastName());
         b.put("batsmanId", be.getBatsman().getId());
+        b.put("batsmanBatHand", be.getBatsman().getBatHand());
         b.put("bowler", be.getBowler().getFirstName() + " " + be.getBowler().getLastName());
         b.put("bowlerId", be.getBowler().getId());
+        b.put("bowlerBowlHand", be.getBowler().getBowlHand());
+        b.put("bowlerBowlType", be.getBowler().getBowlType());
         b.put("runs", be.getRuns());
         b.put("isWicket", be.getIsWicket());
         b.put("isBoundary", be.getIsBoundary());
