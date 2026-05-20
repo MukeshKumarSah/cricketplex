@@ -132,17 +132,14 @@ export default function MatchCenter() {
   }, [fixtureId]);
 
   const isLiveRoute = location.pathname.endsWith('/live');
-  const defaultTab = location.pathname.endsWith('/commentary') ? 'commentary' : 'scorecard';
-  const [activeTab, setActiveTab] = useState(savedUi?.activeTab || defaultTab);
-
-  useEffect(() => {
-    if (location.pathname.endsWith('/commentary')) {
-      setActiveTab('commentary');
-    } else if (location.pathname.endsWith('/scorecard')) {
-      setActiveTab('scorecard');
-    }
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [location.pathname]);
+  const routeTab = location.pathname.endsWith('/commentary')
+    ? 'commentary'
+    : location.pathname.endsWith('/scorecard')
+    ? 'scorecard'
+    : null;
+  const [activeTab, setActiveTab] = useState(
+    routeTab || savedUi?.activeTab || 'scorecard'
+  );
   const [scActiveInnings, setScActiveInnings] = useState(
     Number.isInteger(savedUi?.scActiveInnings) && savedUi.scActiveInnings > 0
       ? savedUi.scActiveInnings
@@ -153,18 +150,8 @@ export default function MatchCenter() {
   const userScrolledRef = useRef(false);
 
   useEffect(() => {
-    if (!savedUi) return;
-    if (location.pathname.endsWith('/commentary')) {
-      setActiveTab('commentary');
-    } else if (location.pathname.endsWith('/scorecard')) {
-      setActiveTab('scorecard');
-    } else if (savedUi.activeTab) {
-      setActiveTab(savedUi.activeTab);
-    }
-    if (Number.isInteger(savedUi.scActiveInnings) && savedUi.scActiveInnings > 0) {
-      setScActiveInnings(savedUi.scActiveInnings);
-    }
-  }, [savedUi, location.pathname]);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   useEffect(() => {
     try {
@@ -976,7 +963,7 @@ export default function MatchCenter() {
                         })()}
                         <span className="mc-sc-hand">
                           <span className="mc-sc-hand-badge">
-                            {scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || '-'}
+                            {scorecardMetaByInnings?.[scActiveInnings]?.batById?.[bc.playerId]?.batHand || bc.batHand || '-'}
                           </span>
                         </span>
                         <span className={`mc-sc-num ${bc.runs >= 50 ? 'mc-sc-milestone' : ''}`}>{bc.runs}</span>
@@ -1039,8 +1026,8 @@ export default function MatchCenter() {
                         <span className="mc-sc-type">
                           <span className="mc-sc-type-badge">
                             {formatBowlingStyle(
-                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand,
-                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType
+                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlHand || bc.bowlHand,
+                              scorecardMetaByInnings?.[scActiveInnings]?.bowlById?.[bc.playerId]?.bowlType || bc.bowlType
                             )}
                           </span>
                         </span>
@@ -1990,8 +1977,9 @@ function buildInningsStats(innData, balls) {
   const dismissed = new Set();
   let extras = 0, extWides = 0, extNoBalls = 0, extByes = 0, extLegByes = 0;
   balls.forEach((b) => {
-    if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, playerId: b.batsmanId, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
+    if (!batMap[b.batsman]) { batMap[b.batsman] = { playerName: b.batsman, playerId: b.batsmanId, batHand: b.batsmanBatHand || null, runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, dismissal: null, bowler: null, fielder: null, notOut: true }; batOrder.push(b.batsman); }
     const bm = batMap[b.batsman];
+    if (!bm.batHand && b.batsmanBatHand) bm.batHand = b.batsmanBatHand;
     bm.runs += (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
     if (!b.isWide && !b.isNoBall) bm.balls += 1;
     else if (b.isNoBall) bm.balls += 1;
@@ -2012,8 +2000,10 @@ function buildInningsStats(innData, balls) {
   const bowlMap = {};
   const bowlOrder = [];
   balls.forEach((b) => {
-    if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, playerId: b.bowlerId, legalBalls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, wides: 0, noBalls: 0 }; bowlOrder.push(b.bowler); }
+    if (!bowlMap[b.bowler]) { bowlMap[b.bowler] = { playerName: b.bowler, playerId: b.bowlerId, bowlHand: b.bowlerBowlHand || null, bowlType: b.bowlerBowlType || null, legalBalls: 0, maidens: 0, runs: 0, wickets: 0, dots: 0, wides: 0, noBalls: 0 }; bowlOrder.push(b.bowler); }
     const bw = bowlMap[b.bowler];
+    if (!bw.bowlHand && b.bowlerBowlHand) bw.bowlHand = b.bowlerBowlHand;
+    if (!bw.bowlType && b.bowlerBowlType) bw.bowlType = b.bowlerBowlType;
     bw.runs += (b.isBye || b.isLegBye) ? 0 : b.runs;
     if (b.isWicket && b.dismissalType !== 'RUN_OUT') bw.wickets += 1;
     if (b.isWide) bw.wides += 1;
