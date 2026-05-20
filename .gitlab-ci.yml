@@ -102,8 +102,6 @@ stages:
 # ---------------------------------------------------
 before_script:
   # Debug (optional)
-  - echo "Docker User: $DOCKER_HUB_USER"
-  - echo "Tag Version: $TAG_VERSION"
 
   # Verify docker is working
   - docker info
