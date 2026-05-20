@@ -146,7 +146,7 @@ export default function MatchCenter() {
     ? 'scorecard'
     : null);
   const [activeTab, setActiveTab] = useState(
-    routeTab || savedUi?.activeTab || 'scorecard'
+    savedUi?.activeTab || routeTab || 'scorecard'
   );
   const [scActiveInnings, setScActiveInnings] = useState(
     Number.isInteger(savedUi?.scActiveInnings) && savedUi.scActiveInnings > 0
