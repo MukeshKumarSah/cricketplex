@@ -1939,7 +1939,7 @@ function RunRateChart({ data, format }) {
   const scaleX = (o) => PAD + (o / (maxOvers - 1 || 1)) * (W - PAD * 2);
   const scaleY = (v) => H - PAD - (v / maxRR) * (H - PAD * 2);
   const COLORS = ['#22d3ee', '#a78bfa', '#34d399', '#fb923c'];
-  const DASHES = ['none', '6,3', '2,2', '8,3,2,3'];
+  const DASHES = ['none', 'none', '2,2', '8,3,2,3'];
   const ORDINAL = ['1st', '2nd', '3rd', '4th'];
   const labelStep = format === 'T20' ? 2 : format === 'FC' ? (maxOvers > 80 ? 10 : 5) : 5;
   const isScrollable = format === 'FC' && W > 600;
