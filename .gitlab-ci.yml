@@ -1,80 +1,213 @@
+# image: whiteshadow1/gitlab-baseimage:v1
+# services:
+#   - docker:24.0.5-dind
+
+# variables:
+#   DOCKER_HOST: tcp://docker:2376
+#   DOCKER_TLS_CERTDIR: "/certs"
+#   DOCKER_TLS_VERIFY: 1
+#   DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+#   IMAGE: python-djanjo
+#   TAG_VERSION: "v$CI_PIPELINE_IID"
+#   DOCKER_DRIVER: overlay2
+
+
+# stages:
+#   - build
+#   - push
+#   - deploy
+
+# before_script:
+#   - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USER" --password-stdin
+
+
+# # -------------------------
+# # 1) BUILD STAGE
+# # -------------------------
+# build_images:
+#   stage: build
+#   script:
+#     # Backend
+#     - docker build -t $DOCKER_HUB_USER/backend:$TAG_VERSION backend/
+#     - docker tag $DOCKER_HUB_USER/backend:$TAG_VERSION $DOCKER_HUB_USER/backend:latest
+
+#     # Frontend
+#     - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION frontend/
+#     - docker tag $DOCKER_HUB_USER/frontend:$TAG_VERSION $DOCKER_HUB_USER/frontend:latest
+#   only:
+#     - master
+
+# # -------------------------
+# # 2) PUSH STAGE
+# # Runs ONLY if build_images succeeds
+# # -------------------------
+# push_images:
+#   stage: push
+#   script:
+#     - docker push $DOCKER_HUB_USER/backend:$TAG_VERSION
+#     - docker push $DOCKER_HUB_USER/backend:latest
+#     - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
+#     - docker push $DOCKER_HUB_USER/frontend:latest
+#   only:
+#     - master
+#   needs:
+#     - build_images
+
+# # -------------------------
+# # 3) DEPLOY STAGE
+# # Runs ONLY if build + push succeed
+# # Uses your existing SSH private key
+# # -------------------------
+# deploy_to_vm:
+#   stage: deploy
+#   before_script:
+#     - mkdir -p ~/.ssh
+#     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+#     - chmod 600 ~/.ssh/id_deploy
+#     - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+#   script:
+#     - ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER "
+#         cd ~/dev/cricketplex && 
+#         ls -al 
+#       "
+#         # cd ~/app &&
+#         # sed -i 's/VERSION=.*/VERSION=$TAG_VERSION/' .env &&
+#         # docker-compose pull &&
+#         # docker-compose up -d
+#   only:
+#     - master
+#   needs:
+#     - push_images
 image: whiteshadow1/gitlab-baseimage:v1
+
 services:
-  - docker:24.0.5-dind
+  - name: docker:24.0.5-dind
 
 variables:
-  DOCKER_HOST: tcp://docker:2376
-  DOCKER_TLS_CERTDIR: "/certs"
-  DOCKER_TLS_VERIFY: 1
-  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
-  IMAGE: python-djanjo
-  TAG_VERSION: "v$CI_PIPELINE_IID"
+  # Docker-in-Docker configuration
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
 
+  # Image versioning
+  TAG_VERSION: "v$CI_PIPELINE_IID"
 
 stages:
   - build
   - push
   - deploy
 
+# ---------------------------------------------------
+# Global setup
+# ---------------------------------------------------
 before_script:
+  # Debug (optional)
+  - echo "Docker User: $DOCKER_HUB_USER"
+  - echo "Tag Version: $TAG_VERSION"
+
+  # Verify docker is working
+  - docker info
+
+  # Login to Docker Hub
   - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USER" --password-stdin
 
-
-# -------------------------
-# 1) BUILD STAGE
-# -------------------------
+# ---------------------------------------------------
+# 1. BUILD STAGE
+# ---------------------------------------------------
 build_images:
   stage: build
+
   script:
-    # Backend
-    - docker build -t $DOCKER_HUB_USER/backend:$TAG_VERSION backend/
+    # ---------------- Backend ----------------
+    - echo "Building Backend Image..."
+    - docker build -t $DOCKER_HUB_USER/backend:$TAG_VERSION ./backend
     - docker tag $DOCKER_HUB_USER/backend:$TAG_VERSION $DOCKER_HUB_USER/backend:latest
 
-    # Frontend
-    - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION frontend/
+    # ---------------- Frontend ----------------
+    - echo "Building Frontend Image..."
+    - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION ./frontend
     - docker tag $DOCKER_HUB_USER/frontend:$TAG_VERSION $DOCKER_HUB_USER/frontend:latest
+
+    # Verify built images
+    - docker images
+
   only:
     - master
 
-# -------------------------
-# 2) PUSH STAGE
-# Runs ONLY if build_images succeeds
-# -------------------------
+# ---------------------------------------------------
+# 2. PUSH STAGE
+# ---------------------------------------------------
 push_images:
   stage: push
-  script:
-    - docker push $DOCKER_HUB_USER/backend:$TAG_VERSION
-    - docker push $DOCKER_HUB_USER/backend:latest
-    - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
-    - docker push $DOCKER_HUB_USER/frontend:latest
-  only:
-    - master
+
   needs:
     - build_images
 
-# -------------------------
-# 3) DEPLOY STAGE
-# Runs ONLY if build + push succeed
-# Uses your existing SSH private key
-# -------------------------
-deploy_to_vm:
-  stage: deploy
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
-    - chmod 600 ~/.ssh/id_deploy
-    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
   script:
-    - ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER "
-        cd ~/dev/cricketplex && 
-        ls -al 
-      "
-        # cd ~/app &&
-        # sed -i 's/VERSION=.*/VERSION=$TAG_VERSION/' .env &&
-        # docker-compose pull &&
-        # docker-compose up -d
+    # Push Backend
+    - echo "Pushing Backend Images..."
+    - docker push $DOCKER_HUB_USER/backend:$TAG_VERSION
+    - docker push $DOCKER_HUB_USER/backend:latest
+
+    # Push Frontend
+    - echo "Pushing Frontend Images..."
+    - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
+    - docker push $DOCKER_HUB_USER/frontend:latest
+
   only:
     - master
+
+# ---------------------------------------------------
+# 3. DEPLOY STAGE
+# ---------------------------------------------------
+deploy_to_vm:
+  stage: deploy
+
   needs:
     - push_images
+
+  before_script:
+    # Setup SSH
+    - mkdir -p ~/.ssh
+
+    # Create SSH private key file
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+
+    # Set permissions
+    - chmod 600 ~/.ssh/id_deploy
+
+    # Add server to known hosts
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+
+  script:
+    - |
+      ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER << EOF
+
+        set -e
+
+        echo "Connected to server"
+
+        cd ~/dev/cricketplex
+
+        echo "Pulling latest images..."
+
+        docker pull $DOCKER_HUB_USER/backend:$TAG_VERSION
+        docker pull $DOCKER_HUB_USER/frontend:$TAG_VERSION
+
+        # Update docker-compose image tags if needed
+        # Example using .env file
+        if [ -f .env ]; then
+          sed -i "s/^TAG_VERSION=.*/TAG_VERSION=$TAG_VERSION/" .env
+        fi
+
+        echo "Restarting containers..."
+
+        docker compose down
+        docker compose up -d
+
+        echo "Deployment completed successfully"
+
+      EOF
+
+  only:
+    - master
