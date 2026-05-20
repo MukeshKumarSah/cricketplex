@@ -88,6 +88,11 @@ export default function LiveMatch() {
   const timerRef = useRef(null);
   const feedRef = useRef(null);
   const pausedWaiting = useRef(false);
+  // Refs for stable timer access — updated every render
+  const allBallsRef = useRef([]);
+  const currentInningsRef = useRef(0);
+  const commentaryRef = useRef(null);
+  const inningsBreakRef = useRef(false);
   const ballIntervalMs = (commentary?.ballIntervalSeconds ?? 24) * 1000;
 
   // ─── Save to sessionStorage on change ───
@@ -116,7 +121,9 @@ export default function LiveMatch() {
             const revealedInInn = commRes.data.innings?.[innIdx]?.ballEvents?.length ?? 0;
             if (!saved) {
               setCurrentInnings(innIdx);
-              setCurrentBallIdx(ballIdx);
+              // Innings 1: start at live frontier (user sees current state + new balls)
+              // Innings 2+: always start from ball 0 for full ball-by-ball experience
+              setCurrentBallIdx(innIdx === 0 ? ballIdx : 0);
             } else {
               // Cap saved position at revealed balls to avoid jumping to "match ended" state
               const startInn = Math.min(saved.inn, innIdx);
@@ -182,21 +189,30 @@ export default function LiveMatch() {
     return () => clearInterval(interval);
   }, [matchEnded, fixtureId]); // eslint-disable-line
 
-  // ─── Auto-start 2nd innings for live matches (when server delivers innings 2 data) ───
+  // ─── Auto-advance to next innings for live matches (handles all innings transitions) ───
   useEffect(() => {
     if (!commentary?.isLive) return;
-    if (commentary?.innings?.length > 1 && currentInnings === 0) {
-      setCurrentInnings(1);
+    const innCount = commentary?.innings?.length ?? 0;
+    // Fire when we're stuck at the end of the current innings AND next innings data has arrived
+    const atEndOfInnings = allBalls.length > 0 && currentBallIdx >= allBalls.length;
+    if (innCount > currentInnings + 1 && atEndOfInnings) {
+      setCurrentInnings(currentInnings + 1);
       setCurrentBallIdx(0);
       setInningsBreak(false);
       setIsPlaying(true);
       pausedWaiting.current = false;
     }
-  }, [commentary?.innings?.length, commentary?.isLive, currentInnings]); // eslint-disable-line
+  }, [commentary?.innings?.length, commentary?.isLive, currentInnings, allBalls.length, currentBallIdx]); // eslint-disable-line
 
   const allBalls = commentary?.innings?.[currentInnings]?.ballEvents || [];
   const inn = commentary?.innings?.[currentInnings];
   const visibleBalls = allBalls.slice(0, currentBallIdx);
+
+  // Keep refs in sync with latest state so the stable timer can read them
+  allBallsRef.current = allBalls;
+  currentInningsRef.current = currentInnings;
+  commentaryRef.current = commentary;
+  inningsBreakRef.current = inningsBreak;
 
   // ─── Compute running score from visible balls ───
   const liveScore = useMemo(() => {
@@ -241,22 +257,22 @@ export default function LiveMatch() {
   }, [visibleBalls]);
 
   // ─── Advance ball ───
+  // Stable callback — reads latest state via refs so the timer never needs to restart
   const advanceBall = useCallback(() => {
-    if (inningsBreak) return;
+    if (inningsBreakRef.current) return;
+    const curCommentary = commentaryRef.current;
+    const curAllBalls = allBallsRef.current;
+    const curInnings = currentInningsRef.current;
+
     setCurrentBallIdx((prev) => {
+      if (!curCommentary) return prev; // data not loaded yet
       const nextIdx = prev + 1;
-      if (nextIdx > allBalls.length) {
-        const isLive = commentary?.isLive;
+      if (nextIdx > curAllBalls.length) {
+        if (curCommentary.isLive) return prev; // wait for new balls from polling
 
-        if (isLive) {
-          // Live match: new balls arrive via polling. Keep timer running — just stay put.
-          // Do NOT pause; next advanceBall recreation (when allBalls.length grows) will advance.
-          return prev;
-        }
-
-        // Completed match: use innings.length for reliable hasMoreInnings
-        const hasMoreInnings = (commentary?.innings?.length ?? 1) > currentInnings + 1;
-        if (currentInnings === 0 && hasMoreInnings) {
+        // Completed match — works for T20/OD (2 innings) and FC (4 innings)
+        const hasMoreInnings = (curCommentary.innings?.length ?? 1) > curInnings + 1;
+        if (hasMoreInnings) {
           setIsPlaying(false);
           setInningsBreak(true);
           return prev;
@@ -268,7 +284,7 @@ export default function LiveMatch() {
       }
       return nextIdx;
     });
-  }, [allBalls.length, currentInnings, commentary, inningsBreak]);
+  }, []); // empty deps — stable forever; reads state via refs
 
   const startSecondInnings = () => {
     setCurrentInnings(1);
@@ -281,11 +297,11 @@ export default function LiveMatch() {
   // ─── Timer ───
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (isPlaying && !matchEnded && !inningsBreak && allBalls.length > 0) {
+    if (isPlaying && !matchEnded && !inningsBreak) {
       timerRef.current = setInterval(advanceBall, isFast ? FAST_INTERVAL : ballIntervalMs);
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isPlaying, isFast, matchEnded, inningsBreak, advanceBall, allBalls.length, ballIntervalMs]);
+  }, [isPlaying, isFast, matchEnded, inningsBreak, advanceBall, ballIntervalMs]);
 
   // ─── Auto-scroll feed ───
   useEffect(() => {
