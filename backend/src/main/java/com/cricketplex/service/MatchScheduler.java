@@ -1,5 +1,6 @@
 package com.cricketplex.service;
 
+import com.cricketplex.entity.BallEvent;
 import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.FriendlyChallenge;
 import com.cricketplex.entity.Innings;
@@ -39,8 +40,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MatchScheduler {
 
-    private static final int BALL_INTERVAL_SECONDS = 5;
+    private static final int BALL_INTERVAL_T20_SECONDS = 24;
+    private static final int BALL_INTERVAL_OD_SECONDS  = 22;
+    private static final int BALL_INTERVAL_FC_SECONDS  = 20;
     private static final int INNINGS_BREAK_SECONDS = 300;
+    private static final int SESSION_BREAK_SECONDS = 180;
+    private static final int SESSION_OVERS = 50;
 
     private final FixtureRepository fixtureRepository;
     private final MatchResultRepository matchResultRepository;
@@ -54,6 +59,48 @@ public class MatchScheduler {
     private final CupRepository cupRepository;
     private final FriendlyChallengeRepository friendlyChallengeRepository;
     private final MatchLineupRepository matchLineupRepository;
+
+    private int getBallIntervalSeconds(String format) {
+        if ("FC".equalsIgnoreCase(format)) return BALL_INTERVAL_FC_SECONDS;
+        if ("OD".equalsIgnoreCase(format) || "ODI".equalsIgnoreCase(format)) return BALL_INTERVAL_OD_SECONDS;
+        return BALL_INTERVAL_T20_SECONDS;
+    }
+
+    /**
+     * Counts FC session breaks by walking over boundaries across innings.
+     * A session break occurs after every completed SESSION_OVERS overs.
+     */
+    private int computeSessionBreakCount(MatchResult result) {
+        String fmt = result.getFixture().getLeague() != null
+                ? result.getFixture().getLeague().getFormat()
+                : result.getFixture().getFormat();
+        if (!"FC".equalsIgnoreCase(fmt)) return 0;
+
+        int cumulativeOvers = 0;
+        int sessionBreaks = 0;
+
+        for (Innings inn : result.getInningsList()) {
+            List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+            int lastSeenOver = 0;
+            for (int j = 0; j < events.size(); j++) {
+                int curOver = events.get(j).getOverNumber(); // 1-based
+                if (curOver != lastSeenOver) {
+                    if (lastSeenOver > 0) {
+                        cumulativeOvers++;
+                        if (cumulativeOvers % SESSION_OVERS == 0) {
+                            sessionBreaks++;
+                        }
+                    }
+                    lastSeenOver = curOver;
+                }
+            }
+            if (inn.getTotalOvers() != null && inn.getTotalOvers() > 0
+                    && Math.abs(inn.getTotalOvers() - Math.floor(inn.getTotalOvers())) < 0.01) {
+                cumulativeOvers++;
+            }
+        }
+        return sessionBreaks;
+    }
 
     /**
      * On startup, generate fixtures for any league that has 8 teams but no fixtures.
@@ -437,9 +484,14 @@ public class MatchScheduler {
         }
         int inningsCount = result.getInningsList().size();
         int breakCount = inningsCount > 1 ? inningsCount - 1 : 0;
+        int sessionBreakCount = computeSessionBreakCount(result);
+        String format = result.getFixture().getLeague() != null
+                ? result.getFixture().getLeague().getFormat()
+                : result.getFixture().getFormat();
 
-        long totalSeconds = totalBalls * BALL_INTERVAL_SECONDS
-                + (long) breakCount * INNINGS_BREAK_SECONDS;
+        long totalSeconds = totalBalls * getBallIntervalSeconds(format)
+                + (long) breakCount * INNINGS_BREAK_SECONDS
+                + (long) sessionBreakCount * SESSION_BREAK_SECONDS;
         long elapsed = java.time.Duration.between(result.getCreatedAt(), LocalDateTime.now()).getSeconds();
 
         return elapsed >= totalSeconds;
