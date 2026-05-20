@@ -148,7 +148,11 @@ export default function MatchCenter() {
   const isLive = result?.fixtureStatus === 'IN_PROGRESS';
   const createdAt = commentary?.createdAt || result?.createdAt;
   const ballCounts = commentary?.ballCounts || result?.ballCounts || [];
-  const ballInterval = commentary?.ballIntervalSeconds || result?.ballIntervalSeconds || 5;
+  const formatForInterval = commentary?.format || result?.format;
+  const defaultIntervalByFormat =
+    formatForInterval === 'FC' ? 20 :
+    (formatForInterval === 'ODI' || formatForInterval === 'OD') ? 22 : 24;
+  const ballInterval = commentary?.ballIntervalSeconds || result?.ballIntervalSeconds || defaultIntervalByFormat;
   const breakDuration = commentary?.inningsBreakSeconds || result?.inningsBreakSeconds || 300;
   const sessionBreakSec = commentary?.sessionBreakSeconds || result?.sessionBreakSeconds || 0;
   const sessionBreakPositions = commentary?.sessionBreakPositions || result?.sessionBreakPositions || null;
@@ -199,6 +203,25 @@ export default function MatchCenter() {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, [isLive, matchEnded]);
+
+  // Poll backend during live matches so newly revealed balls/innings arrive without refresh
+  useEffect(() => {
+    if (!isLive || matchEnded) return;
+    const pollMs = Math.max(2000, Math.floor((ballInterval || 24) * 1000 / 2));
+    const id = setInterval(async () => {
+      try {
+        const [commRes, resRes] = await Promise.all([
+          getCommentary(fixtureId),
+          getMatchResult(fixtureId),
+        ]);
+        if (commRes.data?.found) setCommentary(commRes.data);
+        if (resRes.data?.found) setResult(resRes.data);
+      } catch {
+        // ignore transient poll errors
+      }
+    }, pollMs);
+    return () => clearInterval(id);
+  }, [fixtureId, isLive, matchEnded, ballInterval]);
 
   // ─── Load rivalry data when result is available ───
   useEffect(() => {
