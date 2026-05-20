@@ -71,8 +71,8 @@ export default function Matches() {
 
   const getRowRoute = (m) => {
     if (m.status === 'FC_DAY1_COMPLETE') return `/match/${m.id}/fc-strategy`;
-    if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') return `/match/${m.id}/live`;
-    if (m.status === 'COMPLETED') return `/match/${m.id}/scorecard`;
+    if (m.status === 'IN_PROGRESS' || m.status === 'LIVE') return `/match/${m.id}?tab=commentary`;
+    if (m.status === 'COMPLETED') return `/match/${m.id}?tab=scorecard`;
     return `/match/${m.id}/preview`;
   };
 
@@ -248,7 +248,7 @@ export default function Matches() {
                       ) : (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
                         <button
                           className="matches-action-btn matches-live-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/live`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}?tab=commentary`); }}
                         >
                           View Live
                         </button>

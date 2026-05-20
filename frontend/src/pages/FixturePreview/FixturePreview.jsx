@@ -182,7 +182,7 @@ export default function FixturePreview() {
                   <div
                     key={i}
                     className="fp-recent-row fp-recent-row-clickable"
-                    onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}
+                    onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}
                     title="View scorecard"
                   >
                     <span className="fp-recent-date">{m.date}</span>
@@ -199,18 +199,18 @@ export default function FixturePreview() {
       {/* Action Buttons */}
       <div className="fp-actions">
         {data.status === 'COMPLETED' && (
-          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}/scorecard`)}>
+          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}>
             View Scorecard
           </button>
         )}
         {data.status === 'IN_PROGRESS' && (
-          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}/live`)}>
+          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}>
             Watch Live
           </button>
         )}
         {data.status === 'FC_DAY1_COMPLETE' && (
           <>
-            <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}/scorecard`)}>
+            <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}>
               View Day 1 Scorecard
             </button>
             {data.isUserInvolved && (
@@ -229,3 +229,4 @@ export default function FixturePreview() {
     </div>
   );
 }
+

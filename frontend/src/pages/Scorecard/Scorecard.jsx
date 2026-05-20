@@ -128,7 +128,7 @@ export default function Scorecard() {
         </div>
         <button
           className="sc-commentary-btn"
-          onClick={() => navigate(`/match/${fixtureId}/commentary`)}
+          onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}
         >
           <HiOutlineClipboardDocumentList /> Commentary
         </button>
@@ -365,3 +365,4 @@ function formatDismissal(bc) {
   if (d === 'hit_wicket') return `hit wicket b ${bc.bowler}`;
   return `${d} ${bc.bowler || ''}`;
 }
+

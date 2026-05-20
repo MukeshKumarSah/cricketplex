@@ -421,7 +421,7 @@ export default function Dashboard() {
               <div
                 key={m.id}
                 className={`dash-match-row dash-match-${statusClass}`}
-                onClick={() => navigate(isLive ? `/match/${m.id}/live` : isDone ? `/match/${m.id}/scorecard` : isDay1 ? `/match/${m.id}/preview` : `/match/${m.id}/preview`)}
+                onClick={() => navigate(isLive ? `/match/${m.id}?tab=commentary` : isDone ? `/match/${m.id}?tab=scorecard` : isDay1 ? `/match/${m.id}/preview` : `/match/${m.id}/preview`)}
               >
                 <div className="dash-match-date">
                   {m.matchDate ? new Date(m.matchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
@@ -653,3 +653,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

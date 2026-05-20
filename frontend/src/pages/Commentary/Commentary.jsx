@@ -69,7 +69,7 @@ export default function Commentary() {
         </div>
         <button
           className="comm-scorecard-btn"
-          onClick={() => navigate(`/match/${fixtureId}/scorecard`)}
+          onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}
         >
           <HiOutlineTrophy /> Scorecard
         </button>
@@ -185,3 +185,4 @@ export default function Commentary() {
     </div>
   );
 }
+

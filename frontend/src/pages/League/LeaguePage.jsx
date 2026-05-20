@@ -455,7 +455,7 @@ export default function LeaguePage() {
                         className="lp-ft-row"
                         onClick={() => {
                           if (m.status === 'FC_DAY1_COMPLETE') navigate(`/match/${m.id}/fc-strategy`);
-                          else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') navigate(`/match/${m.id}/scorecard`);
+                          else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') navigate(`/match/${m.id}?tab=scorecard`);
                           else navigate(`/match/${m.id}/preview`);
                         }}
                       >
@@ -751,3 +751,4 @@ export default function LeaguePage() {
     </div>
   );
 }
+

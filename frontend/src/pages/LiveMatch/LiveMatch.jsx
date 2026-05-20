@@ -771,7 +771,7 @@ export default function LiveMatch() {
               <button onClick={() => { setMatchEnded(false); setActiveTab('scorecard'); }}>
                 <HiOutlineTrophy /> View Scorecard
               </button>
-              <button onClick={() => navigate(`/match/${fixtureId}/commentary`)}>
+              <button onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}>
                 <HiOutlineClipboardDocumentList /> Full Commentary
               </button>
               <button className="lm-overlay-back" onClick={() => navigate('/matches')}>
@@ -897,3 +897,4 @@ function formatDismissal(bc) {
   if (d === 'hit_wicket') return `hit wicket b ${bc.bowler}`;
   return `${d} ${bc.bowler || ''}`;
 }
+

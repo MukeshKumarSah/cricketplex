@@ -267,8 +267,8 @@ export default function Cup() {
                     const isMyMatch = myTeamId && (homeId === myTeamId || awayId === myTeamId);
 
                     // Destination URL depends on match state
-                    const matchLink = st === 'COMPLETED'   ? `/match/${m.fixtureId}/scorecard`
-                                    : st === 'IN_PROGRESS' ? `/match/${m.fixtureId}/live`
+                    const matchLink = st === 'COMPLETED'   ? `/match/${m.fixtureId}?tab=scorecard`
+                                    : st === 'IN_PROGRESS' ? `/match/${m.fixtureId}?tab=commentary`
                                     : `/match/${m.fixtureId}/preview`;
 
                     return (
@@ -513,4 +513,5 @@ function roleShort(role) {
   const map = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 'WK' };
   return map[role] || (role ? role.charAt(0) : '');
 }
+
 

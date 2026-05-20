@@ -132,11 +132,19 @@ export default function MatchCenter() {
   }, [fixtureId]);
 
   const isLiveRoute = location.pathname.endsWith('/live');
-  const routeTab = location.pathname.endsWith('/commentary')
+  const queryTab = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get('tab');
+    if (!raw) return null;
+    const t = raw.toLowerCase();
+    return ['scorecard', 'commentary', 'graphs', 'comparison', 'partnerships', 'summary', 'rivalry'].includes(t)
+      ? t
+      : null;
+  }, [location.search]);
+  const routeTab = queryTab || (location.pathname.endsWith('/commentary')
     ? 'commentary'
     : location.pathname.endsWith('/scorecard')
     ? 'scorecard'
-    : null;
+    : null);
   const [activeTab, setActiveTab] = useState(
     routeTab || savedUi?.activeTab || 'scorecard'
   );
@@ -148,6 +156,7 @@ export default function MatchCenter() {
   const [commFilter, setCommFilter] = useState('all');
   const feedRef = useRef(null);
   const userScrolledRef = useRef(false);
+  const enteredLiveRef = useRef(isLiveRoute);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -176,6 +185,9 @@ export default function MatchCenter() {
 
   // ─── Determine live status from server data ───
   const isLive = result?.fixtureStatus === 'IN_PROGRESS';
+  useEffect(() => {
+    if (isLive) enteredLiveRef.current = true;
+  }, [isLive]);
   const createdAt = commentary?.createdAt || result?.createdAt;
   const ballCounts = commentary?.ballCounts || result?.ballCounts || [];
   const formatForInterval = commentary?.format || result?.format;
@@ -1700,7 +1712,7 @@ export default function MatchCenter() {
                 <div className="mc-rivalry-list">
                   {rivalry.matches.slice(0, 10).map((m, i) => (
                     <div key={i} className="mc-rivalry-match mc-rivalry-match-link"
-                      onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}>
+                      onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}>
                       <span className="mc-rivalry-date">{m.date}</span>
                       <span className="mc-rivalry-format">{m.format}</span>
                       <span className="mc-rivalry-summary">{m.summary}</span>
@@ -1714,8 +1726,8 @@ export default function MatchCenter() {
 
       </div>
 
-      {/* ─── Match Ended Overlay (live route only, dismissable) ─── */}
-      {isLiveRoute && matchEnded && !overlayDismissed && (
+      {/* ─── Match Ended Overlay (when page was entered during live, dismissable) ─── */}
+      {enteredLiveRef.current && matchEnded && !overlayDismissed && (
         <div className="mc-overlay">
           <div className="mc-overlay-card">
             <HiOutlineTrophy className="mc-overlay-icon" />
@@ -2150,3 +2162,4 @@ function formatDismissal(bc) {
   if (d === 'hit_wicket') return `hit wicket b ${bc.bowler}`;
   return `${d} ${bc.bowler || ''}`;
 }
+

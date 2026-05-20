@@ -162,7 +162,7 @@ export default function Challenges() {
       const res = await simulateChallenge(id);
       toast.success(res.data.message);
       if (res.data.fixtureId) {
-        navigate(`/match/${res.data.fixtureId}/live`);
+        navigate(`/match/${res.data.fixtureId}?tab=commentary`);
       } else {
         loadChallenges();
       }
@@ -375,7 +375,7 @@ export default function Challenges() {
                   c.fixtureStatus === 'IN_PROGRESS' ? (
                     <button
                       className="ch-btn ch-simulate"
-                      onClick={() => navigate(`/match/${c.fixtureId}/live`)}
+                      onClick={() => navigate(`/match/${c.fixtureId}?tab=commentary`)}
                     >
                       <HiOutlinePlayCircle /> Watch Live
                     </button>
@@ -383,13 +383,13 @@ export default function Challenges() {
                     <>
                       <button
                         className="ch-btn ch-scorecard"
-                        onClick={() => navigate(`/match/${c.fixtureId}/scorecard`)}
+                        onClick={() => navigate(`/match/${c.fixtureId}?tab=scorecard`)}
                       >
                         <HiOutlineTrophy /> Scorecard
                       </button>
                       <button
                         className="ch-btn ch-commentary"
-                        onClick={() => navigate(`/match/${c.fixtureId}/commentary`)}
+                        onClick={() => navigate(`/match/${c.fixtureId}?tab=commentary`)}
                       >
                         <HiOutlineClipboardDocumentList /> Commentary
                       </button>
@@ -491,3 +491,4 @@ export default function Challenges() {
     </div>
   );
 }
+

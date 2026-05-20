@@ -486,7 +486,7 @@ export default function Player() {
                   <h3 className="pp-stat-heading">Last 5 Matches</h3>
                   <div className="pp-last5-list">
                     {current.last5.map((m, i) => (
-                      <div key={i} className="pp-last5-row" onClick={() => navigate(`/match/${m.fixtureId}/scorecard`)}>
+                      <div key={i} className="pp-last5-row" onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}>
                         <div className="pp-last5-meta">
                           <span className="pp-last5-vs">vs {m.vs}</span>
                           {m.date && <span className="pp-last5-date">{m.date}</span>}
@@ -532,3 +532,4 @@ function StatCell({ label, value, highlight }) {
     </div>
   );
 }
+

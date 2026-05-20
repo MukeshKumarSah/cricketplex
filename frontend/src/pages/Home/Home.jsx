@@ -278,6 +278,10 @@ export default function Home() {
               element={<FixturePreview />}
             />
             <Route
+              path="match/:fixtureId"
+              element={<MatchCenter />}
+            />
+            <Route
               path="match/:fixtureId/scorecard"
               element={<MatchCenter />}
             />

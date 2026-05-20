@@ -326,9 +326,9 @@ export default function TeamProfile() {
                       {displayed.map((m) => {
                         const fmtColor = FORMAT_COLORS[m.format] || '#94a3b8';
                         const matchHref =
-                          m.status === 'COMPLETED' ? `/match/${m.id}/scorecard`
-                          : (m.status === 'IN_PROGRESS' || m.status === 'LIVE') ? `/match/${m.id}/live`
-                          : m.status === 'FC_DAY1_COMPLETE' ? `/match/${m.id}/scorecard`
+                          m.status === 'COMPLETED' ? `/match/${m.id}?tab=scorecard`
+                          : (m.status === 'IN_PROGRESS' || m.status === 'LIVE') ? `/match/${m.id}?tab=commentary`
+                          : m.status === 'FC_DAY1_COMPLETE' ? `/match/${m.id}?tab=scorecard`
                           : `/match/${m.id}/preview`;
                         return (
                           <a
@@ -626,3 +626,4 @@ export default function TeamProfile() {
     </div>
   );
 }
+
