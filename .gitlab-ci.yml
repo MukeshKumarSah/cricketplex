@@ -31,10 +31,34 @@ build_and_push:
         - docker push $DOCKER_USERNAME/cricketplex-backend:latest
 
 
-# deploy:
-#     stage: deploy
-#     script:
-#         - sed -i 's,'repo/imagename','$DOCKER_USERNAME/$IMAGE:v1',g' deployment.yaml 
-#         - cp $KUBE_CONFIG ~/.kube/config
-#         - kubectl get nodes
-#         - kubectl apply -f deployment.yaml
+deploy_to_vm:
+  stage: deploy
+
+  needs:
+    - build_and_push
+
+  before_script:
+    # Setup SSH
+    - mkdir -p ~/.ssh
+
+    # Create SSH private key file
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+
+    # Set permissions
+    - chmod 600 ~/.ssh/id_deploy
+
+    # Add server to known hosts
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+
+  script:
+    - |
+      ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER << EOF
+
+        set -e
+
+        echo "Connected to server"
+
+        cd ~/dev/cricketplex
+        ls
+
+      EOF
