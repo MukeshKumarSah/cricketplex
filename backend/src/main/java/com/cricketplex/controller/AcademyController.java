@@ -469,37 +469,37 @@ public class AcademyController {
         String bowlHand = rng.nextBoolean() ? "RH" : "LH";
 
         // Youth player: 17 years old, lower ratings
-        int batR, bowlR, kpR = 0, fldR;
+        double batR, bowlR, kpR = 0.0, fldR;
         String bowlType;
 
         switch (role) {
             case "BATSMAN" -> {
-                batR = randInt(rng, 8, 18);
-                bowlR = randInt(rng, 0, 8);
-                fldR = randInt(rng, 5, 15);
+                batR = (double) randInt(rng, 8, 18);
+                bowlR = (double) randInt(rng, 0, 8);
+                fldR = (double) randInt(rng, 5, 15);
                 bowlType = randomPartTimeBowlType(rng);
             }
             case "BOWLER" -> {
-                batR = randInt(rng, 0, 8);
-                bowlR = randInt(rng, 8, 18);
-                fldR = randInt(rng, 5, 15);
+                batR = (double) randInt(rng, 0, 8);
+                bowlR = (double) randInt(rng, 8, 18);
+                fldR = (double) randInt(rng, 5, 15);
                 bowlType = randomBowlType(rng);
             }
             case "ALL_ROUNDER" -> {
-                batR = randInt(rng, 6, 14);
-                bowlR = randInt(rng, 6, 14);
-                fldR = randInt(rng, 5, 15);
+                batR = (double) randInt(rng, 6, 14);
+                bowlR = (double) randInt(rng, 6, 14);
+                fldR = (double) randInt(rng, 5, 15);
                 bowlType = randomBowlType(rng);
             }
             case "KEEPER" -> {
-                batR = randInt(rng, 8, 16);
-                bowlR = randInt(rng, 0, 5);
-                kpR = randInt(rng, 8, 18);
-                fldR = randInt(rng, 5, 15);
+                batR = (double) randInt(rng, 8, 16);
+                bowlR = (double) randInt(rng, 0, 5);
+                kpR = (double) randInt(rng, 8, 18);
+                fldR = (double) randInt(rng, 5, 15);
                 bowlType = randomPartTimeBowlType(rng);
             }
             default -> {
-                batR = 10; bowlR = 10; fldR = 10;
+                batR = 10.0; bowlR = 10.0; fldR = 10.0;
                 bowlType = "M";
             }
         }
@@ -513,8 +513,8 @@ public class AcademyController {
                 .keeperRating(kpR).fldRating(fldR)
                 .rating(calcOverallRating(role, batR, bowlR, kpR, fldR))
                 .wage(randInt(rng, 100, 300))
-                .confidence(randInt(rng, 30, 50))
-                .experience(0).stamina(randInt(rng, 5, 15)).fitness(100)
+                .confidence((double) randInt(rng, 30, 50))
+                .experience(0).stamina((double) randInt(rng, 5, 15)).fitness(100)
                 .batAggression(randomAggression(rng)).bowlAggression(randomAggression(rng))
                 .build();
     }
@@ -554,13 +554,13 @@ public class AcademyController {
         return types[rng.nextInt(types.length)];
     }
 
-    private int calcOverallRating(String role, int bat, int bowl, int keeper, int fld) {
+    private int calcOverallRating(String role, double bat, double bowl, double keeper, double fld) {
         return switch (role) {
             case "BATSMAN"     -> (int)(bat * 0.55 + bowl * 0.10 + fld * 0.35);
             case "BOWLER"      -> (int)(bat * 0.10 + bowl * 0.55 + fld * 0.35);
             case "ALL_ROUNDER" -> (int)(bat * 0.35 + bowl * 0.35 + fld * 0.30);
             case "KEEPER"      -> (int)(bat * 0.30 + bowl * 0.05 + keeper * 0.35 + fld * 0.30);
-            default            -> (bat + bowl + fld) / 3;
+            default            -> (int)((bat + bowl + fld) / 3);
         };
     }
 }
