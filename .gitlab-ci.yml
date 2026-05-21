@@ -11,11 +11,10 @@ variables:
 
 stages:
     - build
-    - push
     - deploy
 
 
-build:
+build_and_push:
     stage: build
     script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -26,13 +25,6 @@ build:
         - docker tag $DOCKER_USERNAME/cricketplex-backend:$TAG_VERSION $DOCKER_USERNAME/cricketplex-backend:latest
 
         - docker images
-
-push:
-    stage: push
-    needs: ["build"]
-    script:
-        - docker images 
-        - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
         - docker push $DOCKER_USERNAME/cricketplex-frontend:$TAG_VERSION
         - docker push $DOCKER_USERNAME/cricketplex-frontend:latest
         - docker push $DOCKER_USERNAME/cricketplex-backend:$TAG_VERSION
