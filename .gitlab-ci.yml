@@ -29,6 +29,7 @@ build:
 
 push:
     stage: push
+    needs: ["build"]
     script:
         - docker images 
         - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
