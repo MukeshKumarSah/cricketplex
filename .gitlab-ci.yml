@@ -25,9 +25,12 @@ build:
         - docker build -t $DOCKER_USERNAME/cricketplex-backend:$TAG_VERSION backend/
         - docker tag $DOCKER_USERNAME/cricketplex-backend:$TAG_VERSION $DOCKER_USERNAME/cricketplex-backend:latest
 
+        - docker images
+
 push:
     stage: push
     script:
+        - docker images 
         - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
         - docker push $DOCKER_USERNAME/cricketplex-frontend:$TAG_VERSION
         - docker push $DOCKER_USERNAME/cricketplex-frontend:latest
