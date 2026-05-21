@@ -75,137 +75,38 @@
 #         # docker-compose pull &&
 #         # docker-compose up -d
 #   only:
-#     - master
-#   needs:
-#     - push_images
-image: whiteshadow1/gitlab-baseimage:v1
 
+
+
+
+image: whiteshadow1/gitlab-baseimage:v1
 services:
-  - name: docker:24.0.5-dind
+  - docker:24.0.5-dind
 
 variables:
-  # Docker-in-Docker configuration
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_DRIVER: overlay2
-
-  # Image versioning
-  TAG_VERSION: "v$CI_PIPELINE_IID"
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  IMAGE: frontend
 
 stages:
-  - build
-  - push
-  - deploy
+    - buildAndPush
+    - deploy
 
-# ---------------------------------------------------
-# Global setup
-# ---------------------------------------------------
-before_script:
-  # Debug (optional)
 
-  # Verify docker is working
-  - docker info
+buildAndPush:
+    stage: buildAndPush
+    script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker build -t $DOCKER_USERNAME/$IMAGE:v1 frontend/
+        - docker push $DOCKER_USERNAME/$IMAGE:v1
 
-  # Login to Docker Hub
-  - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USER" --password-stdin
 
-# ---------------------------------------------------
-# 1. BUILD STAGE
-# ---------------------------------------------------
-build_images:
-  stage: build
-
-  script:
-    # ---------------- Backend ----------------
-    - echo "Building Backend Image..."
-    - docker build -t $DOCKER_HUB_USER/backend:$TAG_VERSION ./backend
-    - docker tag $DOCKER_HUB_USER/backend:$TAG_VERSION $DOCKER_HUB_USER/backend:latest
-
-    # ---------------- Frontend ----------------
-    - echo "Building Frontend Image..."
-    - docker build -t $DOCKER_HUB_USER/frontend:$TAG_VERSION ./frontend
-    - docker tag $DOCKER_HUB_USER/frontend:$TAG_VERSION $DOCKER_HUB_USER/frontend:latest
-
-    # Verify built images
-    - docker images
-
-  only:
-    - master
-
-# ---------------------------------------------------
-# 2. PUSH STAGE
-# ---------------------------------------------------
-push_images:
-  stage: push
-
-  needs:
-    - build_images
-
-  script:
-    # Push Backend
-    - echo "Pushing Backend Images..."
-    - docker push $DOCKER_HUB_USER/backend:$TAG_VERSION
-    - docker push $DOCKER_HUB_USER/backend:latest
-
-    # Push Frontend
-    - echo "Pushing Frontend Images..."
-    - docker push $DOCKER_HUB_USER/frontend:$TAG_VERSION
-    - docker push $DOCKER_HUB_USER/frontend:latest
-
-  only:
-    - master
-
-# ---------------------------------------------------
-# 3. DEPLOY STAGE
-# ---------------------------------------------------
-deploy_to_vm:
-  stage: deploy
-
-  needs:
-    - push_images
-
-  before_script:
-    # Setup SSH
-    - mkdir -p ~/.ssh
-
-    # Create SSH private key file
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_deploy
-
-    # Set permissions
-    - chmod 600 ~/.ssh/id_deploy
-
-    # Add server to known hosts
-    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
-
-  script:
-    - |
-      ssh -i ~/.ssh/id_deploy ubuntu@$DEPLOY_SERVER << EOF
-
-        set -e
-
-        echo "Connected to server"
-
-        cd ~/dev/cricketplex
-
-        echo "Pulling latest images..."
-
-        docker pull $DOCKER_HUB_USER/backend:$TAG_VERSION
-        docker pull $DOCKER_HUB_USER/frontend:$TAG_VERSION
-
-        # Update docker-compose image tags if needed
-        # Example using .env file
-        if [ -f .env ]; then
-          sed -i "s/^TAG_VERSION=.*/TAG_VERSION=$TAG_VERSION/" .env
-        fi
-
-        echo "Restarting containers..."
-
-        docker compose down
-        docker compose up -d
-
-        echo "Deployment completed successfully"
-
-      EOF
-
-  only:
-    - master
+deploy:
+    stage: deploy
+    script:
+        - sed -i 's,'repo/imagename','$DOCKER_USERNAME/$IMAGE:v1',g' deployment.yaml 
+        - cp $KUBE_CONFIG ~/.kube/config
+        - kubectl get nodes
+        - kubectl apply -f deployment.yaml
