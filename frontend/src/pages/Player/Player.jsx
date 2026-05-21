@@ -57,7 +57,7 @@ function RatingBar({ label, value, max = 100, color }) {
       <div className="pp-rating-track">
         <div className="pp-rating-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className="pp-rating-value">{value}</span>
+      <span className="pp-rating-value">{Math.floor(value)}</span>
     </div>
   );
 }

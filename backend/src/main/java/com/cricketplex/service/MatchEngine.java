@@ -617,12 +617,12 @@ public class MatchEngine {
         double effectivePitchBonus = pitchEffect.bowlerBonus * pitchDecay + intraPitchWear;
 
         double batPitchMod = getBatterPitchModifier(ctx.pitchType, batter.player.getBatHand(),
-                batter.player.getBatRating(), batter.player.getExperience(), overNumber, ctx.maxOvers);
+                (int) batter.player.getBatRating(), batter.player.getExperience(), overNumber, ctx.maxOvers);
 
         // ── Weather ──
         WeatherEffect weatherEffect = getWeatherEffect(ctx.condition, ctx.temperature, bowler.getBowlType());
         double batWeatherMod = getBatterWeatherModifier(ctx.condition, ctx.temperature,
-                batter.player.getExperience(), batter.player.getBatRating());
+                batter.player.getExperience(), (int) batter.player.getBatRating());
 
         // ── Type matchup ──
         double typeMatchup   = getBowlerTypeMatchup(bowler.getBowlType(), batter.player.getBatHand(), ctx.pitchType);
@@ -1862,7 +1862,7 @@ public class MatchEngine {
 
         // FIX: weighted random selection — higher rated bowlers get more picks but not exclusively
         // Sort by rating descending; use overNumber as variety seed to rotate
-        candidates.sort((a, b) -> Integer.compare(b.getPlayer().getBowlRating(), a.getPlayer().getBowlRating()));
+        candidates.sort((a, b) -> Double.compare(b.getPlayer().getBowlRating(), a.getPlayer().getBowlRating()));
         int topN = Math.min(3, candidates.size()); // consider top 3
         // Rotate among top-N using a simple weighted pick: top bowler 50%, 2nd 30%, 3rd 20%
         double[] weights = {0.50, 0.30, 0.20};
@@ -2555,8 +2555,8 @@ public class MatchEngine {
         List<Player> selected     = autoSelectPlaying11(squad);
         List<Player> battingOrder = buildAutoBattingOrder(selected);
         MatchLineup lineup = MatchLineup.builder().fixture(fixture).team(team).bowlingPlan("BALANCED").build();
-        Player keeper = selected.stream().filter(p -> "KEEPER".equals(p.getRole())).max(Comparator.comparingInt(Player::getKeeperRating))
-                .orElse(selected.stream().max(Comparator.comparingInt(Player::getKeeperRating)).orElse(selected.get(0)));
+        Player keeper = selected.stream().filter(p -> "KEEPER".equals(p.getRole())).max(Comparator.comparingDouble(Player::getKeeperRating))
+                .orElse(selected.stream().max(Comparator.comparingDouble(Player::getKeeperRating)).orElse(selected.get(0)));
         lineup.setKeeper(keeper);
         Player captain = selected.stream().max(Comparator.comparingInt(Player::getRating)).orElse(selected.get(0));
         lineup.setCaptain(captain);
@@ -2567,11 +2567,11 @@ public class MatchEngine {
         List<Player> topBowlers;
         if ("FC".equalsIgnoreCase(format)) {
             topBowlers = selected.stream().filter(p -> p.getBowlRating() >= 15)
-                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).toList();
+                    .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).toList();
             if (topBowlers.size() < 5) topBowlers = selected.stream()
-                    .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
+                    .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
         } else {
-            topBowlers = selected.stream().sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
+            topBowlers = selected.stream().sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
         }
         int bowlingPlanOvers = "FC".equalsIgnoreCase(format) ? 100 : getMaxOvers(format);
         for (int over = 1; over <= bowlingPlanOvers; over++) {
@@ -2639,8 +2639,8 @@ public class MatchEngine {
         if (keeper == null && keeperId != null) keeper = replacementByOriginalId.get(keeperId);
         if (keeper == null || !selectedById.containsKey(keeper.getId())) {
             keeper = selected.stream().filter(p -> "KEEPER".equals(p.getRole()))
-                    .max(Comparator.comparingInt(Player::getKeeperRating))
-                    .orElse(selected.stream().max(Comparator.comparingInt(Player::getKeeperRating)).orElse(null));
+                    .max(Comparator.comparingDouble(Player::getKeeperRating))
+                    .orElse(selected.stream().max(Comparator.comparingDouble(Player::getKeeperRating)).orElse(null));
         }
         lineup.setKeeper(keeper);
         List<Map<String, Object>> rawBowling = (List<Map<String, Object>>) data.get("bowlingOrders");
@@ -2661,14 +2661,14 @@ public class MatchEngine {
                         else bowler = pickSelectedByRole(selected, resolveRole(origId));
                     }
                 }
-                if (bowler == null) bowler = selected.stream().max(Comparator.comparingInt(Player::getBowlRating)).orElse(null);
+                if (bowler == null) bowler = selected.stream().max(Comparator.comparingDouble(Player::getBowlRating)).orElse(null);
                 if (bowler == null) continue;
                 lineup.getBowlingOrders().add(BowlingOrder.builder().lineup(lineup).overNumber(on).bowler(bowler)
                         .aggression(Objects.toString(bo.getOrDefault("aggression", bowler.getBowlAggression()), "N")).build());
             }
         }
         if (lineup.getBowlingOrders().isEmpty()) {
-            List<Player> top5 = selected.stream().sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
+            List<Player> top5 = selected.stream().sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
             if (top5.isEmpty()) return null;
             for (int ov = 1; ov <= planOvers; ov++) {
                 Player bowler = top5.get((ov - 1) % top5.size());
@@ -2688,10 +2688,10 @@ public class MatchEngine {
     private Player pickReplacementByRole(List<Player> squad, Set<UUID> usedIds, String role) {
         if (role == null || role.isBlank()) return null;
         Comparator<Player> comp = switch (role) {
-            case "BATSMAN"     -> Comparator.comparingInt(Player::getBatRating);
-            case "BOWLER"      -> Comparator.comparingInt(Player::getBowlRating);
-            case "KEEPER"      -> Comparator.comparingInt(Player::getKeeperRating);
-            case "ALL_ROUNDER" -> Comparator.comparingInt(p -> p.getBatRating() + p.getBowlRating());
+            case "BATSMAN"     -> Comparator.comparingDouble(Player::getBatRating);
+            case "BOWLER"      -> Comparator.comparingDouble(Player::getBowlRating);
+            case "KEEPER"      -> Comparator.comparingDouble(Player::getKeeperRating);
+            case "ALL_ROUNDER" -> Comparator.comparingDouble(p -> p.getBatRating() + p.getBowlRating());
             default            -> Comparator.comparingInt(Player::getRating);
         };
         return squad.stream().filter(p -> !usedIds.contains(p.getId()) && role.equalsIgnoreCase(p.getRole())).max(comp).orElse(null);
@@ -2702,10 +2702,10 @@ public class MatchEngine {
     private Player pickSelectedByRole(List<Player> selected, String role) {
         if (role == null || role.isBlank()) return null;
         Comparator<Player> comp = switch (role) {
-            case "BATSMAN"     -> Comparator.comparingInt(Player::getBatRating);
-            case "BOWLER"      -> Comparator.comparingInt(Player::getBowlRating);
-            case "KEEPER"      -> Comparator.comparingInt(Player::getKeeperRating);
-            case "ALL_ROUNDER" -> Comparator.comparingInt(p -> p.getBatRating() + p.getBowlRating());
+            case "BATSMAN"     -> Comparator.comparingDouble(Player::getBatRating);
+            case "BOWLER"      -> Comparator.comparingDouble(Player::getBowlRating);
+            case "KEEPER"      -> Comparator.comparingDouble(Player::getKeeperRating);
+            case "ALL_ROUNDER" -> Comparator.comparingDouble(p -> p.getBatRating() + p.getBowlRating());
             default            -> Comparator.comparingInt(Player::getRating);
         };
         return selected.stream().filter(p -> role.equalsIgnoreCase(p.getRole())).max(comp).orElse(null);
@@ -2713,18 +2713,18 @@ public class MatchEngine {
     private List<Player> autoSelectPlaying11(List<Player> squad) {
         List<Player> selected = new ArrayList<>();
         Set<UUID> pickedIds   = new HashSet<>();
-        squad.stream().filter(p -> "KEEPER".equals(p.getRole())).max(Comparator.comparingInt(Player::getKeeperRating))
+        squad.stream().filter(p -> "KEEPER".equals(p.getRole())).max(Comparator.comparingDouble(Player::getKeeperRating))
                 .ifPresent(p -> { selected.add(p); pickedIds.add(p.getId()); });
-        if (selected.isEmpty()) squad.stream().max(Comparator.comparingInt(Player::getKeeperRating))
+        if (selected.isEmpty()) squad.stream().max(Comparator.comparingDouble(Player::getKeeperRating))
                 .ifPresent(p -> { selected.add(p); pickedIds.add(p.getId()); });
         squad.stream().filter(p -> "BATSMAN".equals(p.getRole()) && !pickedIds.contains(p.getId()))
-                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating())).limit(5)
+                .sorted((a, b) -> Double.compare(b.getBatRating(), a.getBatRating())).limit(5)
                 .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
         squad.stream().filter(p -> "ALL_ROUNDER".equals(p.getRole()) && !pickedIds.contains(p.getId()))
-                .sorted((a, b) -> Integer.compare(b.getBatRating() + b.getBowlRating(), a.getBatRating() + a.getBowlRating())).limit(2)
+                .sorted((a, b) -> Double.compare(b.getBatRating() + b.getBowlRating(), a.getBatRating() + a.getBowlRating())).limit(2)
                 .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
         squad.stream().filter(p -> "BOWLER".equals(p.getRole()) && !pickedIds.contains(p.getId()))
-                .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).limit(3)
+                .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(3)
                 .forEach(p -> { selected.add(p); pickedIds.add(p.getId()); });
         if (selected.size() < 11) squad.stream().filter(p -> !pickedIds.contains(p.getId()))
                 .sorted((a, b) -> Integer.compare(b.getRating(), a.getRating())).limit(11 - selected.size())
@@ -2734,12 +2734,12 @@ public class MatchEngine {
     private List<Player> buildAutoBattingOrder(List<Player> selected) {
         List<Player> order = new ArrayList<>();
         selected.stream().filter(p -> "BATSMAN".equals(p.getRole()))
-                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating())).forEach(order::add);
+                .sorted((a, b) -> Double.compare(b.getBatRating(), a.getBatRating())).forEach(order::add);
         selected.stream().filter(p -> "KEEPER".equals(p.getRole())).findFirst().ifPresent(order::add);
         selected.stream().filter(p -> "ALL_ROUNDER".equals(p.getRole()))
-                .sorted((a, b) -> Integer.compare(b.getBatRating(), a.getBatRating())).forEach(order::add);
+                .sorted((a, b) -> Double.compare(b.getBatRating(), a.getBatRating())).forEach(order::add);
         selected.stream().filter(p -> "BOWLER".equals(p.getRole()))
-                .sorted((a, b) -> Integer.compare(b.getBowlRating(), a.getBowlRating())).forEach(order::add);
+                .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).forEach(order::add);
         selected.stream().filter(p -> !order.contains(p)).forEach(order::add);
         return order;
     }
@@ -2882,7 +2882,7 @@ public class MatchEngine {
     private void applyMoraleDelta(Team team, int resultDelta) {
         int current = team.getMorale() != null ? team.getMorale() : 50;
         List<Player> squad = playerRepository.findByTeam(team);
-        double avgConfidence = squad.isEmpty() ? 50.0 : squad.stream().mapToInt(Player::getConfidence).average().orElse(50.0);
+        double avgConfidence = squad.isEmpty() ? 50.0 : squad.stream().mapToDouble(Player::getConfidence).average().orElse(50.0);
         double squadPull     = (avgConfidence - current) * 0.15;
         int academyBenchmark = (team.getAcademyLevel() != null ? team.getAcademyLevel() : 1) * 25;
         double academyPull   = (academyBenchmark - current) * 0.10;
@@ -3134,9 +3134,9 @@ public class MatchEngine {
             Player p = lp.getPlayer(); int pos = lp.getBattingPosition();
             double batEff = p.getBatRating() + (p.getConfidence() / 100.0) * 6.0
                     + Math.min(p.getExperience() * 0.3, 10.0) + (p.getFitness() / 100.0) * 3.0
-                    + getBatterPitchModifier(pitchType, p.getBatHand(), p.getBatRating(), p.getExperience(), 1, 50)
+                    + getBatterPitchModifier(pitchType, p.getBatHand(), (int) p.getBatRating(), p.getExperience(), 1, 50)
                     + getWeatherEffect(condition, temperature, p.getBowlType()).battingMod
-                    + getBatterWeatherModifier(condition, temperature, p.getExperience(), p.getBatRating());
+                    + getBatterWeatherModifier(condition, temperature, p.getExperience(), (int) p.getBatRating());
             batEff = Math.max(5, Math.min(batEff, 120));
             if (pos <= 3) topOrder += batEff; else if (pos <= 7) middleOrder += batEff; else lowerOrder += batEff;
             totalFielding += p.getFldRating();

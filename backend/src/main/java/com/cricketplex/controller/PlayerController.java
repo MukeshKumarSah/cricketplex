@@ -50,14 +50,14 @@ public class PlayerController {
 
         // ─── Skills ───
         Map<String, Integer> skills = new LinkedHashMap<>();
-        skills.put("batRating", player.getBatRating());
-        skills.put("bowlRating", player.getBowlRating());
-        skills.put("keeperRating", player.getKeeperRating());
-        skills.put("fldRating", player.getFldRating());
+        skills.put("batRating", (int) player.getBatRating());
+        skills.put("bowlRating", (int) player.getBowlRating());
+        skills.put("keeperRating", (int) player.getKeeperRating());
+        skills.put("fldRating", (int) player.getFldRating());
         skills.put("experience", player.getExperience());
-        skills.put("stamina", player.getStamina());
+        skills.put("stamina", (int) player.getStamina());
         skills.put("fitness", player.getFitness());
-        skills.put("confidence", player.getConfidence());
+        skills.put("confidence", (int) player.getConfidence());
         resp.put("skills", skills);
 
         // ─── Fetch all completed scorecards ───

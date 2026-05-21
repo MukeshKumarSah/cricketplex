@@ -150,7 +150,7 @@ public class SettingsService {
         List<Player> players = playerRepository.findByTeamId(team.getId());
         int avgConfidence = 50;
         if (!players.isEmpty()) {
-            avgConfidence = (int) Math.round(players.stream().mapToInt(Player::getConfidence).average().orElse(50.0));
+            avgConfidence = (int) Math.round(players.stream().mapToDouble(Player::getConfidence).average().orElse(50.0));
         }
 
         /* Facilities — context bar */

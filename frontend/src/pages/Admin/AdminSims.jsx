@@ -278,12 +278,12 @@ function PlayerRow({ p, idx, onChange }) {
           {ROLES.map((r) => <option key={r}>{r}</option>)}
         </select>
       </td>
-      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={p.batRating} onChange={(e) => set('batRating', +e.target.value)} /></td>
-      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={p.bowlRating} onChange={(e) => set('bowlRating', +e.target.value)} /></td>
-      <td><input className="sim-input sim-input-num" type="number" min={0} max={100} value={p.keeperRating} onChange={(e) => set('keeperRating', +e.target.value)} /></td>
-      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={p.fldRating} onChange={(e) => set('fldRating', +e.target.value)} /></td>
-      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={p.stamina} onChange={(e) => set('stamina', +e.target.value)} /></td>
-      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={p.confidence} onChange={(e) => set('confidence', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={Math.floor(p.batRating)} onChange={(e) => set('batRating', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={Math.floor(p.bowlRating)} onChange={(e) => set('bowlRating', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={0} max={100} value={Math.floor(p.keeperRating)} onChange={(e) => set('keeperRating', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={Math.floor(p.fldRating)} onChange={(e) => set('fldRating', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={Math.floor(p.stamina)} onChange={(e) => set('stamina', +e.target.value)} /></td>
+      <td><input className="sim-input sim-input-num" type="number" min={1} max={100} value={Math.floor(p.confidence)} onChange={(e) => set('confidence', +e.target.value)} /></td>
       <td>
         <select className="sim-select" value={p.batHand} onChange={(e) => set('batHand', e.target.value)}>
           {HANDS.map((h) => <option key={h}>{h}</option>)}

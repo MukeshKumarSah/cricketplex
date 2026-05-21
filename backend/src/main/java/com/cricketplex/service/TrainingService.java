@@ -125,7 +125,7 @@ public class TrainingService {
         int totalGains = 0;
 
         for (Player p : players) {
-            int before = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
+            double before = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
             String focusedType = assignmentMap.get(p.getId());
             if (focusedType != null) {
                 applyFocusedTraining(team, p, focusedType, rng);
@@ -136,8 +136,8 @@ public class TrainingService {
             }
             // Recalc overall rating
             p.setRating(calcOverallRating(p));
-            int after = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
-            totalGains += (after - before);
+            double after = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
+            totalGains += (int)(after - before);
         }
 
         playerRepository.saveAll(players);
@@ -163,7 +163,7 @@ public class TrainingService {
     }
 
     // ── Skill decay: smooth exponential slowdown ──
-    private double skillDecay(int skill) {
+    private double skillDecay(double skill) {
         double room = (100.0 - skill) / 100.0;
         return Math.pow(Math.max(room, 0.0), SKILL_DECAY_EXPONENT);
     }
@@ -171,15 +171,15 @@ public class TrainingService {
     // ── Core gain calculation ──
     // baseGain is flat — stamina doesn't affect learning ability.
     // Fitness has minimal impact: 80% floor, 100% ceiling.
-    private double calcGain(Player p, int currentSkill, double multiplier) {
+    private double calcGain(Player p, double currentSkill, double multiplier) {
         double fit = 0.80 + (p.getFitness() / 100.0) * 0.20;  // range 0.80 – 1.00
         double age = ageFactor(p);
         double decay = skillDecay(currentSkill);
         return BASE_GAIN * multiplier * age * fit * decay;
     }
 
-    private int applyGain(Team team, Player p, String trainingType, String skill,
-                          int currentVal, double multiplier, Random rng) {
+    private double applyGain(Team team, Player p, String trainingType, String skill,
+                            double currentVal, double multiplier, Random rng) {
         double raw = calcGain(p, currentVal, multiplier);
         // Wide randomness: 0.4× to 1.8× (occasionally poor or great sessions)
         // Gaussian-ish: average of two randoms → bell-curved around 1.1×
@@ -187,21 +187,22 @@ public class TrainingService {
         double r2 = 0.4 + rng.nextDouble() * 1.4;
         double randomFactor = (r1 + r2) / 2.0;       // avg → ~1.1, range 0.4 – 1.8
         raw *= randomFactor;
-        // Accumulate fractionally — floor + probabilistic rounding
-        int guaranteed = (int) raw;
-        double frac = raw - guaranteed;
-        int gain = guaranteed + (rng.nextDouble() < frac ? 1 : 0);
-        if (gain <= 0) return currentVal;
+        
+        double newVal = Math.min(currentVal + raw, 100.0);
+        double change = newVal - currentVal;
+        if (change < 0.01) return currentVal; // No meaningful gain
 
-        int newVal = Math.min(currentVal + gain, 100);
-        int change = newVal - currentVal;
-        if (change <= 0) return currentVal;
-
-        trainingLogRepository.save(TrainingLog.builder()
-                .team(team).player(p)
-                .trainingType(trainingType).skill(skill)
-                .oldValue(currentVal).newValue(newVal).change(change)
-                .build());
+        // Only log when integer floor value changes (for pop history)
+        int oldFloor = (int) currentVal;
+        int newFloor = (int) newVal;
+        if (newFloor > oldFloor) {
+            trainingLogRepository.save(TrainingLog.builder()
+                    .team(team).player(p)
+                    .trainingType(trainingType).skill(skill)
+                    .oldValue(oldFloor).newValue(newFloor).change(newFloor - oldFloor)
+                    .build());
+        }
+        
         return newVal;
     }
 
@@ -282,7 +283,7 @@ public class TrainingService {
             case "BOWLER"      -> (int)(p.getBatRating() * 0.10 + p.getBowlRating() * 0.55 + p.getFldRating() * 0.35);
             case "ALL_ROUNDER" -> (int)(p.getBatRating() * 0.35 + p.getBowlRating() * 0.35 + p.getFldRating() * 0.30);
             case "KEEPER"      -> (int)(p.getBatRating() * 0.30 + p.getBowlRating() * 0.05 + p.getKeeperRating() * 0.35 + p.getFldRating() * 0.30);
-            default            -> (p.getBatRating() + p.getBowlRating() + p.getFldRating()) / 3;
+            default            -> (int)((p.getBatRating() + p.getBowlRating() + p.getFldRating()) / 3);
         };
     }
 }

@@ -52,23 +52,23 @@ public class Player {
     @Column(name = "bowl_type")
     private String bowlType;       // FS, WS, F, M, FM, MF (null for pure batsmen/keepers)
 
-    @Column(name = "bat_rating", nullable = false)
-    private int batRating;
+    @Column(name = "bat_rating", nullable = false, columnDefinition = "NUMERIC(5,2)")
+    private double batRating;
 
-    @Column(name = "bowl_rating", nullable = false)
-    private int bowlRating;
+    @Column(name = "bowl_rating", nullable = false, columnDefinition = "NUMERIC(5,2)")
+    private double bowlRating;
 
-    @Column(name = "keeper_rating", nullable = false)
-    private int keeperRating;
+    @Column(name = "keeper_rating", nullable = false, columnDefinition = "NUMERIC(5,2)")
+    private double keeperRating;
 
-    @Column(name = "fld_rating", nullable = false)
-    private int fldRating;
+    @Column(name = "fld_rating", nullable = false, columnDefinition = "NUMERIC(5,2)")
+    private double fldRating;
 
     @Column(nullable = false)
     private int experience;
 
-    @Column(nullable = false)
-    private int stamina;
+    @Column(nullable = false, columnDefinition = "NUMERIC(5,2)")
+    private double stamina;
 
     @Column(nullable = false)
     @Builder.Default
@@ -90,9 +90,9 @@ public class Player {
     @Builder.Default
     private int rating = 20;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "NUMERIC(5,2)")
     @Builder.Default
-    private int confidence = 50;
+    private double confidence = 50.0;
 
     @Column(name = "sim_session_id")
     private UUID simSessionId;

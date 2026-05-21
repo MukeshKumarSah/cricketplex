@@ -992,10 +992,10 @@ export default function LineupSetup() {
                 <span className="lu-pr-role">
                   <span className={`lu-role-badge ${p.role.toLowerCase()}`}>{ROLE_SHORT[p.role]}</span>
                 </span>
-                <span className="lu-pr-stat">{p.batRating}</span>
-                <span className="lu-pr-stat">{p.bowlRating}</span>
-                <span className="lu-pr-stat">{p.keeperRating}</span>
-                <span className="lu-pr-stat">{p.fldRating}</span>
+                <span className="lu-pr-stat">{Math.floor(p.batRating)}</span>
+                <span className="lu-pr-stat">{Math.floor(p.bowlRating)}</span>
+                <span className="lu-pr-stat">{Math.floor(p.keeperRating)}</span>
+                <span className="lu-pr-stat">{Math.floor(p.fldRating)}</span>
                 <span className="lu-pr-stat lu-pr-ovr">{p.rating}</span>
                 <span className="lu-pr-stat">{p.fitness}</span>
                 <span className="lu-pr-style">

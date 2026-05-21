@@ -458,10 +458,10 @@ function PullHistorySection({ data, navigate }) {
             </div>
             <div className="ac-history-right">
               <div className="ac-history-ratings">
-                <span>B:{p.player.batRating}</span>
-                <span>Bw:{p.player.bowlRating}</span>
-                {p.player.keeperRating > 0 && <span>WK:{p.player.keeperRating}</span>}
-                <span>F:{p.player.fldRating}</span>
+                <span>B:{Math.floor(p.player.batRating)}</span>
+                <span>Bw:{Math.floor(p.player.bowlRating)}</span>
+                {p.player.keeperRating > 0 && <span>WK:{Math.floor(p.player.keeperRating)}</span>}
+                <span>F:{Math.floor(p.player.fldRating)}</span>
               </div>
               {p.pulledAt && <span className="ac-history-date">{new Date(p.pulledAt).toLocaleDateString()}</span>}
             </div>
@@ -506,7 +506,7 @@ function StatPill({ label, value }) {
   return (
     <span className="ac-stat-pill">
       <span className="ac-stat-pill-label">{label}</span>
-      <span className="ac-stat-pill-value">{value}</span>
+      <span className="ac-stat-pill-value">{Math.floor(value)}</span>
     </span>
   );
 }

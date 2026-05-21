@@ -246,12 +246,12 @@ public class AcademyController {
                 .snapshotRole(player.getRole())
                 .snapshotAge(player.getAge())
                 .snapshotAgeDays(player.getAgeDays())
-                .snapshotBatRating(player.getBatRating())
-                .snapshotBowlRating(player.getBowlRating())
-                .snapshotKeeperRating(player.getKeeperRating())
-                .snapshotFldRating(player.getFldRating())
-                .snapshotStamina(player.getStamina())
-                .snapshotConfidence(player.getConfidence())
+                .snapshotBatRating((int) player.getBatRating())
+                .snapshotBowlRating((int) player.getBowlRating())
+                .snapshotKeeperRating((int) player.getKeeperRating())
+                .snapshotFldRating((int) player.getFldRating())
+                .snapshotStamina((int) player.getStamina())
+                .snapshotConfidence((int) player.getConfidence())
                 .snapshotExperience(player.getExperience())
                 .build();
         academyPullRepository.save(pull);

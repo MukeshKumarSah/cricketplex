@@ -252,7 +252,7 @@ function RatingBar({ label, value, max, color }) {
       <div className="sq-rating-track">
         <div className="sq-rating-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className="sq-rating-value">{value}</span>
+      <span className="sq-rating-value">{Math.floor(value)}</span>
     </div>
   );
 }

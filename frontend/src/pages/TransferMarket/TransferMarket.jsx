@@ -569,7 +569,7 @@ function RatingBar({ label, value, color }) {
       <div className="tm-rating-track">
         <div className="tm-rating-fill" style={{ width: `${pct}%`, background: color }} />
       </div>
-      <span className="tm-rating-value">{value}</span>
+      <span className="tm-rating-value">{Math.floor(value)}</span>
     </div>
   );
 }

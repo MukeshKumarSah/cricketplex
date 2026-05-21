@@ -448,9 +448,9 @@ export default function TeamProfile() {
                             </span>
                           </td>
                           <td>{p.age}yr {p.ageDays ?? 0}d</td>
-                          <td style={{ color: ratingColor(p.batRating) }}>{p.batRating}</td>
-                          <td style={{ color: ratingColor(p.bowlRating) }}>{p.bowlRating}</td>
-                          <td style={{ color: ratingColor(p.fldRating) }}>{p.fldRating}</td>
+                          <td style={{ color: ratingColor(p.batRating) }}>{Math.floor(p.batRating)}</td>
+                          <td style={{ color: ratingColor(p.bowlRating) }}>{Math.floor(p.bowlRating)}</td>
+                          <td style={{ color: ratingColor(p.fldRating) }}>{Math.floor(p.fldRating)}</td>
                           <td style={{ color: ratingColor(p.rating) }}>{p.rating}</td>
                         </tr>
                       ))}
