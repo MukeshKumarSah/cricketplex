@@ -84,6 +84,7 @@ public class MatchEngine {
     private final WeatherService               weatherService;
     private final ActivityLogService           activityLogService;
     private final FixtureService               fixtureService;
+    private final CommentaryService            commentaryService;
 
     // Lazy to avoid circular dependency (FriendlyTournamentService uses FixtureRepository etc.)
     @Autowired @Lazy
@@ -728,9 +729,10 @@ public class MatchEngine {
                 else if (extraRoll < 0.15)  { result.runs += 2; }
                 else if (extraRoll < 0.20)  { result.runs += 1; }
                 // FIX: wide boundary does NOT set isBoundary — it's extras, not batting boundary
-                result.commentary = result.runs >= 5
-                        ? "Wide — races away for 4 wides to the boundary"
-                        : "Wide ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : "");
+                String userComm = getExtraCommentary(rng, ctx, overNumber, batter, bowler, "WD", result.runs, totalRuns, totalWickets);
+                result.commentary = userComm != null ? userComm : 
+                        (result.runs >= 5 ? "Wide — races away for 4 wides to the boundary"
+                        : "Wide ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : ""));
 
                 // FIX: stumped off wide — possible if spinner bowling and batter ventures out
                 boolean isSpinner = SPIN_TYPES.contains(bowler.getBowlType());
@@ -746,9 +748,10 @@ public class MatchEngine {
                 if      (extraRoll < 0.05)  { result.runs += 4; result.isBoundary = true; }
                 else if (extraRoll < 0.15)  { result.runs += 2; }
                 else if (extraRoll < 0.20)  { result.runs += 1; }
-                result.commentary = "No ball"
-                        + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : "");
-                if (result.isBoundary) result.commentary += " away to the boundary";
+                String userComm = getExtraCommentary(rng, ctx, overNumber, batter, bowler, "NB", result.runs, totalRuns, totalWickets);
+                result.commentary = userComm != null ? userComm :
+                        ("No ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : "")
+                        + (result.isBoundary ? " away to the boundary" : ""));
             }
             if (isFreeHit) result.commentary = "Free Hit! " + result.commentary;
             return result;
@@ -1065,25 +1068,27 @@ public class MatchEngine {
                 result.isBye     = !isLegBye;
                 result.isLegBye  = isLegBye;
                 result.isBoundary = (byeRuns == 4);
-                result.commentary = (isLegBye ? "Leg bye, " : "Bye, ") + byeRuns
-                        + " run" + (byeRuns > 1 ? "s" : "");
-                if (result.isBoundary) result.commentary += " away to the boundary";
+                String extraType = isLegBye ? "LB" : "BYE";
+                String userComm = getExtraCommentary(rng, ctx, overNumber, batter, bowler, extraType, byeRuns, totalRuns, totalWickets);
+                result.commentary = userComm != null ? userComm :
+                        ((isLegBye ? "Leg bye, " : "Bye, ") + byeRuns + " run" + (byeRuns > 1 ? "s" : "")
+                        + (result.isBoundary ? " away to the boundary" : ""));
             } else {
                 result.runs       = 0;
-                result.commentary += "Dot ball";
+                result.commentary += getDotBallCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
             }
         } else if (roll < (cumulative += p1)) {
-            result.runs = 1; result.commentary += "Single taken";
+            result.runs = 1; result.commentary += getSingleCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
         } else if (roll < (cumulative += p2)) {
-            result.runs = 2; result.commentary += "Pushed for two";
+            result.runs = 2; result.commentary += getTwoRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
         } else if (roll < (cumulative += p3)) {
-            result.runs = 3; result.commentary += "Three runs taken";
+            result.runs = 3; result.commentary += getThreeRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
         } else if (roll < (cumulative += p4)) {
             result.runs = 4; result.isBoundary = true;
-            result.commentary += "FOUR! " + getBoundaryCommentary(rng);
+            result.commentary += "FOUR! " + getBoundaryCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
         } else if (roll < (cumulative += p6)) {
             result.runs = 6; result.isSix = true;
-            result.commentary += "SIX! " + getSixCommentary(rng);
+            result.commentary += "SIX! " + getSixCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
         } else {
             // ─── WICKET ───
             // FIX: free hit — run through normal scoring but suppress wicket (except run out)
@@ -1104,9 +1109,28 @@ public class MatchEngine {
             DismissalInfo dismissal = determineDismissal(
                     rng, bowler, batter, teamFieldingAvg, keeperSkill, ctx,
                     legalBallsBowled, totalRuns, totalWickets, battingPosition);
+            if ("RUN_OUT".equals(dismissal.type) && rng.nextDouble() < 0.25) {
+                result.runs = 1;
+            }
+                if ("RUN_OUT".equals(dismissal.type)) {
+                // Allow both run-out variants to match submitted commentary.
+                result.isNonStrikerOut = rng.nextDouble() < 0.30;
+                }
             result.dismissalType = dismissal.type;
             result.fielder       = dismissal.fielder;
-            result.commentary   += "OUT! " + dismissal.commentary;
+            result.commentary   += "OUT! " + getWicketCommentary(
+                    rng,
+                    ctx,
+                    overNumber,
+                    batter,
+                    nonStriker,
+                    bowler,
+                    dismissal,
+                    result.isNonStrikerOut,
+                    result.runs,
+                    totalRuns,
+                    totalWickets
+            );
 
             if ("DROPPED".equals(dismissal.type)) {
                 result.isWicket      = false;
@@ -1114,8 +1138,6 @@ public class MatchEngine {
                 result.dismissalType = null;
                 result.fielder       = dismissal.fielder;
                 result.commentary    = dismissal.commentary + " Batter survives!";
-            } else if ("RUN_OUT".equals(dismissal.type) && rng.nextDouble() < 0.25) {
-                result.runs = 1;
             }
         }
 
@@ -1137,13 +1159,13 @@ public class MatchEngine {
         // making innings-1 tail batting far worse than innings-2 (which starts
         // chasing with top order). Calibrated to real dismissal rate distributions.
         return switch (battingPosition) {
-            case 1, 2    -> 0.75;   // openers — very hard to dismiss, experienced
-            case 3       -> 0.82;   // #3 — usually the best batter
-            case 4, 5    -> 0.95;   // solid middle order
-            case 6, 7    -> 1.10;   // lower middle / all-rounders
-            case 8       -> 1.28;   // first tailender — was 1.35
-            case 9       -> 1.48;   // genuine tail — was 1.65
-            case 10, 11  -> 1.70;   // last two — was 2.10 (way too high)
+            case 1, 2    -> 0.85;   // openers — very hard to dismiss, experienced
+            case 3       -> 0.81;   // #3 — usually the best batter
+            case 4, 5    -> 0.90;   // solid middle order
+            case 6, 7    -> 1.00;   // lower middle / all-rounders
+            case 8       -> 1.18;   // first tailender — was 1.35
+            case 9       -> 1.30;   // genuine tail — was 1.65
+            case 10, 11  -> 1.50;   // last two — was 2.10 (way too high)
             default      -> 1.00;
         };
     }
@@ -3077,7 +3099,30 @@ public class MatchEngine {
     //  COMMENTARY HELPERS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    private String getBoundaryCommentary(Random rng) {
+    private String getBoundaryCommentary(Random rng, SimContext ctx, int overNumber, 
+                                         BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        // Try user-submitted commentary first
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "4");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "4", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        // Fallback to hardcoded
         String[] options = {"Driven through the covers", "Cut past point", "Flicked off the pads",
                 "Edged past the keeper", "Square driven beautifully", "Pulled to the boundary",
                 "Swept fine", "Punched through mid-off", "Driven down the ground",
@@ -3086,13 +3131,369 @@ public class MatchEngine {
         return options[rng.nextInt(options.length)];
     }
 
-    private String getSixCommentary(Random rng) {
+    private String getSixCommentary(Random rng, SimContext ctx, int overNumber, 
+                                    BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        // Try user-submitted commentary first
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "6");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "6", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        // Fallback to hardcoded
         String[] options = {"Launched over long-on", "Smashed over midwicket", "Scooped over fine leg",
                 "Lofted straight down the ground", "Hammered over extra cover", "Heaved over the leg side",
                 "Deposited into the stands", "Reverse swept for six", "Stepped out and cleared long-off",
                 "Massive hit into the crowd", "Swings hard and sends it into the second tier",
                 "Inside-out six over cover point"};
         return options[rng.nextInt(options.length)];
+    }
+
+    private String getDotBallCommentary(Random rng, SimContext ctx, int overNumber, 
+                                        BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "0");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "0", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        return "Dot ball";
+    }
+
+    private String getSingleCommentary(Random rng, SimContext ctx, int overNumber, 
+                                       BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "1");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "1", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        return "Single taken";
+    }
+
+    private String getTwoRunsCommentary(Random rng, SimContext ctx, int overNumber, 
+                                        BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "2");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "2", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        return "Pushed for two";
+    }
+
+    private String getThreeRunsCommentary(Random rng, SimContext ctx, int overNumber, 
+                                          BatsmanState batter, Player bowler, int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", "3");
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, "3", placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        return "Three runs taken";
+    }
+
+    private String getWicketCommentary(Random rng, SimContext ctx, int overNumber,
+                                       BatsmanState batter, BatsmanState nonStriker, Player bowler, DismissalInfo dismissal,
+                                       boolean isNonStrikerOut,
+                                       int runsOnBall, int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            Map<String, String> placeholders = new HashMap<>();
+            BatsmanState dismissedBatter = isNonStrikerOut ? nonStriker : batter;
+            placeholders.put("batsman", dismissedBatter.player.getFirstName() + " " + dismissedBatter.player.getLastName());
+            placeholders.put("non_striker", nonStriker.player.getFirstName() + " " + nonStriker.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            if (dismissal.fielder != null) {
+                placeholders.put("fielder", dismissal.fielder.getFirstName() + " " + dismissal.fielder.getLastName());
+            }
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            placeholders.put("runs", String.valueOf(runsOnBall));
+            
+            String eventType = dismissal.type;
+            if ("RUN_OUT".equals(dismissal.type)) {
+                eventType = "RUN_OUT_" + runsOnBall;
+            }
+
+            String wicketSituation = null;
+            if ("RUN_OUT".equals(dismissal.type)) {
+                wicketSituation = isNonStrikerOut ? "run_out_non_striker" : "run_out_striker";
+            }
+
+            String userCommentary = getUserCommentary(
+                    rng,
+                    ctx.format,
+                    phase,
+                    bowlerType,
+                    eventType,
+                    wicketSituation,
+                    null,
+                    null,
+                    placeholders
+            );
+            if (userCommentary == null && "RUN_OUT".equals(dismissal.type)) {
+                // Backward compatibility for existing run-out commentary entries.
+                userCommentary = getUserCommentary(
+                        rng,
+                        ctx.format,
+                        phase,
+                        bowlerType,
+                        "RUN_OUT",
+                        wicketSituation,
+                        null,
+                        null,
+                        placeholders
+                );
+            }
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        // Fallback to hardcoded
+        return dismissal.commentary;
+    }
+
+    private String getExtraCommentary(Random rng, SimContext ctx, int overNumber, 
+                                      BatsmanState batter, Player bowler, String extraType, int runs,
+                                      int totalRuns, int totalWickets) {
+        try {
+            String phase = determinePhase(ctx.format, overNumber, ctx.maxOvers);
+            String bowlerType = bowler.getBowlType();
+            
+            // Event type for extras: "1WD", "2NB", "3LB", etc.
+            String eventType = runs + extraType;
+            
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+            placeholders.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+            placeholders.put("runs", String.valueOf(runs));
+            placeholders.put("score", String.valueOf(totalRuns));
+            placeholders.put("wickets", String.valueOf(totalWickets));
+            placeholders.put("overs", String.format("%.1f", overNumber + 0.0));
+            
+            String userCommentary = getUserCommentary(rng, ctx.format, phase, bowlerType, eventType, placeholders);
+            if (userCommentary != null) {
+                return userCommentary;
+            }
+        } catch (Exception e) {
+            // Silently fallback
+        }
+        
+        // Fallback to hardcoded (return null to use existing logic)
+        return null;
+    }
+
+    /**
+     * Get user-submitted commentary for a specific context
+     * Returns null if no matching commentary found (fallback to hardcoded)
+     */
+    private String getUserCommentary(
+            Random rng,
+            String matchFormat,
+            String phase,
+            String bowlerType,
+            String eventType,
+            Map<String, String> placeholderValues
+        ) {
+        return getUserCommentary(
+            rng,
+            matchFormat,
+            phase,
+            bowlerType,
+            eventType,
+            null,
+            null,
+            null,
+            placeholderValues
+        );
+        }
+
+        private String getUserCommentary(
+            Random rng,
+            String matchFormat,
+            String phase,
+            String bowlerType,
+            String eventType,
+            String wicketSituation,
+            String batsmanState,
+            String matchPressure,
+            Map<String, String> placeholderValues
+    ) {
+        try {
+            // Query for matching commentary with optional context filters.
+            List<CommentarySubmission> matches = commentaryService.getMatchingCommentary(
+                    matchFormat,
+                    phase,
+                    bowlerType,
+                    eventType,
+                wicketSituation,
+                batsmanState,
+                matchPressure
+            );
+
+            if (matches.isEmpty()) {
+                return null; // No user commentary available
+            }
+
+            // Pick random from matches
+            CommentarySubmission selected = matches.get(rng.nextInt(matches.size()));
+
+            // Replace placeholders
+            String commentary = selected.getCommentaryText();
+            for (Map.Entry<String, String> entry : placeholderValues.entrySet()) {
+                String placeholder = "[" + entry.getKey() + "]";
+                String value = entry.getValue() != null ? entry.getValue() : "";
+                commentary = commentary.replace(placeholder, value);
+            }
+
+            // Increment usage counter asynchronously (don't block simulation)
+            try {
+                commentaryService.incrementUsage(selected.getId());
+            } catch (Exception ignored) {
+                // Silently fail - usage counter is not critical
+            }
+
+            return commentary;
+        } catch (Exception e) {
+            // Silently fallback to hardcoded commentary on any error
+            log.warn("Failed to fetch user commentary: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Determine phase based on match format and over number
+     */
+    private String determinePhase(String format, int overNumber, int maxOvers) {
+        if ("T20".equals(format)) {
+            if (overNumber <= 6) return "powerplay";
+            if (overNumber >= 16) return "death";
+            return "middle";
+        } else if ("ODI".equals(format)) {
+            if (overNumber <= 10) return "powerplay";
+            if (overNumber >= 41) return "death";
+            return "middle";
+        } else {
+            // TEST/FC
+            return "middle"; // Could be expanded to session-based phases
+        }
+    }
+
+    /**
+     * Create placeholder map for commentary replacement
+     */
+    private Map<String, String> createPlaceholderMap(
+            BatsmanState batter,
+            Player bowler,
+            Player fielder,
+            Team battingTeam,
+            Team bowlingTeam,
+            int runs,
+            int score,
+            int wickets,
+            double overs
+    ) {
+        Map<String, String> map = new HashMap<>();
+        
+        if (batter != null && batter.player != null) {
+            map.put("batsman", batter.player.getFirstName() + " " + batter.player.getLastName());
+        }
+        if (bowler != null) {
+            map.put("bowler", bowler.getFirstName() + " " + bowler.getLastName());
+        }
+        if (fielder != null) {
+            map.put("fielder", fielder.getFirstName() + " " + fielder.getLastName());
+        }
+        if (battingTeam != null) {
+            map.put("batting_team", battingTeam.getTeamName());
+        }
+        if (bowlingTeam != null) {
+            map.put("bowling_team", bowlingTeam.getTeamName());
+        }
+        
+        map.put("runs", String.valueOf(runs));
+        map.put("score", String.valueOf(score));
+        map.put("wickets", String.valueOf(wickets));
+        map.put("overs", String.format("%.1f", overs));
+        
+        return map;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
