@@ -7,6 +7,7 @@ import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.CommentaryImportService;
 import com.cricketplex.service.CommentaryService;
+import com.cricketplex.util.CommentaryOptionCatalog;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.http.HttpHeaders;
@@ -201,25 +202,6 @@ public class CommentaryController {
      */
     @GetMapping("/filter-options")
     public ResponseEntity<?> getFilterOptions() {
-        return ResponseEntity.ok(Map.ofEntries(
-                Map.entry("matchFormats", java.util.List.of("T20", "ODI", "TEST")),
-                Map.entry("phases", java.util.List.of("powerplay", "middle", "death", "pressure", "cruising")),
-                Map.entry("bowlerTypes", java.util.List.of("FAST_SEAM", "FAST", "MEDIUM_FAST", "MEDIUM", "SPINNER")),
-                Map.entry("eventTypes", java.util.List.of(
-                        "0", "1", "2", "3", "4", "5", "6",
-                        "1LB", "2LB", "3LB", "4LB",
-                        "1WD", "2WD", "3WD", "4WD", "5WD", "6WD", "7WD",
-                        "1NB", "2NB", "3NB", "4NB", "5NB", "6NB", "7NB",
-                        "BOWLED", "CAUGHT", "LBW", "RUN_OUT", "STUMPED", "HIT_WICKET", "CAUGHT_AND_BOWLED"
-                )),
-                Map.entry("wicketSituations", java.util.List.of("early_wickets", "collapse", "rebuilding", "set_partnership")),
-                Map.entry("batsmanStates", java.util.List.of("new_batsman", "settling", "set", "milestone_approaching")),
-                Map.entry("matchPressures", java.util.List.of("low", "medium", "high")),
-                Map.entry("extraTags", java.util.List.of(
-                        "catch_taken", "catch_dropped", "great_fielding", "misfield",
-                        "strike_farming", "milestone", "partnership", "pressure_building",
-                        "momentum_shift", "tail_ender_involved", "last_over_drama"
-                ))
-        ));
+        return ResponseEntity.ok(CommentaryOptionCatalog.asResponseMap());
     }
 }

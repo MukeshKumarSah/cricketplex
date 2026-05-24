@@ -4,6 +4,7 @@ import com.cricketplex.entity.CommentarySubmission;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
 import com.cricketplex.repository.CommentarySubmissionRepository;
+import com.cricketplex.util.CommentaryOptionCatalog;
 import com.cricketplex.util.PlaceholderValidator;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
@@ -234,6 +235,35 @@ public class CommentaryImportService {
         if (isEmpty(rowData.get("bowlerType"))) errors.add("Bowler type is required");
         if (isEmpty(rowData.get("eventType"))) errors.add("Event type is required");
 
+        String matchFormat = (String) rowData.get("matchFormat");
+        String phase = (String) rowData.get("phase");
+        String bowlerType = (String) rowData.get("bowlerType");
+        String eventType = (String) rowData.get("eventType");
+        String wicketSituation = (String) rowData.get("wicketSituation");
+
+        if (!isEmpty(matchFormat) && !CommentaryOptionCatalog.MATCH_FORMATS.contains(matchFormat)) {
+            errors.add("Invalid match format: " + matchFormat);
+        }
+        if (!isEmpty(phase) && !CommentaryOptionCatalog.PHASES.contains(phase)) {
+            errors.add("Invalid phase: " + phase);
+        }
+        if (!isEmpty(bowlerType) && !CommentaryOptionCatalog.BOWLER_TYPES.contains(bowlerType)) {
+            errors.add("Invalid bowler type: " + bowlerType);
+        }
+        if (!isEmpty(eventType) && !CommentaryOptionCatalog.EVENT_TYPES.contains(eventType)) {
+            errors.add("Invalid event type: " + eventType);
+        }
+
+        if (!isEmpty(eventType) && CommentaryOptionCatalog.RUN_OUT_EVENTS.contains(eventType)) {
+            if (isEmpty(wicketSituation)) {
+                errors.add("Wicket situation is required for run-out events");
+            } else if (!CommentaryOptionCatalog.WICKET_SITUATIONS.contains(wicketSituation)) {
+                errors.add("Invalid wicket situation: " + wicketSituation);
+            }
+        } else if (!isEmpty(wicketSituation)) {
+            errors.add("Wicket situation should be empty for non run-out events");
+        }
+
         String extraTags = (String) rowData.get("extraTags");
         if (extraTags != null && !extraTags.trim().isEmpty()) {
             String[] tags = Arrays.stream(extraTags.split(","))
@@ -242,6 +272,11 @@ public class CommentaryImportService {
                     .toArray(String[]::new);
             if (tags.length > 1) {
                 errors.add("Only one extra tag is allowed");
+            }
+            for (String tag : tags) {
+                if (!CommentaryOptionCatalog.EXTRA_TAGS.contains(tag)) {
+                    errors.add("Invalid extra tag: " + tag);
+                }
             }
         }
 

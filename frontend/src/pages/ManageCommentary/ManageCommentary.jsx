@@ -48,6 +48,45 @@ export default function ManageCommentary() {
   const [editingId, setEditingId] = useState(null);
   const activeTeamId = user?.activeTeamId || user?.teamId || null;
 
+  const defaultFilterOptions = {
+    matchFormats: ['T20', 'ODI', 'FC', 'all'],
+    phases: ['powerplay', 'middle', 'death', 'all'],
+    bowlerTypes: ['F', 'FM', 'MF', 'M', 'FS', 'WS', 'LAP', 'PACE', 'SPINNER', 'ALL'],
+    eventTypes: [
+      '0', '1', '2', '3', '4', '5', '6',
+      '1LB', '2LB', '3LB', '4LB',
+      '1BYE', '2BYE', '3BYE', '4BYE',
+      '1WD', '2WD', '3WD', '4WD', '5WD', '6WD', '7WD',
+      '1NB', '2NB', '3NB', '4NB', '5NB', '6NB', '7NB',
+      'BOWLED', 'CAUGHT', 'CAUGHT_BEHIND', 'LBW', 'RUN_OUT_0', 'RUN_OUT_1', 'RUN_OUT', 'STUMPED', 'HIT_WICKET', 'CAUGHT_AND_BOWLED'
+    ],
+    wicketSituations: ['run_out_striker', 'run_out_non_striker'],
+    extraTags: [
+      'catch_dropped', 'great_fielding', 'misfield',
+      'free_hit',
+      'strike_farming_strong_early', 'strike_farming_strong_late',
+      'strike_farming_weak_early', 'strike_farming_weak_late',
+      'strike_farming',
+      'milestone_3w_haul', 'milestone_5w_haul',
+      'milestone_50', 'milestone_100', 'milestone_150', 'milestone_200',
+      'partnership_50', 'partnership_100', 'partnership_150', 'partnership_200', 'partnership_250'
+    ]
+  };
+
+  const mergeUnique = (primary = [], fallback = []) =>
+    Array.from(new Set([...(primary || []), ...(fallback || [])]));
+
+  const normalizeFilterOptions = (apiOptions = {}) => ({
+    ...defaultFilterOptions,
+    ...apiOptions,
+    matchFormats: mergeUnique(apiOptions.matchFormats, defaultFilterOptions.matchFormats),
+    phases: mergeUnique(apiOptions.phases, defaultFilterOptions.phases),
+    bowlerTypes: mergeUnique(apiOptions.bowlerTypes, defaultFilterOptions.bowlerTypes),
+    eventTypes: mergeUnique(apiOptions.eventTypes, defaultFilterOptions.eventTypes),
+    wicketSituations: mergeUnique(apiOptions.wicketSituations, defaultFilterOptions.wicketSituations),
+    extraTags: mergeUnique(apiOptions.extraTags, defaultFilterOptions.extraTags)
+  });
+
   useEffect(() => {
     loadFilterOptions();
     if (activeTab === 'my-submissions') {
@@ -58,36 +97,12 @@ export default function ManageCommentary() {
   const loadFilterOptions = async () => {
     try {
       const res = await axios.get('/commentary/filter-options');
-      setFilterOptions(res.data);
+      setFilterOptions(normalizeFilterOptions(res.data));
       console.log('Filter options loaded:', res.data);
     } catch (error) {
       console.error('Failed to load filter options:', error);
       toast.error('Failed to load form options. Using defaults.');
-      // Set comprehensive defaults if API fails
-      setFilterOptions({
-        matchFormats: ['T20', 'ODI', 'FC', 'all'],
-        phases: ['powerplay', 'middle', 'death', 'all'],
-        bowlerTypes: ['F', 'FM', 'MF', 'M', 'FS', 'WS', 'LAP', 'PACE', 'SPINNER', 'ALL'],
-        eventTypes: [
-          '0', '1', '2', '3', '4', '5', '6',
-          '1LB', '2LB', '3LB', '4LB',
-          '1BYE', '2BYE', '3BYE', '4BYE',
-          '1WD', '2WD', '3WD', '4WD', '5WD', '6WD', '7WD',
-          '1NB', '2NB', '3NB', '4NB', '5NB', '6NB', '7NB',
-          'BOWLED', 'CAUGHT', 'CAUGHT_BEHIND', 'LBW', 'RUN_OUT_0', 'RUN_OUT_1', 'RUN_OUT', 'STUMPED', 'HIT_WICKET', 'CAUGHT_AND_BOWLED'
-        ],
-        wicketSituations: ['run_out_striker', 'run_out_non_striker'],
-        extraTags: [
-          'catch_dropped', 'great_fielding', 'misfield',
-          'free_hit',
-          'strike_farming_strong_early', 'strike_farming_strong_late',
-          'strike_farming_weak_early', 'strike_farming_weak_late',
-          'strike_farming',
-          'milestone_3w_haul', 'milestone_5w_haul',
-          'milestone_50', 'milestone_100', 'milestone_150', 'milestone_200',
-          'partnership_50', 'partnership_100', 'partnership_150', 'partnership_200', 'partnership_250'
-        ]
-      });
+      setFilterOptions(defaultFilterOptions);
     }
   };
 

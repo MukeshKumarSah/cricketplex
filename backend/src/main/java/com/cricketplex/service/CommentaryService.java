@@ -4,6 +4,7 @@ import com.cricketplex.entity.CommentarySubmission;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
 import com.cricketplex.repository.CommentarySubmissionRepository;
+import com.cricketplex.util.CommentaryOptionCatalog;
 import com.cricketplex.util.PlaceholderValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,40 @@ public class CommentaryService {
         List<String> invalidPlaceholders = PlaceholderValidator.validatePlaceholders(commentaryText);
         if (!invalidPlaceholders.isEmpty()) {
             errors.add("Invalid placeholders: " + String.join(", ", invalidPlaceholders));
+        }
+
+        if (!CommentaryOptionCatalog.MATCH_FORMATS.contains(matchFormat)) {
+            errors.add("Invalid match format: " + matchFormat);
+        }
+        if (!CommentaryOptionCatalog.PHASES.contains(phase)) {
+            errors.add("Invalid phase: " + phase);
+        }
+        if (!CommentaryOptionCatalog.BOWLER_TYPES.contains(bowlerType)) {
+            errors.add("Invalid bowler type: " + bowlerType);
+        }
+        if (!CommentaryOptionCatalog.EVENT_TYPES.contains(eventType)) {
+            errors.add("Invalid event type: " + eventType);
+        }
+
+        if (CommentaryOptionCatalog.RUN_OUT_EVENTS.contains(eventType)) {
+            if (wicketSituation == null || wicketSituation.isBlank()) {
+                errors.add("Wicket situation is required for run-out events");
+            } else if (!CommentaryOptionCatalog.WICKET_SITUATIONS.contains(wicketSituation)) {
+                errors.add("Invalid wicket situation: " + wicketSituation);
+            }
+        } else if (wicketSituation != null && !wicketSituation.isBlank()) {
+            errors.add("Wicket situation should be empty for non run-out events");
+        }
+
+        if (extraTags != null && extraTags.size() > 1) {
+            errors.add("Only one extra tag is allowed");
+        }
+        if (extraTags != null) {
+            for (String tag : extraTags) {
+                if (!CommentaryOptionCatalog.EXTRA_TAGS.contains(tag)) {
+                    errors.add("Invalid extra tag: " + tag);
+                }
+            }
         }
 
         // Validate placeholder context
