@@ -16,7 +16,7 @@ import {
 import './ManageCommentary.css';
 
 export default function ManageCommentary() {
-  const { user, team } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('submit');
   const [loading, setLoading] = useState(false);
   
@@ -46,6 +46,7 @@ export default function ManageCommentary() {
   
   const [alert, setAlert] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const activeTeamId = user?.activeTeamId || user?.teamId || null;
 
   useEffect(() => {
     loadFilterOptions();
@@ -241,13 +242,19 @@ export default function ManageCommentary() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!activeTeamId) {
+      toast.error('No active team found. Please complete team setup first.');
+      return;
+    }
+
     setAlert(null);
     setLoading(true);
 
     try {
       const res = await axios.post('/commentary/submit', {
         ...formData,
-        teamId: team.id
+        teamId: activeTeamId
       });
 
       if (res.data.success) {
@@ -354,11 +361,16 @@ export default function ManageCommentary() {
 
   const handleConfirmImport = async () => {
     if (!validationResults) return;
+
+    if (!activeTeamId) {
+      toast.error('No active team found. Please complete team setup first.');
+      return;
+    }
     
     setLoading(true);
     try {
       const res = await axios.post('/commentary/import/confirm', {
-        teamId: team.id,
+        teamId: activeTeamId,
         rows: [...validationResults.validRows, ...validationResults.warningRows]
       });
 

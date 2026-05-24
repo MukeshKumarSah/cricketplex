@@ -202,31 +202,23 @@ public class CommentaryController {
     @GetMapping("/filter-options")
     public ResponseEntity<?> getFilterOptions() {
         return ResponseEntity.ok(Map.ofEntries(
-                Map.entry("matchFormats", java.util.List.of("T20", "ODI", "FC", "all")),
-                Map.entry("phases", java.util.List.of("powerplay", "middle", "death", "all")),
-                Map.entry("bowlerTypes", java.util.List.of("F", "FM", "MF", "M", "FS", "WS", "LAP", "PACE", "SPINNER", "ALL")),
+                Map.entry("matchFormats", java.util.List.of("T20", "ODI", "TEST")),
+                Map.entry("phases", java.util.List.of("powerplay", "middle", "death", "pressure", "cruising")),
+                Map.entry("bowlerTypes", java.util.List.of("FAST_SEAM", "FAST", "MEDIUM_FAST", "MEDIUM", "SPINNER")),
                 Map.entry("eventTypes", java.util.List.of(
                         "0", "1", "2", "3", "4", "5", "6",
                         "1LB", "2LB", "3LB", "4LB",
-                    "1BYE", "2BYE", "3BYE", "4BYE",
                         "1WD", "2WD", "3WD", "4WD", "5WD", "6WD", "7WD",
                         "1NB", "2NB", "3NB", "4NB", "5NB", "6NB", "7NB",
-                    "BOWLED", "CAUGHT", "CAUGHT_BEHIND", "LBW", "RUN_OUT_0", "RUN_OUT_1", "RUN_OUT", "STUMPED", "HIT_WICKET", "CAUGHT_AND_BOWLED"
+                        "BOWLED", "CAUGHT", "LBW", "RUN_OUT", "STUMPED", "HIT_WICKET", "CAUGHT_AND_BOWLED"
                 )),
-                Map.entry("wicketSituations", java.util.List.of(
-                        "run_out_striker", "run_out_non_striker"
-                )),
+                Map.entry("wicketSituations", java.util.List.of("early_wickets", "collapse", "rebuilding", "set_partnership")),
                 Map.entry("batsmanStates", java.util.List.of("new_batsman", "settling", "set", "milestone_approaching")),
                 Map.entry("matchPressures", java.util.List.of("low", "medium", "high")),
                 Map.entry("extraTags", java.util.List.of(
-                        "catch_dropped", "great_fielding", "misfield",
-                    "free_hit",
-                        "strike_farming_strong_early", "strike_farming_strong_late",
-                        "strike_farming_weak_early", "strike_farming_weak_late",
-                        "strike_farming",
-                        "milestone_3w_haul", "milestone_5w_haul",
-                        "milestone_50", "milestone_100", "milestone_150", "milestone_200",
-                        "partnership_50", "partnership_100", "partnership_150", "partnership_200", "partnership_250"
+                        "catch_taken", "catch_dropped", "great_fielding", "misfield",
+                        "strike_farming", "milestone", "partnership", "pressure_building",
+                        "momentum_shift", "tail_ender_involved", "last_over_drama"
                 ))
         ));
     }
