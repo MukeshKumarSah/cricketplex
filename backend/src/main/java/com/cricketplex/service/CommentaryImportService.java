@@ -32,8 +32,6 @@ public class CommentaryImportService {
             Map.entry("Bowler Type", "bowlerType"),
             Map.entry("Event Type", "eventType"),
             Map.entry("Wicket Situation", "wicketSituation"),
-            Map.entry("Batsman State", "batsmanState"),
-            Map.entry("Match Pressure", "matchPressure"),
             Map.entry("Extra Tags", "extraTags")
     );
 
@@ -151,15 +149,13 @@ public class CommentaryImportService {
 
         // Example row
         Row exampleRow = sheet.createRow(1);
-        exampleRow.createCell(0).setCellValue("[batsman] plays a magnificent shot for [runs]!");
-        exampleRow.createCell(1).setCellValue("T20");
-        exampleRow.createCell(2).setCellValue("powerplay");
-        exampleRow.createCell(3).setCellValue("F");
-        exampleRow.createCell(4).setCellValue("4");
+        exampleRow.createCell(0).setCellValue("[batsman] defends solidly. [score]/[wickets] after [overs] overs.");
+        exampleRow.createCell(1).setCellValue("all");
+        exampleRow.createCell(2).setCellValue("all");
+        exampleRow.createCell(3).setCellValue("ALL");
+        exampleRow.createCell(4).setCellValue("0");
         exampleRow.createCell(5).setCellValue("");
-        exampleRow.createCell(6).setCellValue("");
-        exampleRow.createCell(7).setCellValue("");
-        exampleRow.createCell(8).setCellValue("");
+        exampleRow.createCell(6).setCellValue("free_hit");
 
         // Auto-size columns
         for (int i = 0; i < COLUMN_MAP.size(); i++) {
@@ -238,6 +234,17 @@ public class CommentaryImportService {
         if (isEmpty(rowData.get("bowlerType"))) errors.add("Bowler type is required");
         if (isEmpty(rowData.get("eventType"))) errors.add("Event type is required");
 
+        String extraTags = (String) rowData.get("extraTags");
+        if (extraTags != null && !extraTags.trim().isEmpty()) {
+            String[] tags = Arrays.stream(extraTags.split(","))
+                    .map(String::trim)
+                    .filter(t -> !t.isEmpty())
+                    .toArray(String[]::new);
+            if (tags.length > 1) {
+                errors.add("Only one extra tag is allowed");
+            }
+        }
+
         return errors;
     }
 
@@ -273,8 +280,13 @@ public class CommentaryImportService {
         String extraTagsStr = (String) rowData.get("extraTags");
         String extraTagsJson = null;
         if (extraTagsStr != null && !extraTagsStr.trim().isEmpty()) {
-            String[] tags = extraTagsStr.split(",");
-            extraTagsJson = "[\"" + String.join("\",\"", tags) + "\"]";
+            String[] tags = Arrays.stream(extraTagsStr.split(","))
+                    .map(String::trim)
+                    .filter(t -> !t.isEmpty())
+                    .toArray(String[]::new);
+            if (tags.length > 0) {
+                extraTagsJson = "[\"" + String.join("\",\"", tags) + "\"]";
+            }
         }
 
         return CommentarySubmission.builder()
@@ -287,8 +299,6 @@ public class CommentaryImportService {
                 .bowlerType((String) rowData.get("bowlerType"))
                 .eventType((String) rowData.get("eventType"))
                 .wicketSituation((String) rowData.get("wicketSituation"))
-                .batsmanState((String) rowData.get("batsmanState"))
-                .matchPressure((String) rowData.get("matchPressure"))
                 .extraTags(extraTagsJson)
                 .placeholdersUsed(PlaceholderValidator.toJsonArray(placeholders))
                 .build();

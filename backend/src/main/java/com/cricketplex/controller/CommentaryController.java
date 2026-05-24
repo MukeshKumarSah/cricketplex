@@ -220,6 +220,7 @@ public class CommentaryController {
                 Map.entry("matchPressures", java.util.List.of("low", "medium", "high")),
                 Map.entry("extraTags", java.util.List.of(
                         "catch_dropped", "great_fielding", "misfield",
+                    "free_hit",
                         "strike_farming_strong_early", "strike_farming_strong_late",
                         "strike_farming_weak_early", "strike_farming_weak_late",
                         "strike_farming",

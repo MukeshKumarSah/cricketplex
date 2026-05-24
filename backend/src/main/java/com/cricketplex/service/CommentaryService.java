@@ -249,6 +249,14 @@ public class CommentaryService {
             String batsmanState,
             String matchPressure
     ) {
+        List<String> formatCandidates = new ArrayList<>();
+        if (matchFormat != null && !matchFormat.isBlank()) {
+            formatCandidates.add(matchFormat);
+        }
+        if (!formatCandidates.contains("all")) {
+            formatCandidates.add("all");
+        }
+
         List<String> phaseCandidates = new ArrayList<>();
         if (phase != null && !phase.isBlank()) {
             phaseCandidates.add(phase);
@@ -273,19 +281,21 @@ public class CommentaryService {
         }
 
         LinkedHashMap<UUID, CommentarySubmission> merged = new LinkedHashMap<>();
-        for (String candidatePhase : phaseCandidates) {
-            for (String candidateBowlerType : bowlerCandidates) {
-                List<CommentarySubmission> matches = commentaryRepository.findMatchingCommentary(
-                        matchFormat,
-                        candidatePhase,
-                        candidateBowlerType,
-                        eventType,
-                        wicketSituation,
-                        batsmanState,
-                        matchPressure
-                );
-                for (CommentarySubmission match : matches) {
-                    merged.putIfAbsent(match.getId(), match);
+        for (String candidateFormat : formatCandidates) {
+            for (String candidatePhase : phaseCandidates) {
+                for (String candidateBowlerType : bowlerCandidates) {
+                    List<CommentarySubmission> matches = commentaryRepository.findMatchingCommentary(
+                            candidateFormat,
+                            candidatePhase,
+                            candidateBowlerType,
+                            eventType,
+                            wicketSituation,
+                            batsmanState,
+                            matchPressure
+                    );
+                    for (CommentarySubmission match : matches) {
+                        merged.putIfAbsent(match.getId(), match);
+                    }
                 }
             }
         }

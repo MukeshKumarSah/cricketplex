@@ -23,13 +23,11 @@ export default function ManageCommentary() {
   // Submission form state
   const [formData, setFormData] = useState({
     commentaryText: '',
-    matchFormat: 'T20',
-    phase: 'middle',
-    bowlerType: 'F',
-    eventType: '4',
+    matchFormat: 'all',
+    phase: 'all',
+    bowlerType: 'ALL',
+    eventType: '0',
     wicketSituation: '',
-    batsmanState: '',
-    matchPressure: '',
     extraTags: []
   });
   
@@ -78,10 +76,9 @@ export default function ManageCommentary() {
           'BOWLED', 'CAUGHT', 'CAUGHT_BEHIND', 'LBW', 'RUN_OUT_0', 'RUN_OUT_1', 'RUN_OUT', 'STUMPED', 'HIT_WICKET', 'CAUGHT_AND_BOWLED'
         ],
         wicketSituations: ['run_out_striker', 'run_out_non_striker'],
-        batsmanStates: ['new_batsman', 'settling', 'set', 'milestone_approaching'],
-        matchPressures: ['low', 'medium', 'high'],
         extraTags: [
           'catch_dropped', 'great_fielding', 'misfield',
+          'free_hit',
           'strike_farming_strong_early', 'strike_farming_strong_late',
           'strike_farming_weak_early', 'strike_farming_weak_late',
           'strike_farming',
@@ -166,6 +163,7 @@ export default function ManageCommentary() {
     catch_dropped: 'Catch dropped',
     great_fielding: 'Great fielding',
     misfield: 'Misfield',
+    free_hit: 'Free hit',
     strike_farming_strong_early: 'Strike farming: strong batter, first 4 balls',
     strike_farming_strong_late: 'Strike farming: strong batter, last 2 balls',
     strike_farming_weak_early: 'Strike farming: weak batter, first 5 balls',
@@ -219,9 +217,7 @@ export default function ManageCommentary() {
   const handleTagToggle = (tag) => {
     setFormData(prev => ({
       ...prev,
-      extraTags: prev.extraTags.includes(tag)
-        ? prev.extraTags.filter(t => t !== tag)
-        : [...prev.extraTags, tag]
+      extraTags: prev.extraTags.includes(tag) ? [] : [tag]
     }));
   };
 
@@ -274,13 +270,11 @@ export default function ManageCommentary() {
         // Reset form
         setFormData({
           commentaryText: '',
-          matchFormat: 'T20',
-          phase: 'middle',
-          bowlerType: 'F',
-          eventType: '4',
+          matchFormat: 'all',
+          phase: 'all',
+          bowlerType: 'ALL',
+          eventType: '0',
           wicketSituation: '',
-          batsmanState: '',
-          matchPressure: '',
           extraTags: []
         });
       } else {
@@ -635,31 +629,10 @@ export default function ManageCommentary() {
                 </div>
               )}
 
-              <div className="form-group">
-                <label>Batsman State</label>
-                <select name="batsmanState" value={formData.batsmanState} onChange={handleInputChange}>
-                  <option value="">Any</option>
-                  {filterOptions?.batsmanStates?.map(bs => (
-                    <option key={bs} value={bs}>{bs}</option>
-                  ))}
-                </select>
-                <small>Optional - leave empty for broader match</small>
-              </div>
-
-              <div className="form-group">
-                <label>Match Pressure</label>
-                <select name="matchPressure" value={formData.matchPressure} onChange={handleInputChange}>
-                  <option value="">Any</option>
-                  {filterOptions?.matchPressures?.map(mp => (
-                    <option key={mp} value={mp}>{mp}</option>
-                  ))}
-                </select>
-                <small>Optional - leave empty for broader match</small>
-              </div>
             </div>
 
             <div className="form-group">
-              <label>Extra Tags</label>
+              <label>Extra Tag (optional)</label>
               <div className="extra-tags-selection">
                 {!filterOptions ? (
                   <p>Loading tags...</p>
@@ -670,7 +643,8 @@ export default function ManageCommentary() {
                       className={`extra-tag-checkbox ${formData.extraTags.includes(tag) ? 'selected' : ''}`}
                     >
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="extraTag"
                         checked={formData.extraTags.includes(tag)}
                         onChange={() => handleTagToggle(tag)}
                       />
@@ -681,6 +655,7 @@ export default function ManageCommentary() {
                   <p>No extra tags available</p>
                 )}
               </div>
+              <small>Choose at most one context tag</small>
             </div>
 
             <div className="form-actions">
