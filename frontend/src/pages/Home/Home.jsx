@@ -44,6 +44,8 @@ import ForumThread from '../Forums/ForumThread';
 import Blog from '../Blog/Blog';
 import BlogPost from '../Blog/BlogPost';
 import BlogCreate from '../Blog/BlogCreate';
+import ManageCommentary from '../ManageCommentary/ManageCommentary';
+import AdminCommentary from '../AdminCommentary/AdminCommentary';
 import './Home.css';
 import {
   HiOutlineChevronDown,
@@ -304,6 +306,16 @@ export default function Home() {
             <Route path="blogs/create" element={<BlogCreate />} />
             <Route path="blogs/:id" element={<BlogPost />} />
             <Route path="blogs/:id/edit" element={<BlogCreate />} />
+            <Route
+              path="commentary/manage"
+              element={<ManageCommentary />}
+            />
+            {user?.role === 'ADMIN' && (
+              <Route
+                path="admin/commentary"
+                element={<AdminCommentary />}
+              />
+            )}
             <Route
               path="changelogs"
               element={<ComingSoon icon="📋" title="Changelogs" description="Track every update, bug fix, and new feature added to CricketPlex. Coming soon." />}

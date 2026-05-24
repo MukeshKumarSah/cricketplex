@@ -28,6 +28,7 @@ import {
   HiOutlineCalendarDays,
   HiOutlineStar,
   HiOutlineFlag,
+  HiOutlineChatBubbleOvalLeftEllipsis,
 } from 'react-icons/hi2';
 import './Sidebar.css';
 
@@ -46,6 +47,7 @@ const menuItems = [
   { label: 'Team List', icon: HiOutlineQueueList, path: '/team-list' },
   { label: 'Forums', icon: HiOutlineChatBubbleLeftRight, path: '/forums' },
   { label: 'Blogs', icon: HiOutlinePencilSquare, path: '/blogs' },
+  { label: 'Commentary', icon: HiOutlineChatBubbleOvalLeftEllipsis, path: '/commentary/manage' },
   { label: 'Game Manuals', icon: HiOutlineBookOpen, path: '/game-manuals' },
   { label: 'Rules & Regulations', icon: HiOutlineDocumentText, path: '/rules' },
   { label: 'Season Calendar', icon: HiOutlineCalendarDays, path: '/calendar' },
@@ -60,6 +62,7 @@ const adminItems = [
   { label: 'Bot Teams', icon: HiOutlineCpuChip, path: '/admin/bots' },
   { label: 'Game Formulas', icon: HiOutlineCalculator, path: '/admin/formulas' },
   { label: 'Sim Lab', icon: HiOutlineBeaker, path: '/admin/sim' },
+  { label: 'Commentary Review', icon: HiOutlineChatBubbleOvalLeftEllipsis, path: '/admin/commentary' },
 ];
 
 export default function Sidebar({ isOpen, toggle }) {
