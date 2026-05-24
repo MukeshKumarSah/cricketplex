@@ -1761,21 +1761,21 @@ public class MatchEngine {
         double set;
         if ("T20".equalsIgnoreCase(format)) {
             if (balls <= 6)       set = -0.10;
-            else if (balls <= 15) set = -0.10 + 0.32 * (balls - 6)  / 9.0;
-            else if (balls <= 30) set = 0.22  + 0.30 * (balls - 15) / 15.0;
-            else                  set = 0.52  + 0.10 * (1.0 - Math.exp(-(balls - 30) / 16.0));
+            else if (balls <= 15) set = -0.10 + 0.25 * (balls - 6)  / 9.0;
+            else if (balls <= 30) set = 0.15  + 0.20 * (balls - 15) / 15.0;
+            else                  set = 0.35  + 0.10 * (1.0 - Math.exp(-(balls - 30) / 16.0));
         } else if ("FC".equalsIgnoreCase(format)) {
             if (balls <= 15)       set = -0.15;
-            else if (balls <= 50)  set = -0.15 + 0.47 * (balls - 15)  / 35.0;
-            else if (balls <= 120) set = 0.32  + 0.38 * (balls - 50)  / 70.0;
-            else                   set = 0.70  + 0.12 * (1.0 - Math.exp(-(balls - 120) / 55.0));
+            else if (balls <= 50)  set = -0.15 + 0.30 * (balls - 15)  / 35.0;
+            else if (balls <= 120) set = 0.10  + 0.25 * (balls - 50)  / 70.0;
+            else                   set = 0.35  + 0.12 * (1.0 - Math.exp(-(balls - 120) / 55.0));
         } else { // ODI
             if (balls <= 10)       set = -0.12;
-            else if (balls <= 30)  set = -0.12 + 0.34 * (balls - 10) / 20.0;
-            else if (balls <= 50)  set = 0.22  + 0.24 * (balls - 30) / 20.0;
-            else if (balls <= 90)  set = 0.46  + 0.26 * (balls - 50) / 40.0;
-            else if (balls <= 120) set = 0.72  + 0.08 * (balls - 90) / 30.0;
-            else                   set = 0.80  + 0.04 * (1.0 - Math.exp(-(balls - 120) / 45.0));
+            else if (balls <= 30)  set = -0.12 + 0.28 * (balls - 10) / 20.0;
+            else if (balls <= 50)  set = 0.16  + 0.22 * (balls - 30) / 20.0;
+            else if (balls <= 90)  set = 0.38  + 0.18 * (balls - 50) / 40.0;
+            else if (balls <= 120) set = 0.56  + 0.10 * (balls - 90) / 30.0;
+            else                   set = 0.66  + 0.04 * (1.0 - Math.exp(-(balls - 120) / 45.0));
         }
         if ("A".equals(aggression))      set *= 1.06;
         else if ("D".equals(aggression)) set *= 0.94;
