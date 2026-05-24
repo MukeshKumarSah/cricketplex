@@ -75,10 +75,10 @@ public class TeamListController {
             m.put("batHand", p.getBatHand());
             m.put("bowlHand", p.getBowlHand());
             m.put("bowlType", p.getBowlType());
-            m.put("batRating", p.getBatRating());
-            m.put("bowlRating", p.getBowlRating());
-            m.put("keeperRating", p.getKeeperRating());
-            m.put("fldRating", p.getFldRating());
+            m.put("batRating", (int) p.getBatRating());
+            m.put("bowlRating", (int) p.getBowlRating());
+            m.put("keeperRating", (int) p.getKeeperRating());
+            m.put("fldRating", (int) p.getFldRating());
             m.put("rating", p.getRating());
             m.put("nationality", p.getNationality());
             return m;

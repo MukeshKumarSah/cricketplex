@@ -71,12 +71,12 @@ public class AcademyController {
             m.put("role", p.getRole());
             m.put("age", p.getAge());
             m.put("ageDays", p.getAgeDays());
-            m.put("batRating", p.getBatRating());
-            m.put("bowlRating", p.getBowlRating());
-            m.put("keeperRating", p.getKeeperRating());
-            m.put("fldRating", p.getFldRating());
-            m.put("stamina", p.getStamina());
-            m.put("confidence", p.getConfidence());
+            m.put("batRating", (int) p.getBatRating());
+            m.put("bowlRating", (int) p.getBowlRating());
+            m.put("keeperRating", (int) p.getKeeperRating());
+            m.put("fldRating", (int) p.getFldRating());
+            m.put("stamina", (int) p.getStamina());
+            m.put("confidence", (int) p.getConfidence());
             m.put("trainingType", assignmentMap.getOrDefault(p.getId(), null));
             playerList.add(m);
         }
@@ -527,12 +527,12 @@ public class AcademyController {
         m.put("role", p.getRole());
         m.put("age", p.getAge());
         m.put("ageDays", p.getAgeDays());
-        m.put("batRating", p.getBatRating());
-        m.put("bowlRating", p.getBowlRating());
-        m.put("keeperRating", p.getKeeperRating());
-        m.put("fldRating", p.getFldRating());
-        m.put("stamina", p.getStamina());
-        m.put("confidence", p.getConfidence());
+        m.put("batRating", (int) p.getBatRating());
+        m.put("bowlRating", (int) p.getBowlRating());
+        m.put("keeperRating", (int) p.getKeeperRating());
+        m.put("fldRating", (int) p.getFldRating());
+        m.put("stamina", (int) p.getStamina());
+        m.put("confidence", (int) p.getConfidence());
         m.put("experience", p.getExperience());
         return m;
     }

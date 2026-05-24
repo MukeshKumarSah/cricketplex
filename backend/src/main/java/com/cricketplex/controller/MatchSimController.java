@@ -521,10 +521,10 @@ public class MatchSimController {
                 card.put("fielder", bc.getFielder().getFirstName() + " " + bc.getFielder().getLastName());
             }
             card.put("notOut", bc.getDismissalType() == null);
-            card.put("batRating", bc.getPlayer().getBatRating());
-            card.put("bowlRating", bc.getPlayer().getBowlRating());
-            card.put("fldRating", bc.getPlayer().getFldRating());
-            card.put("keeperRating", bc.getPlayer().getKeeperRating());
+            card.put("batRating", (int) bc.getPlayer().getBatRating());
+            card.put("bowlRating", (int) bc.getPlayer().getBowlRating());
+            card.put("fldRating", (int) bc.getPlayer().getFldRating());
+            card.put("keeperRating", (int) bc.getPlayer().getKeeperRating());
             card.put("batHand", bc.getPlayer().getBatHand());
             card.put("bowlHand", bc.getPlayer().getBowlHand());
             card.put("bowlType", bc.getPlayer().getBowlType());
@@ -552,7 +552,7 @@ public class MatchSimController {
             card.put("batHand", bc.getPlayer().getBatHand());
             card.put("bowlHand", bc.getPlayer().getBowlHand());
             card.put("bowlType", bc.getPlayer().getBowlType());
-            card.put("bowlRating", bc.getPlayer().getBowlRating());
+            card.put("bowlRating", (int) bc.getPlayer().getBowlRating());
             bowlCards.add(card);
         }
         innMap.put("bowlingCard", bowlCards);

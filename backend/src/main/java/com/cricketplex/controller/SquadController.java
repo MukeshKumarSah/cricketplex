@@ -44,19 +44,19 @@ public class SquadController {
             m.put("batHand", p.getBatHand());
             m.put("bowlHand", p.getBowlHand());
             m.put("bowlType", p.getBowlType());
-            m.put("batRating", p.getBatRating());
-            m.put("bowlRating", p.getBowlRating());
-            m.put("keeperRating", p.getKeeperRating());
-            m.put("fldRating", p.getFldRating());
+            m.put("batRating", (int) p.getBatRating());
+            m.put("bowlRating", (int) p.getBowlRating());
+            m.put("keeperRating", (int) p.getKeeperRating());
+            m.put("fldRating", (int) p.getFldRating());
             m.put("experience", p.getExperience());
-            m.put("stamina", p.getStamina());
+            m.put("stamina", (int) p.getStamina());
             m.put("fitness", p.getFitness());
             m.put("batAggression", p.getBatAggression());
             m.put("bowlAggression", p.getBowlAggression());
             m.put("nationality", p.getNationality());
             m.put("wage", p.getWage());
             m.put("rating", p.getRating());
-            m.put("confidence", p.getConfidence());
+            m.put("confidence", (int) p.getConfidence());
             return m;
         }).toList();
 
