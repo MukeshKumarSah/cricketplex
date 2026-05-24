@@ -40,6 +40,8 @@ public class CommentaryService {
         Map<String, Object> result = new LinkedHashMap<>();
         List<String> errors = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
+        String normalizedWicketSituation =
+            wicketSituation == null || wicketSituation.isBlank() ? null : wicketSituation.trim();
 
         // Validate length
         if (commentaryText == null || commentaryText.trim().length() < 10) {
@@ -69,12 +71,12 @@ public class CommentaryService {
         }
 
         if (CommentaryOptionCatalog.RUN_OUT_EVENTS.contains(eventType)) {
-            if (wicketSituation == null || wicketSituation.isBlank()) {
+            if (normalizedWicketSituation == null) {
                 errors.add("Wicket situation is required for run-out events");
-            } else if (!CommentaryOptionCatalog.WICKET_SITUATIONS.contains(wicketSituation)) {
-                errors.add("Invalid wicket situation: " + wicketSituation);
+            } else if (!CommentaryOptionCatalog.WICKET_SITUATIONS.contains(normalizedWicketSituation)) {
+                errors.add("Invalid wicket situation: " + normalizedWicketSituation);
             }
-        } else if (wicketSituation != null && !wicketSituation.isBlank()) {
+        } else if (normalizedWicketSituation != null) {
             errors.add("Wicket situation should be empty for non run-out events");
         }
 
@@ -135,7 +137,7 @@ public class CommentaryService {
                 .phase(phase)
                 .bowlerType(bowlerType)
                 .eventType(eventType)
-                .wicketSituation(wicketSituation)
+                .wicketSituation(normalizedWicketSituation)
                 .batsmanState(batsmanState)
                 .matchPressure(matchPressure)
                 .extraTags(extraTagsJson)

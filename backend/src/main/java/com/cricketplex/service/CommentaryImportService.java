@@ -310,6 +310,9 @@ public class CommentaryImportService {
     private CommentarySubmission createSubmission(Map<String, Object> rowData, User user, Team team) {
         String text = (String) rowData.get("commentaryText");
         List<String> placeholders = PlaceholderValidator.extractPlaceholders(text);
+        String wicketSituation = (String) rowData.get("wicketSituation");
+        String normalizedWicketSituation =
+            wicketSituation == null || wicketSituation.isBlank() ? null : wicketSituation.trim();
 
         // Parse extra tags if present
         String extraTagsStr = (String) rowData.get("extraTags");
@@ -333,7 +336,7 @@ public class CommentaryImportService {
                 .phase((String) rowData.get("phase"))
                 .bowlerType((String) rowData.get("bowlerType"))
                 .eventType((String) rowData.get("eventType"))
-                .wicketSituation((String) rowData.get("wicketSituation"))
+                .wicketSituation(normalizedWicketSituation)
                 .extraTags(extraTagsJson)
                 .placeholdersUsed(PlaceholderValidator.toJsonArray(placeholders))
                 .build();
