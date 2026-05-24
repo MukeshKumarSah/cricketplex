@@ -20,10 +20,9 @@ public class PlaceholderValidator {
     );
 
     // Context-specific placeholders that require certain extra tags
-    public static final Map<String, Set<String>> CONTEXT_REQUIRED_PLACEHOLDERS = Map.of(
-            "fielder", Set.of("CAUGHT", "CAUGHT_AND_BOWLED", "catch_dropped", "great_fielding", "misfield", "RUN_OUT", "RUN_OUT_0", "RUN_OUT_1"),
+        public static final Map<String, Set<String>> CONTEXT_REQUIRED_PLACEHOLDERS = Map.of(
             "keeper", Set.of("STUMPED", "CAUGHT_BEHIND") // keeper relevant for stumpings or keeper catches
-    );
+        );
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\[([a-z_]+)\\]");
 
