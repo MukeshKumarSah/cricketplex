@@ -610,6 +610,62 @@
   color: var(--text-3);
 }
 
+.pp-transfer-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pp-transfer-head,
+.pp-transfer-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.6fr 1.6fr 1fr;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.pp-transfer-head {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0 0.6rem;
+}
+
+.pp-transfer-row {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+}
+
+.pp-transfer-date,
+.pp-transfer-team,
+.pp-transfer-price {
+  font-size: 0.74rem;
+  color: var(--text-2);
+}
+
+.pp-transfer-price,
+.pp-transfer-price-head {
+  text-align: right;
+}
+
+.pp-transfer-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.pp-transfer-team.link {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.pp-transfer-team.link:hover {
+  text-decoration: underline;
+}
+
 .pp-no-stats {
   text-align: center;
   color: var(--text-3);
@@ -655,5 +711,15 @@
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+  .pp-transfer-head {
+    display: none;
+  }
+  .pp-transfer-row {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .pp-transfer-price {
+    text-align: left;
   }
 }

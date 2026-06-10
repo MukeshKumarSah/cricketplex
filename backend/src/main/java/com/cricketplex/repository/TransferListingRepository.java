@@ -27,4 +27,6 @@ public interface TransferListingRepository extends JpaRepository<TransferListing
     Optional<TransferListing> findByIdForUpdate(UUID id);
 
     List<TransferListing> findTop20ByStatusOrderBySoldAtDesc(String status);
+
+    List<TransferListing> findTop50ByPlayerIdAndStatusOrderBySoldAtDesc(UUID playerId, String status);
 }

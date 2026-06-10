@@ -205,6 +205,7 @@ export default function Player() {
   const sk = data.skills || {};
   const stats = data.stats || {};
   const trainingHistory = data.trainingHistory || [];
+  const transferHistory = data.transferHistory || [];
 
   // Determine if all skills should be visible
   const isFreeAgent = !data.teamId; // Retired/Released players have no team
@@ -547,6 +548,42 @@ export default function Player() {
                     <span className="pp-training-date">{new Date(log.trainedAt).toLocaleDateString()}</span>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="pp-section">
+        <h2 className="pp-section-title">Transfer History</h2>
+        {transferHistory.length === 0 ? (
+          <div className="pp-no-stats">No transfer history for this player</div>
+        ) : (
+          <div className="pp-transfer-history">
+            <div className="pp-transfer-head">
+              <span>Date</span>
+              <span>From Team</span>
+              <span>To Team</span>
+              <span className="pp-transfer-price-head">Price</span>
+            </div>
+            {transferHistory.slice(0, 20).map((sale) => (
+              <div key={sale.id} className="pp-transfer-row">
+                <span className="pp-transfer-date">
+                  {sale.soldAt ? new Date(sale.soldAt).toLocaleDateString() : '-'}
+                </span>
+                <span
+                  className={`pp-transfer-team ${sale.fromTeamId ? 'link' : ''}`}
+                  onClick={() => sale.fromTeamId && navigate(`/team/${sale.fromTeamId}`)}
+                >
+                  {sale.fromTeam || '-'}
+                </span>
+                <span
+                  className={`pp-transfer-team ${sale.toTeamId ? 'link' : ''}`}
+                  onClick={() => sale.toTeamId && navigate(`/team/${sale.toTeamId}`)}
+                >
+                  {sale.toTeam || '-'}
+                </span>
+                <span className="pp-transfer-price">{sale.price ? `$${Number(sale.price).toLocaleString()}` : '-'}</span>
               </div>
             ))}
           </div>

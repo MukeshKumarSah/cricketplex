@@ -19,6 +19,7 @@ public class PlayerController {
     private final BattingScorecardRepository battingScorecardRepository;
     private final BowlingScorecardRepository bowlingScorecardRepository;
     private final TrainingLogRepository trainingLogRepository;
+    private final TransferListingRepository transferListingRepository;
 
     @GetMapping("/{playerId}")
     public ResponseEntity<?> getPlayerProfile(
@@ -123,6 +124,10 @@ public class PlayerController {
         List<TrainingLog> trainingLogs = trainingLogRepository.findTop50ByPlayerIdOrderByTrainedAtDesc(playerId);
         resp.put("trainingHistory", mapTrainingLogs(trainingLogs));
 
+        List<TransferListing> transferListings = transferListingRepository
+            .findTop50ByPlayerIdAndStatusOrderBySoldAtDesc(playerId, "SOLD");
+        resp.put("transferHistory", mapTransferHistory(transferListings));
+
         return ResponseEntity.ok(resp);
     }
 
@@ -149,6 +154,22 @@ public class PlayerController {
             trainingHistory.add(m);
         }
         return trainingHistory;
+    }
+
+    private List<Map<String, Object>> mapTransferHistory(List<TransferListing> transferListings) {
+        List<Map<String, Object>> transferHistory = new ArrayList<>();
+        for (TransferListing listing : transferListings) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", listing.getId());
+            m.put("soldAt", listing.getSoldAt() != null ? listing.getSoldAt().toString() : null);
+            m.put("fromTeam", listing.getSellerTeam() != null ? listing.getSellerTeam().getTeamName() : null);
+            m.put("fromTeamId", listing.getSellerTeam() != null ? listing.getSellerTeam().getId() : null);
+            m.put("toTeam", listing.getBuyerTeam() != null ? listing.getBuyerTeam().getTeamName() : null);
+            m.put("toTeamId", listing.getBuyerTeam() != null ? listing.getBuyerTeam().getId() : null);
+            m.put("price", listing.getSalePrice());
+            transferHistory.add(m);
+        }
+        return transferHistory;
     }
 
     private String resolveFormat(Fixture f) {
