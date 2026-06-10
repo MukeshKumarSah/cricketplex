@@ -164,11 +164,11 @@ public class MatchScheduler {
                     LocalTime matchTime = LocalTime.parse(startTimeStr);
                     LocalDateTime matchStart = LocalDateTime.of(f.getMatchDate(), matchTime);
 
-                    // if (nowUtc.isBefore(matchStart)) {
-                    //     log.info("Skipping fixture {} — not yet start time (now={}, start={})",
-                    //             f.getId(), nowUtc, matchStart);
-                    //     continue;
-                    // }
+                    if (nowUtc.isBefore(matchStart)) {
+                        // log.info("Skipping fixture {} — not yet start time (now={}, start={})",
+                        //         f.getId(), nowUtc, matchStart);
+                        continue;
+                    }
 
                     // Check if already simulated (result exists)
                     Boolean hasResult = txTemplate.execute(status ->
@@ -276,11 +276,11 @@ public class MatchScheduler {
                         LocalTime matchTime = LocalTime.parse(startTimeStr);
                         LocalDateTime day2Start = LocalDateTime.of(day2Date, matchTime);
 
-                        // if (nowUtc.isBefore(day2Start)) {
-                        //     log.info("Skipping FC Day 2 for fixture {} — not yet start time (now={}, start={})",
-                        //             f.getId(), nowUtc, day2Start);
-                        //     continue;
-                        // }
+                        if (nowUtc.isBefore(day2Start)) {
+                            // log.info("Skipping FC Day 2 for fixture {} — not yet start time (now={}, start={})",
+                            //         f.getId(), nowUtc, day2Start);
+                            continue;
+                        }
 
                         log.info("Auto-simulating FC Day 2 for fixture {} (day2Date={})",
                                 f.getId(), day2Date);
