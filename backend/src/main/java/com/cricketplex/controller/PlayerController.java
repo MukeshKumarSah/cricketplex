@@ -18,6 +18,7 @@ public class PlayerController {
     private final PlayerRepository playerRepository;
     private final BattingScorecardRepository battingScorecardRepository;
     private final BowlingScorecardRepository bowlingScorecardRepository;
+    private final TrainingLogRepository trainingLogRepository;
 
     @GetMapping("/{playerId}")
     public ResponseEntity<?> getPlayerProfile(
@@ -119,7 +120,35 @@ public class PlayerController {
         }
         resp.put("stats", stats);
 
+        List<TrainingLog> trainingLogs = trainingLogRepository.findTop50ByPlayerIdOrderByTrainedAtDesc(playerId);
+        resp.put("trainingHistory", mapTrainingLogs(trainingLogs));
+
         return ResponseEntity.ok(resp);
+    }
+
+    @GetMapping("/{playerId}/training-history")
+    public ResponseEntity<?> getPlayerTrainingHistory(@PathVariable UUID playerId) {
+        if (!playerRepository.existsById(playerId)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Player not found"));
+        }
+        List<TrainingLog> trainingLogs = trainingLogRepository.findTop50ByPlayerIdOrderByTrainedAtDesc(playerId);
+        return ResponseEntity.ok(mapTrainingLogs(trainingLogs));
+    }
+
+    private List<Map<String, Object>> mapTrainingLogs(List<TrainingLog> trainingLogs) {
+        List<Map<String, Object>> trainingHistory = new ArrayList<>();
+        for (TrainingLog log : trainingLogs) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", log.getId());
+            m.put("trainingType", log.getTrainingType());
+            m.put("skill", log.getSkill());
+            m.put("oldValue", log.getOldValue());
+            m.put("newValue", log.getNewValue());
+            m.put("change", log.getChange());
+            m.put("trainedAt", log.getTrainedAt() != null ? log.getTrainedAt().toString() : null);
+            trainingHistory.add(m);
+        }
+        return trainingHistory;
     }
 
     private String resolveFormat(Fixture f) {

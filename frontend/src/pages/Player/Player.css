@@ -529,6 +529,87 @@
   color: #3b82f6;
 }
 
+.pp-training-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pp-training-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.pp-training-left {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.pp-training-type {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+}
+
+.pp-training-type.focused {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.12);
+}
+
+.pp-training-type.general {
+  color: var(--text-3);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.pp-training-skill {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.pp-training-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pp-training-values {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-2);
+}
+
+.pp-training-change {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pp-training-change.up {
+  color: #22c55e;
+}
+
+.pp-training-change.flat {
+  color: var(--text-3);
+}
+
+.pp-training-date {
+  font-size: 0.66rem;
+  color: var(--text-3);
+}
+
 .pp-no-stats {
   text-align: center;
   color: var(--text-3);
@@ -564,5 +645,15 @@
   }
   .pp-last5-perf {
     justify-content: flex-start;
+  }
+  .pp-training-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  .pp-training-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }

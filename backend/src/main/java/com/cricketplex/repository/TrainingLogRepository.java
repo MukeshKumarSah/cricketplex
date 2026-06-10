@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface TrainingLogRepository extends JpaRepository<TrainingLog, UUID> {
     List<TrainingLog> findByTeamIdOrderByTrainedAtDesc(UUID teamId);
+    List<TrainingLog> findTop50ByPlayerIdOrderByTrainedAtDesc(UUID playerId);
 }

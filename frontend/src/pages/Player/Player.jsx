@@ -34,6 +34,14 @@ const ROLE_LABELS = { BATSMAN: 'Batsman', BOWLER: 'Bowler', ALL_ROUNDER: 'All-Ro
 const HAND_LABELS = { RH: 'Right Hand', LH: 'Left Hand' };
 const BOWL_LABELS = { FS: 'Finger Spin', WS: 'Wrist Spin', F: 'Fast', M: 'Medium', FM: 'Fast Medium', MF: 'Medium Fast' };
 const AGG_LABELS = { D: 'Defensive', N: 'Neutral', A: 'Aggressive' };
+const TRAINING_SKILL_LABELS = {
+  batRating: 'Bat',
+  bowlRating: 'Bowl',
+  keeperRating: 'WK',
+  fldRating: 'Fld',
+  stamina: 'Stam',
+  confidence: 'Conf',
+};
 const FORMAT_ORDER = ['T20', 'ODI', 'FC'];
 const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#3b82f6', FC: '#f59e0b' };
 
@@ -196,6 +204,7 @@ export default function Player() {
 
   const sk = data.skills || {};
   const stats = data.stats || {};
+  const trainingHistory = data.trainingHistory || [];
 
   // Determine if all skills should be visible
   const isFreeAgent = !data.teamId; // Retired/Released players have no team
@@ -514,6 +523,35 @@ export default function Player() {
           )}
         </div>
       )}
+
+      <div className="pp-section">
+        <h2 className="pp-section-title">Training History</h2>
+        {trainingHistory.length === 0 ? (
+          <div className="pp-no-stats">No training logs for this player yet</div>
+        ) : (
+          <div className="pp-training-list">
+            {trainingHistory.slice(0, 20).map((log) => (
+              <div key={log.id} className="pp-training-row">
+                <div className="pp-training-left">
+                  <span className={`pp-training-type ${log.trainingType === 'GENERAL' ? 'general' : 'focused'}`}>
+                    {log.trainingType}
+                  </span>
+                  <span className="pp-training-skill">{TRAINING_SKILL_LABELS[log.skill] || log.skill}</span>
+                </div>
+                <div className="pp-training-right">
+                  <span className="pp-training-values">{log.oldValue} {'->'} {log.newValue}</span>
+                  <span className={`pp-training-change ${log.change > 0 ? 'up' : 'flat'}`}>
+                    {log.change > 0 ? `+${log.change}` : log.change}
+                  </span>
+                  {log.trainedAt && (
+                    <span className="pp-training-date">{new Date(log.trainedAt).toLocaleDateString()}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {availableFormats.length === 0 && (
         <div className="pp-section">

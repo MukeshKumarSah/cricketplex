@@ -160,6 +160,7 @@ export const getFixturePreview = (fixtureId) => API.get(`/match/preview/${fixtur
 
 // Player
 export const getPlayerProfile = (playerId) => API.get(`/player/${playerId}`);
+export const getPlayerTrainingHistory = (playerId) => API.get(`/player/${playerId}/training-history`);
 
 // Stats
 export const getTeamStats = (format, matchType, season) => API.get('/stats', { params: { format, matchType, ...(season != null ? { season } : {}) } });
