@@ -137,7 +137,7 @@ public class TrainingService {
             // Recalc overall rating
             p.setRating(calcOverallRating(p));
             double after = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
-            totalGains += (int)(after - before);
+            totalGains += ((int) after - (int) before);
         }
 
         playerRepository.saveAll(players);
