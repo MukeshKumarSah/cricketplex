@@ -125,7 +125,13 @@ public class TrainingService {
         int totalGains = 0;
 
         for (Player p : players) {
-            double before = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
+            int beforeBat = (int) p.getBatRating();
+            int beforeBowl = (int) p.getBowlRating();
+            int beforeKeeper = (int) p.getKeeperRating();
+            int beforeFld = (int) p.getFldRating();
+            int beforeStamina = (int) p.getStamina();
+            int beforeConfidence = (int) p.getConfidence();
+
             String focusedType = assignmentMap.get(p.getId());
             if (focusedType != null) {
                 applyFocusedTraining(team, p, focusedType, rng);
@@ -136,8 +142,20 @@ public class TrainingService {
             }
             // Recalc overall rating
             p.setRating(calcOverallRating(p));
-            double after = p.getBatRating() + p.getBowlRating() + p.getKeeperRating() + p.getFldRating() + p.getStamina() + p.getConfidence();
-            totalGains += ((int) after - (int) before);
+
+                int afterBat = (int) p.getBatRating();
+                int afterBowl = (int) p.getBowlRating();
+                int afterKeeper = (int) p.getKeeperRating();
+                int afterFld = (int) p.getFldRating();
+                int afterStamina = (int) p.getStamina();
+                int afterConfidence = (int) p.getConfidence();
+
+                totalGains += Math.max(0, afterBat - beforeBat)
+                    + Math.max(0, afterBowl - beforeBowl)
+                    + Math.max(0, afterKeeper - beforeKeeper)
+                    + Math.max(0, afterFld - beforeFld)
+                    + Math.max(0, afterStamina - beforeStamina)
+                    + Math.max(0, afterConfidence - beforeConfidence);
         }
 
         playerRepository.saveAll(players);
