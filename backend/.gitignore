@@ -33,3 +33,4 @@ Thumbs.db
 
 # Spring Boot DevTools
 .springBeans
+backend/target/
