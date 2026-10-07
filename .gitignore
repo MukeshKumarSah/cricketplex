@@ -5,6 +5,7 @@ node_modules/
 frontend/dist/
 frontend/build/
 backend/target/
+backend/*/target/
 
 # Environment files
 .env

@@ -36,18 +36,23 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  auth-service:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: cricketplex-backend
+      args:
+        SERVICE: auth-service
+    container_name: cricketplex-auth
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+      game-service:
+        condition: service_healthy
     environment:
+      SERVER_PORT: 8081
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
@@ -65,6 +70,95 @@ services:
       APP_PAYPAL_MODE: ${APP_PAYPAL_MODE:-sandbox}
       APP_STRIPE_SECRET_KEY: ${APP_STRIPE_SECRET_KEY:-}
       APP_STRIPE_PUBLISHABLE_KEY: ${APP_STRIPE_PUBLISHABLE_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  game-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: game-service
+    container_name: cricketplex-game
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      APP_BASE_URL: https://${DOMAIN}
+      APP_FRONTEND_URL: https://${DOMAIN}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+      APP_SEASON1_START: ${APP_SEASON1_START:-2026-04-26}
+      APP_SOCIAL_SERVICE_URL: http://social-service:8083
+      APP_INTERNAL_API_KEY: ${APP_INTERNAL_API_KEY:-cricketplex-internal}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  social-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: social-service
+    container_name: cricketplex-social
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      game-service:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      APP_BASE_URL: https://${DOMAIN}
+      APP_FRONTEND_URL: https://${DOMAIN}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+      APP_SEASON1_START: ${APP_SEASON1_START:-2026-04-26}
+      APP_INTERNAL_API_KEY: ${APP_INTERNAL_API_KEY:-cricketplex-internal}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: cricketplex-gateway
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      game-service:
+        condition: service_healthy
+      social-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
 
@@ -75,7 +169,7 @@ services:
     container_name: cricketplex-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      - gateway
     ports:
       - "3000:80"
 
