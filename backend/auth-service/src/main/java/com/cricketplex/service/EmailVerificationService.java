@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -63,13 +64,15 @@ public class EmailVerificationService {
     }
 
     private void sendEmail(String toEmail, String subject, String textContent) {
-        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+        String apiKey = sanitizeApiKey(brevoApiKey);
+        if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Brevo API key is not configured");
         }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("api-key", brevoApiKey);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        headers.set("api-key", apiKey);
 
         Map<String, Object> sender = new LinkedHashMap<>();
         sender.put("name", senderName);
@@ -90,8 +93,26 @@ public class EmailVerificationService {
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new IllegalStateException("Brevo API call failed with status " + response.getStatusCode().value());
             }
+        } catch (HttpStatusCodeException ex) {
+            throw new IllegalStateException(
+                    "Brevo API call failed with status " + ex.getStatusCode().value()
+                            + (ex.getStatusCode().value() == 401
+                            ? " (unauthorized API key — check APP_BREVO_API_KEY is passed into auth-service)"
+                            : ""),
+                    ex);
         } catch (RestClientException ex) {
             throw new IllegalStateException("Brevo API call failed: " + ex.getMessage(), ex);
         }
+    }
+
+    private static String sanitizeApiKey(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String key = raw.strip();
+        if ((key.startsWith("\"") && key.endsWith("\"")) || (key.startsWith("'") && key.endsWith("'"))) {
+            key = key.substring(1, key.length() - 1).strip();
+        }
+        return key;
     }
 }

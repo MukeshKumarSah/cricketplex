@@ -44,6 +44,8 @@ services:
         SERVICE: auth-service
     container_name: cricketplex-auth
     restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +65,10 @@ services:
       APP_FRONTEND_URL: https://${DOMAIN}
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
       APP_SEASON1_START: ${APP_SEASON1_START:-2026-04-26}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-no-reply@mukoraonline.pw}
+      APP_MAIL_SENDER_NAME: ${APP_MAIL_SENDER_NAME:-CricketPlex}
+      APP_BREVO_API_KEY: ${APP_BREVO_API_KEY:-}
+      APP_BREVO_API_URL: ${APP_BREVO_API_URL:-https://api.brevo.com/v3/smtp/email}
       APP_RAZORPAY_KEY_ID: ${APP_RAZORPAY_KEY_ID:-}
       APP_RAZORPAY_KEY_SECRET: ${APP_RAZORPAY_KEY_SECRET:-}
       APP_PAYPAL_CLIENT_ID: ${APP_PAYPAL_CLIENT_ID:-}
