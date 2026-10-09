@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setupTeam, getAllCountryAvailability } from '../../api/auth';
+import { COUNTRIES, COUNTRY_MATCH_TIMES } from '../../constants/countries';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import './TeamSetup.css';
+
+function fallbackCountries() {
+  return COUNTRIES.map((country) => ({
+    country,
+    available: true,
+    slots: 16,
+    matchStartTimeUtc: COUNTRY_MATCH_TIMES[country] || '14:00',
+  }));
+}
 
 export default function TeamSetup() {
   const navigate = useNavigate();
@@ -16,8 +26,15 @@ export default function TeamSetup() {
 
   useEffect(() => {
     getAllCountryAvailability()
-      .then(res => setCountries(res.data))
-      .catch(() => toast.error('Failed to load countries'))
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        const anyOpen = list.some((c) => c.available);
+        setCountries(anyOpen ? list : fallbackCountries());
+      })
+      .catch(() => {
+        toast.error('Could not load country slots; showing all countries.');
+        setCountries(fallbackCountries());
+      })
       .finally(() => setLoadingCountries(false));
   }, []);
 
@@ -69,6 +86,8 @@ export default function TeamSetup() {
             <label>Select Country</label>
             {loadingCountries ? (
               <div className="ts-loading">Loading countries…</div>
+            ) : countries.length === 0 ? (
+              <div className="ts-loading">No countries available. Please retry after bot teams finish generating.</div>
             ) : (
               <div className="ts-country-grid">
                 {countries.map((c) => {

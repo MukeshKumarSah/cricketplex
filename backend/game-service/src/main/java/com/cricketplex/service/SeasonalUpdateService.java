@@ -20,6 +20,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -55,6 +56,7 @@ import java.util.stream.Collectors;
  *     the previous season, so past tables remain reconstructable.
  */
 @Service
+@DependsOn("botTeamService")
 @RequiredArgsConstructor
 @Slf4j
 public class SeasonalUpdateService {
@@ -116,6 +118,7 @@ public class SeasonalUpdateService {
         for (int season = lastTransition + 1; season <= latestTransitionSeason && season <= lastTransition + 4; season++) {
             processPromotionRelegation(season);
             processSeasonChange();
+            healMissingCurrentSeasonMemberships();
             generateNewFixtures();
             setAppStateInt(TRANSITION_KEY, season);
             log.info("Seasonal Day 2 complete for season {}", season);
@@ -158,6 +161,7 @@ public class SeasonalUpdateService {
         log.info("Force seasonal update: phase 2 (promotion/relegation) for season {}", season);
         processPromotionRelegation(season, standingsCurrent, standingsPrev);
         processSeasonChange();
+        healMissingCurrentSeasonMemberships();
         generateNewFixtures();
         setAppStateInt(TRANSITION_KEY, season);
 
@@ -336,24 +340,30 @@ public class SeasonalUpdateService {
                                               Map<UUID, List<UUID>> standingsCurrent,
                                               Map<UUID, List<UUID>> standingsPrev) {
         Integer settledSeason = settlementSeason(format, season);
-        if (settledSeason == null) return;
 
         List<League> leagues = leagueRepository
                 .findByCountryIgnoreCaseAndFormatOrderByDivisionAscLeagueNumberAsc(country, format);
         if (leagues.isEmpty()) return;
 
+        int nextSeason = season + 1;
+        if (settledSeason == null) {
+            copyMembershipsForward(leagues, season, nextSeason);
+            return;
+        }
+
         Map<UUID, List<UUID>> standingsMap = settledSeason == season ? standingsCurrent : standingsPrev;
 
-        int nextSeason = season + 1;
-        // Seed next-season members from current settled-season members
         Map<UUID, List<UUID>> nextSeasonMembers = new LinkedHashMap<>();
         for (League league : leagues) {
-            nextSeasonMembers.put(
-                    league.getId(),
-                    leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), settledSeason).stream()
-                            .map(lt -> lt.getTeam().getId())
-                            .collect(Collectors.toCollection(ArrayList::new))
-            );
+            List<UUID> members = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), settledSeason).stream()
+                    .map(lt -> lt.getTeam().getId())
+                    .collect(Collectors.toCollection(ArrayList::new));
+            if (members.isEmpty()) {
+                members = latestMemberships(league).stream()
+                        .map(lt -> lt.getTeam().getId())
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            nextSeasonMembers.put(league.getId(), members);
         }
 
         Map<Integer, List<League>> byDivision = leagues.stream()
@@ -425,6 +435,63 @@ public class SeasonalUpdateService {
             league.setSeason(league.getSeason() + 1);
         }
         leagueRepository.saveAll(leagues);
+    }
+
+    private void copyMembershipsForward(List<League> leagues, int sourceSeason, int nextSeason) {
+        for (League league : leagues) {
+            if (leagueTeamRepository.countByLeagueIdAndSeason(league.getId(), nextSeason) > 0) {
+                continue;
+            }
+            List<LeagueTeam> source = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), sourceSeason);
+            if (source.isEmpty()) {
+                source = latestMemberships(league);
+            }
+            List<LeagueTeam> rows = new ArrayList<>();
+            for (LeagueTeam lt : source) {
+                rows.add(LeagueTeam.builder()
+                        .league(league)
+                        .team(lt.getTeam())
+                        .season(nextSeason)
+                        .build());
+            }
+            if (!rows.isEmpty()) {
+                leagueTeamRepository.saveAll(rows);
+            }
+        }
+    }
+
+    private List<LeagueTeam> latestMemberships(League league) {
+        List<LeagueTeam> all = leagueTeamRepository.findByLeagueId(league.getId());
+        if (all.isEmpty()) return List.of();
+        int latest = all.stream().mapToInt(LeagueTeam::getSeason).max().orElse(1);
+        return all.stream().filter(lt -> lt.getSeason() == latest).toList();
+    }
+
+    private void healMissingCurrentSeasonMemberships() {
+        int currentSeason = leagueRepository.findMaxSeason();
+        int copied = 0;
+        for (League league : leagueRepository.findAll()) {
+            if (leagueTeamRepository.countByLeagueIdAndSeason(league.getId(), currentSeason) > 0) {
+                continue;
+            }
+            List<LeagueTeam> source = latestMemberships(league);
+            if (source.isEmpty() || source.get(0).getSeason() == currentSeason) {
+                continue;
+            }
+            List<LeagueTeam> rows = new ArrayList<>();
+            for (LeagueTeam lt : source) {
+                rows.add(LeagueTeam.builder()
+                        .league(league)
+                        .team(lt.getTeam())
+                        .season(currentSeason)
+                        .build());
+            }
+            leagueTeamRepository.saveAll(rows);
+            copied += rows.size();
+        }
+        if (copied > 0) {
+            log.info("Copied {} league memberships onto current season {}", copied, currentSeason);
+        }
     }
 
     private void generateNewFixtures() {
