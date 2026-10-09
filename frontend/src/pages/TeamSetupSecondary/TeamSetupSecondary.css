@@ -279,7 +279,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .team-setup-secondary-page {
     padding: 1rem;
   }
@@ -300,4 +300,6 @@
   .tss-form {
     padding: 1.5rem;
   }
+
+  .tss-submit-btn { min-height: 44px; width: 100%; }
 }

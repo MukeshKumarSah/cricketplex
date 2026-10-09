@@ -410,7 +410,7 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .admin-submission-card {
     flex-direction: column;
   }

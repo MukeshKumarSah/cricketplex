@@ -630,7 +630,9 @@
   color: #fff;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .lu-page { gap: 0.9rem; }
+  .lu-match-info { padding: 1.1rem; }
   .lu-co-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -838,7 +840,7 @@
   font-style: italic;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .lu-fc-grid {
     grid-template-columns: repeat(5, 1fr);
   }
@@ -917,7 +919,7 @@
   font-weight: 600;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .lu-fc-strat-row {
     flex-direction: column;
     gap: 0.3rem;
@@ -1083,7 +1085,7 @@
 }
 
 /* --- Responsive --- */
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .lu-batting-head,
   .lu-batting-row {
     grid-template-columns: 30px 1fr 50px 90px 50px 70px;

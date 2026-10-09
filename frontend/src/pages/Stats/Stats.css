@@ -236,7 +236,7 @@
 }
 
 /* -- Responsive -- */
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .st-page {
     padding: 1rem;
   }
@@ -246,6 +246,9 @@
   }
   .st-table {
     font-size: 0.72rem;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .st-table th,
   .st-table td {

@@ -410,3 +410,18 @@
 }
 .cm-send:hover { background: #d97706; }
 .cm-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .challenges-header { flex-wrap: wrap; padding: 1.1rem; }
+  .challenges-new-btn { margin-left: 0; min-height: 44px; width: 100%; justify-content: center; }
+  .challenges-tabs { overflow-x: auto; }
+  .challenges-tab { min-height: 44px; white-space: nowrap; }
+  .challenge-card { padding: 0.9rem 1rem; }
+  .challenge-card-top { flex-direction: column; align-items: flex-start; }
+  .challenge-actions { width: 100%; }
+  .ch-btn, .cm-cancel, .cm-send { min-height: 44px; }
+}
+@media (max-width: 480px) {
+  .challenge-teams { flex-wrap: wrap; }
+  .challenge-lineup-status { flex-direction: column; gap: 0.35rem; }
+}

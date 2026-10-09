@@ -384,8 +384,10 @@
 .matches-result-draw { color: #fbbf24; }
 
 /* ── Responsive ── */
-@media (max-width: 860px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .matches-header { flex-wrap: wrap; padding: 1.1rem; }
   .matches-filters { flex-direction: column; align-items: flex-start; }
+  .matches-filters button, .matches-filters select { min-height: 44px; }
   .matches-table-head,
   .matches-row {
     grid-template-columns: 95px 65px 1fr 95px 100px;

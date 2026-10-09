@@ -56,18 +56,54 @@ import {
   HiOutlineTrophy,
 } from 'react-icons/hi2';
 
+const COMPACT_MQ = '(max-width: 1024px), ((pointer: coarse) and (max-width: 1280px))';
+
 export default function Home() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => localStorage.getItem('sidebarOpen') === 'true'
+  const location = useLocation();
+  const [isCompact, setIsCompact] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(COMPACT_MQ).matches
   );
-  useEffect(() => {
-  localStorage.setItem('sidebarOpen', sidebarOpen);
-}, [sidebarOpen]);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia(COMPACT_MQ).matches) {
+      return false;
+    }
+    return localStorage.getItem('sidebarOpen') === 'true';
+  });
   const [profileOpen, setProfileOpen] = useState(false);
   const [now, setNow] = useState(new Date());
   const [season, setSeason] = useState(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia(COMPACT_MQ);
+    const onChange = () => {
+      const compact = mq.matches;
+      setIsCompact(compact);
+      setSidebarOpen(compact ? false : localStorage.getItem('sidebarOpen') === 'true');
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isCompact) {
+      localStorage.setItem('sidebarOpen', sidebarOpen);
+    }
+  }, [sidebarOpen, isCompact]);
+
+  useEffect(() => {
+    if (isCompact) setSidebarOpen(false);
+  }, [location.pathname, isCompact]);
+
+  useEffect(() => {
+    if (!isCompact || !sidebarOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isCompact, sidebarOpen]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -95,21 +131,28 @@ export default function Home() {
     : '?';
 
   return (
-    <div className="home-layout">
-      <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen((p) => !p)} />
+    <div className={`home-layout ${isCompact ? 'is-compact' : ''} ${sidebarOpen ? 'nav-open' : ''}`}>
+      {isCompact && sidebarOpen && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="Close menu"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <Sidebar isOpen={isCompact ? true : sidebarOpen} toggle={() => setSidebarOpen((p) => !p)} />
 
-      <div className={`home-main ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-        {/* Top Bar */}
+      <div className={`home-main ${!isCompact && !sidebarOpen ? 'sidebar-collapsed' : ''}`}>
         <header className="top-bar">
           <div className="top-bar-left">
             <button
               className="menu-toggle"
               onClick={() => setSidebarOpen((p) => !p)}
               aria-label="Toggle sidebar"
+              aria-expanded={sidebarOpen}
             >
               ☰
             </button>
-            <h2 className="page-title">Dashboard</h2>
+            <h2 className="page-title">CricketPlex</h2>
           </div>
 
           <div className="top-bar-center">

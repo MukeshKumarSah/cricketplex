@@ -466,11 +466,12 @@
 .ac-modal-btn.confirm-downgrade { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
 
 /* ── Responsive ── */
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .ac-page { padding: 1rem; }
   .ac-management-card { flex-direction: column; align-items: flex-start; }
   .ac-mgmt-info { flex-wrap: wrap; gap: 1rem; }
   .ac-pull-controls { flex-direction: column; }
   .ac-player-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .ac-history-row { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+  .ac-modal-btn { min-height: 44px; }
 }

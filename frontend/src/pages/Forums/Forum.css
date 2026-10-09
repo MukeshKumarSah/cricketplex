@@ -53,10 +53,16 @@
   align-items: start;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .forum-layout {
     grid-template-columns: 1fr;
   }
+  .forum-header { gap: 0.75rem; }
+  .forum-title { font-size: 1.25rem; }
+  .forum-header-icon { font-size: 1.6rem; }
+}
+@media (max-width: 480px) {
+  .forum-page { max-width: 100%; }
 }
 
 /* ── Category cards ─────────────────────────────────────────────── */

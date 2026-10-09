@@ -208,3 +208,18 @@
   font-size: 0.58rem;
   color: var(--text-3);
 }
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .fin-page { gap: 0.85rem; }
+  .fin-header { flex-wrap: wrap; }
+  .fin-cards { grid-template-columns: repeat(2, 1fr); }
+  .fin-section { padding: 0.9rem 1rem; }
+  .fin-section-header { flex-wrap: wrap; gap: 0.5rem; }
+  .fin-filter-select { min-height: 44px; }
+  .fin-tx-row { flex-wrap: wrap; }
+}
+@media (max-width: 480px) {
+  .fin-cards { grid-template-columns: 1fr; }
+  .fin-tx-row { align-items: flex-start; }
+  .fin-tx-amounts { align-items: flex-start; width: 100%; }
+}

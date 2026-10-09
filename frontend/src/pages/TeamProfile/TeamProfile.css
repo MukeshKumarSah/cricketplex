@@ -424,7 +424,7 @@
   color: var(--text-3);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .tp-match-head,
   .tp-match-row {
     grid-template-columns: 100px 70px 1fr 120px;

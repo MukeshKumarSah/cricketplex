@@ -175,3 +175,12 @@
   border-radius: 6px;
   border-left: 3px solid #334155;
 }
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .gf-page { padding: 1rem; }
+  .gf-header { flex-wrap: wrap; }
+  .gf-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 480px) {
+  .gf-page-title { font-size: 1.15rem; }
+}

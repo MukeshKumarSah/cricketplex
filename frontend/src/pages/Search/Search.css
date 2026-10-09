@@ -275,15 +275,17 @@
 }
 
 /* -- Responsive -- */
-@media (max-width: 600px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .search-grid {
     grid-template-columns: 1fr;
   }
   .search-tabs {
     gap: 0.35rem;
+    overflow-x: auto;
   }
   .search-tab {
     padding: 0.4rem 0.75rem;
     font-size: 0.78rem;
+    min-height: 44px;
   }
 }

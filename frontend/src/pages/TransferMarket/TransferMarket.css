@@ -473,7 +473,7 @@
 }
 
 /* -- Responsive -- */
-@media (max-width: 740px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .tm-listings { grid-template-columns: 1fr; }
   .tm-bid-row { flex-direction: column; }
   .tm-bid-input { width: 100%; }

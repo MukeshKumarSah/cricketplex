@@ -52,3 +52,12 @@
   border: 1px solid var(--accent-border);
   border-radius: 20px;
 }
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .cs-page { padding: 1.25rem; min-height: 50vh; }
+  .cs-card { padding: 2rem 1.25rem; }
+}
+@media (max-width: 480px) {
+  .cs-title { font-size: 1.25rem; }
+  .cs-icon { font-size: 2.4rem; }
+}

@@ -185,3 +185,13 @@
 .modal-box-lg {
   max-width: 600px;
 }
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .fc-header { gap: 0.65rem; }
+  .fc-title { font-size: 1.15rem; }
+  .fc-admin-actions { flex-wrap: wrap; }
+  .fc-admin-actions button, .fc-back { min-height: 44px; }
+}
+@media (max-width: 480px) {
+  .modal-box-lg { max-width: 100%; }
+}

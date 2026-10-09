@@ -145,8 +145,60 @@
 }
 .ts-selected-time strong { color: #22d3ee; }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .ts-country-grid { grid-template-columns: repeat(2, 1fr); }
-  .team-setup-card { padding: 1.5rem; }
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .team-setup-container {
+    align-items: flex-start;
+    padding: 1.25rem 1rem;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  .team-setup-card {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.6rem 1.2rem;
+  }
+
+  .ts-country-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  .ts-country-card {
+    min-height: 64px;
+    padding: 0.75rem 0.8rem;
+  }
+
+  .ts-card-name {
+    font-size: 0.9rem;
+  }
+
+  .ts-selected-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-btn {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-setup-container {
+    padding: 0;
+  }
+
+  .team-setup-card {
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    padding: 1.4rem 1rem 2rem;
+  }
+
+  .ts-country-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }

@@ -236,7 +236,7 @@
 }
 
 /* -- Responsive --------------- */
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .fcs-row {
     flex-direction: column;
     gap: 4px;
@@ -248,4 +248,5 @@
   .fcs-innings-card {
     flex-wrap: wrap;
   }
+  .fcs-btn-primary, .fcs-btn-secondary { min-height: 44px; }
 }

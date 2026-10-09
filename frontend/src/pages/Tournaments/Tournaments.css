@@ -590,7 +590,7 @@
   color: var(--color-amber, #f59e0b);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .tournaments-page { padding: 1rem; }
   .form-row { grid-template-columns: 1fr; }
   .fixture-row { grid-template-columns: 1fr; gap: 0.25rem; }

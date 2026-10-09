@@ -1135,7 +1135,7 @@ html[data-theme="light"] .validation-row {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .commentary-container {
     padding: 0;
   }

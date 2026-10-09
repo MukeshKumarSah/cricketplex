@@ -632,7 +632,7 @@
   letter-spacing: 0.03em;
   margin-right: 0.2rem;
 }
-@media (max-width: 860px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .mc-comm-ctx-grid {
     grid-template-columns: 1fr;
   }
@@ -1204,7 +1204,7 @@
   letter-spacing: 0.3px;
   flex-shrink: 0;
 }
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .mc-perf-teams { grid-template-columns: 1fr; }
   .mc-perf-team { border-right: none; border-bottom: 1px solid var(--border); }
   .mc-perf-team:last-child { border-bottom: none; }
@@ -1273,7 +1273,7 @@
 }
 .mc-strength-total-val { font-size: 0.85rem; font-weight: 700; color: var(--accent); }
 .mc-strength-total-note { font-size: 0.65rem; color: var(--text-3); }
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .mc-strength-teams { grid-template-columns: 1fr; }
   .mc-strength-team:first-child { border-right: none; border-bottom: 1px solid var(--border); }
   .mc-strength-row { grid-template-columns: 110px 1fr 30px; }
@@ -1436,17 +1436,18 @@
 .mc-overlay-back:hover { color: var(--text-1) !important; }
 
 /* --- Responsive --- */
-@media (max-width: 640px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .mc-header { padding: 0.75rem 0 0; }
   .mc-live-bar { margin: 0.5rem 0 0; }
   .mc-tabs { margin: 0.5rem 0 0; }
   .mc-content { padding: 0.5rem 0; }
-  .mc-teams-row { gap: 0.5rem; }
+  .mc-teams-row { gap: 0.5rem; flex-wrap: wrap; }
   .mc-team-name { font-size: 0.95rem; }
   .mc-sc-head, .mc-sc-row, .mc-sc-footer {
     grid-template-columns: 1fr repeat(6, 32px);
     font-size: 0.72rem;
     padding: 0.4rem 0.5rem;
+    min-width: 480px;
   }
   .mc-sc-bowling .mc-sc-head,
   .mc-sc-bowling .mc-sc-row,
@@ -1454,4 +1455,5 @@
     grid-template-columns: 1fr repeat(7, 32px);
   }
   .mc-comp-bar-wrap { display: none; }
+  .mc-overlay-actions button { min-height: 44px; }
 }

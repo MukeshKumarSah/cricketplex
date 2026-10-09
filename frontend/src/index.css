@@ -12,6 +12,15 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 /* ══════════════════════════════════════════════
@@ -103,8 +112,76 @@ body {
   background: var(--bg);
   background-image: var(--bg-gradient);
   background-attachment: fixed;
-  color: #f1f5f9;
+  color: var(--text-1);
   line-height: 1.6;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+table {
+  max-width: 100%;
+}
+
+pre,
+code {
+  overflow-x: auto;
+  word-break: break-word;
+}
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .home-content {
+    max-width: 100%;
+  }
+
+  .home-content table,
+  .home-content [class*="table"],
+  .home-content [class*="standings"],
+  .home-content [class*="scorecard"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .home-content input,
+  .home-content select,
+  .home-content textarea,
+  .home-content button {
+    max-width: 100%;
+  }
+
+  .home-content input,
+  .home-content select,
+  .home-content textarea {
+    font-size: 16px;
+  }
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 14.5px;
+  }
 }
 
 a {

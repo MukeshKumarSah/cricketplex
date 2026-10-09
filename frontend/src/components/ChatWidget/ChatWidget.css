@@ -524,3 +524,23 @@
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
 }
 
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .cw-bubble {
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: max(16px, env(safe-area-inset-right));
+    width: 48px;
+    height: 48px;
+  }
+
+  .cw-panel {
+    top: env(safe-area-inset-top);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    border: none;
+  }
+}
+

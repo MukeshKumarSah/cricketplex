@@ -486,7 +486,7 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .ap-stats {
     grid-template-columns: 1fr;
   }

@@ -408,7 +408,7 @@
 }
 
 /* -- Responsive -- */
-@media (max-width: 540px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .fp-cards {
     grid-template-columns: 1fr;
   }

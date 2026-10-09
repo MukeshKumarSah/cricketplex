@@ -128,3 +128,12 @@
   padding: 0.22rem 0.42rem;
 }
 
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .cal-header { padding: 1rem; }
+  .cal-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+@media (max-width: 480px) {
+  .cal-grid { grid-template-columns: 1fr; }
+  .cal-header h1 { font-size: 1.05rem; }
+}
+

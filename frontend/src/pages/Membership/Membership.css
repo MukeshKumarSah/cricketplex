@@ -346,8 +346,9 @@
   margin-top: 0.15rem;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .membership-grid {
     grid-template-columns: 1fr;
   }
+  .membership-stripe-pay-btn { max-width: 100%; min-height: 44px; }
 }

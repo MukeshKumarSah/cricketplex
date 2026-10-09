@@ -269,3 +269,12 @@
   font-weight: 700;
 }
 
+@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .ft-thread-card { padding: 1.1rem; }
+  .ft-comment-actions { margin-left: 0; flex-wrap: wrap; }
+  .ft-comment-act { min-height: 44px; padding: 0.4rem 0.6rem; }
+}
+@media (max-width: 480px) {
+  .ft-thread-badges { gap: 0.35rem; }
+}
+
