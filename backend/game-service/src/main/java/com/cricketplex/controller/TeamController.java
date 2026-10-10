@@ -467,9 +467,12 @@ public class TeamController {
             match.put("weather", weatherService.getMatchWeather(
                     f.getHomeTeam().getCountry(), f.getMatchDate(), today));
 
-            // Result summary for completed matches (from myTeam's perspective)
-            if ("COMPLETED".equals(f.getStatus())) {
-                matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+            matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+                if (mr.getTossWinner() != null) {
+                    match.put("tossWinner", mr.getTossWinner().getTeamName());
+                    match.put("tossDecision", mr.getTossDecision());
+                }
+                if ("COMPLETED".equals(f.getStatus())) {
                     String summary;
                     if ("TIE".equals(mr.getResultType())) {
                         summary = "Match Tied";
@@ -492,8 +495,8 @@ public class TeamController {
                     }
                     match.put("resultSummary", summary);
                     match.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
-                });
-            }
+                }
+            });
 
             result.add(match);
         }

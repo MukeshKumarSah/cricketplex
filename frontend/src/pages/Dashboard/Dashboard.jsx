@@ -306,11 +306,15 @@ export default function Dashboard() {
                 <HiOutlineClock />
                 {d.lastActive}
               </span>
-              <span className="dash-meta-divider">•</span>
-              <span className="dash-meta-item">
-                <HiOutlineGlobeAlt />
-                {team?.country || 'Unknown'}
-              </span>
+              {team?.country && (
+                <>
+                  <span className="dash-meta-divider">•</span>
+                  <span className="dash-meta-item">
+                    <HiOutlineGlobeAlt />
+                    {team.country}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -375,9 +379,11 @@ export default function Dashboard() {
             <p className="dash-ground-seats">
               <HiOutlineUserGroup /> {totalSeats.toLocaleString()} seats
             </p>
-            <p className="dash-ground-country">
-              <HiOutlineGlobeAlt /> {team?.country || 'Unknown'}
-            </p>
+            {team?.country && (
+              <p className="dash-ground-country">
+                <HiOutlineGlobeAlt /> {team.country}
+              </p>
+            )}
           </div>
         </div>
 

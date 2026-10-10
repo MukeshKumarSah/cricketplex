@@ -220,6 +220,11 @@ export default function Matches() {
                         )}
                       </div>
                     </div>
+                    {m.tossWinner && (
+                      <span className="matches-toss">
+                        {m.tossWinner} won toss{m.tossDecision ? `, elected to ${m.tossDecision.toLowerCase()}` : ''}
+                      </span>
+                    )}
                   </div>
 
                   <div className="mt-col-weather">

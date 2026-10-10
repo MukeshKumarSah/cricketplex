@@ -95,23 +95,27 @@ public class SettingsService {
     public Map<String, Object> getSettings(User user) {
         Team team = teamHelper.getActiveTeam(user).orElse(null);
 
-        return Map.of(
-                "user", Map.of(
-                        "name", user.getName(),
-                        "username", user.getUsername(),
-                        "email", user.getEmail(),
-                        "profilePicUrl", fileStorageService.buildFileUrl(user.getProfilePicUrl()),
-                        "theme", user.getTheme()
-                ),
-                "team", team != null ? Map.of(
-                        "teamName", team.getTeamName(),
-                        "country", team.getCountry(),
-                        "groundName", team.getGroundName() != null ? team.getGroundName() : "",
-                        "teamProfilePicUrl", fileStorageService.buildFileUrl(team.getTeamProfilePicUrl()),
-                        "fans", team.getFans(),
-                        "academyLevel", team.getAcademyLevel()
-                ) : Map.of()
-        );
+        Map<String, Object> userMap = new LinkedHashMap<>();
+        userMap.put("name", user.getName() != null ? user.getName() : "");
+        userMap.put("username", user.getUsername() != null ? user.getUsername() : "");
+        userMap.put("email", user.getEmail() != null ? user.getEmail() : "");
+        userMap.put("profilePicUrl", fileStorageService.buildFileUrl(user.getProfilePicUrl()));
+        userMap.put("theme", user.getTheme() != null ? user.getTheme() : "dark");
+
+        Map<String, Object> teamMap = new LinkedHashMap<>();
+        if (team != null) {
+            teamMap.put("teamName", team.getTeamName() != null ? team.getTeamName() : "");
+            teamMap.put("country", team.getCountry() != null ? team.getCountry() : "");
+            teamMap.put("groundName", team.getGroundName() != null ? team.getGroundName() : "");
+            teamMap.put("teamProfilePicUrl", fileStorageService.buildFileUrl(team.getTeamProfilePicUrl()));
+            teamMap.put("fans", team.getFans() != null ? team.getFans() : 0);
+            teamMap.put("academyLevel", team.getAcademyLevel() != null ? team.getAcademyLevel() : 1);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("user", userMap);
+        result.put("team", teamMap);
+        return result;
     }
 
     @Transactional

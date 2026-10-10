@@ -129,9 +129,12 @@ public class TeamListController {
             match.put("status", f.getStatus());
             match.put("pitchType", f.getPitchType());
 
-            // Include result summary for completed matches (from viewed team's perspective)
-            if ("COMPLETED".equals(f.getStatus())) {
-                matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+            matchResultRepository.findByFixtureId(f.getId()).ifPresent(mr -> {
+                if (mr.getTossWinner() != null) {
+                    match.put("tossWinner", mr.getTossWinner().getTeamName());
+                    match.put("tossDecision", mr.getTossDecision());
+                }
+                if ("COMPLETED".equals(f.getStatus())) {
                     match.put("winnerId", mr.getWinner() != null ? mr.getWinner().getId() : null);
                     String summary;
                     if ("TIE".equals(mr.getResultType())) {
@@ -154,8 +157,8 @@ public class TeamListController {
                         summary = "Completed";
                     }
                     match.put("resultSummary", summary);
-                });
-            }
+                }
+            });
             result.add(match);
         }
 

@@ -291,6 +291,13 @@
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
+.matches-toss {
+  display: block;
+  margin-top: 0.28rem;
+  font-size: 0.72rem;
+  color: var(--text-3);
+}
+
 .matches-vs {
   font-size: 0.65rem;
   font-weight: 700;
