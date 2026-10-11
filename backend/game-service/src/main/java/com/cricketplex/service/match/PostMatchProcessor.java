@@ -1,11 +1,13 @@
 package com.cricketplex.service.match;
 
 import com.cricketplex.entity.*;
+import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.PlayerRepository;
 import com.cricketplex.repository.StadiumSeatsRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.TransactionLogRepository;
 import com.cricketplex.service.ActivityLogService;
+import com.cricketplex.util.MoraleCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +21,7 @@ public class PostMatchProcessor {
     private final TeamRepository teamRepository;
     private final TransactionLogRepository transactionLogRepository;
     private final PlayerRepository playerRepository;
+    private final MatchResultRepository matchResultRepository;
 
     public void logMatchActivity(MatchResult result, Fixture fixture) {
         Team home = fixture.getHomeTeam(), away = fixture.getAwayTeam();
@@ -139,26 +142,28 @@ public class PostMatchProcessor {
         String rt    = result.getResultType();
         boolean isDraw = "DRAW".equals(rt) || "TIE".equals(rt) || "NO_RESULT".equals(rt);
         if (isDraw) {
-            applyMoraleDelta(home, 2); applyMoraleDelta(away, 2);
+            applyMorale(home, result); applyMorale(away, result);
             applyFanDelta(home, "DRAW"); applyFanDelta(away, "DRAW");
             applyEloUpdate(home, away, 0.5, 0.5, format);
         } else if (result.getWinner() != null) {
             Team winner = result.getWinner(), loser = winner.getId().equals(home.getId()) ? away : home;
-            applyMoraleDelta(winner, 8); applyMoraleDelta(loser, -6);
+            applyMorale(winner, result); applyMorale(loser, result);
             applyFanDelta(winner, "WIN"); applyFanDelta(loser, "LOSS");
             applyEloUpdate(winner, loser, 1.0, 0.0, format);
         }
         teamRepository.save(home); teamRepository.save(away);
     }
 
-    public void applyMoraleDelta(Team team, int resultDelta) {
-        int current = team.getMorale() != null ? team.getMorale() : 50;
+    public void applyMorale(Team team, MatchResult current) {
         List<Player> squad = playerRepository.findByTeam(team);
         double avgConfidence = squad.isEmpty() ? 50.0 : squad.stream().mapToDouble(Player::getConfidence).average().orElse(50.0);
-        double squadPull     = (avgConfidence - current) * 0.15;
-        int academyBenchmark = (team.getAcademyLevel() != null ? team.getAcademyLevel() : 1) * 25;
-        double academyPull   = (academyBenchmark - current) * 0.10;
-        team.setMorale(Math.max(0, Math.min(100, (int) Math.round(current + resultDelta + squadPull + academyPull))));
+        List<MatchResult> recent = new ArrayList<>();
+        if (current != null) recent.add(current);
+        for (MatchResult mr : matchResultRepository.findRecentByTeam(team.getId())) {
+            if (current != null && current.getId() != null && current.getId().equals(mr.getId())) continue;
+            recent.add(mr);
+        }
+        team.setMorale(MoraleCalculator.compute(recent, team.getId(), avgConfidence, team.getAcademyLevel()).morale());
     }
 
     public void applyFanDelta(Team team, String outcome) {

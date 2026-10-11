@@ -5,11 +5,11 @@ import com.cricketplex.dto.UpdateTeamRequest;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.User;
 import com.cricketplex.entity.Player;
-import com.cricketplex.entity.MatchResult;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.repository.PlayerRepository;
 import com.cricketplex.repository.MatchResultRepository;
+import com.cricketplex.util.MoraleCalculator;
 import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -129,46 +129,37 @@ public class SettingsService {
     }
 
     /* ─── Dashboard Stats: Morale & Fans ─── */
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> getDashboardStats(User user) {
         Team team = teamHelper.getActiveTeam(user).orElse(null);
         if (team == null) return Map.of();
 
-        /* Recent match record (last 10) — for display only */
-        List<MatchResult> recent = matchResultRepository.findRecentByTeam(team.getId());
-        int matchCount = Math.min(recent.size(), 10);
-        int wins = 0, draws = 0, losses = 0;
-        for (int i = 0; i < matchCount; i++) {
-            MatchResult mr = recent.get(i);
-            String rt = mr.getResultType();
-            if ("TIE".equals(rt) || "DRAW".equals(rt) || "NO_RESULT".equals(rt)) {
-                draws++;
-            } else if (mr.getWinner() != null && mr.getWinner().getId().equals(team.getId())) {
-                wins++;
-            } else {
-                losses++;
-            }
-        }
-
-        /* Squad confidence — context bar */
         List<Player> players = playerRepository.findByTeamId(team.getId());
-        int avgConfidence = 50;
-        if (!players.isEmpty()) {
-            avgConfidence = (int) Math.round(players.stream().mapToDouble(Player::getConfidence).average().orElse(50.0));
-        }
+        double avgConfidence = players.isEmpty()
+                ? 50.0
+                : players.stream().mapToDouble(Player::getConfidence).average().orElse(50.0);
 
-        /* Facilities — context bar */
-        int facilityFactor = team.getAcademyLevel() * 25;
+        MoraleCalculator.Breakdown morale = MoraleCalculator.compute(
+                matchResultRepository.findRecentByTeam(team.getId()),
+                team.getId(),
+                avgConfidence,
+                team.getAcademyLevel());
+
+        if (team.getMorale() == null || team.getMorale() != morale.morale()) {
+            team.setMorale(morale.morale());
+            teamRepository.save(team);
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("morale", team.getMorale());
-        result.put("squadConfidenceFactor", avgConfidence);
-        result.put("facilityFactor", facilityFactor);
+        result.put("morale", morale.morale());
+        result.put("formFactor", morale.formFactor());
+        result.put("squadConfidenceFactor", morale.squadFactor());
+        result.put("facilityFactor", morale.academyFactor());
         result.put("fans", team.getFans());
-        result.put("recentWins", wins);
-        result.put("recentDraws", draws);
-        result.put("recentLosses", losses);
-        result.put("recentMatchCount", matchCount);
+        result.put("recentWins", morale.wins());
+        result.put("recentDraws", morale.draws());
+        result.put("recentLosses", morale.losses());
+        result.put("recentMatchCount", morale.matchCount());
         result.put("fanCeiling", 150000);
         return result;
     }

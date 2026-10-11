@@ -539,7 +539,7 @@ export default function Dashboard() {
           <div className="dash-morale-breakdown">
             <div className="morale-factor">
               <span>Recent Form ({dashStats?.recentWins ?? 0}W {dashStats?.recentDraws ?? 0}D {dashStats?.recentLosses ?? 0}L)</span>
-              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: `${dashStats?.morale ?? 50}%`, background: '#34d399' }} /></div>
+              <div className="morale-bar"><div className="morale-bar-fill" style={{ width: `${dashStats?.formFactor ?? 50}%`, background: '#34d399' }} /></div>
             </div>
             <div className="morale-factor">
               <span>Squad Confidence</span>
