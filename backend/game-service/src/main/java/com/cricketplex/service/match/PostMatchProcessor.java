@@ -225,17 +225,6 @@ public class PostMatchProcessor {
         }
         if (allPlayerIds.isEmpty()) return;
 
-        UUID winnerId = result.getWinner() != null ? result.getWinner().getId() : null;
-        Set<UUID> winningIds = new HashSet<>(), losingIds = new HashSet<>();
-        if (winnerId != null) {
-            for (Innings inn : result.getInningsList()) {
-                boolean wb  = inn.getBattingTeam().getId().equals(winnerId);
-                for (BattingScorecard bc : inn.getBattingCards()) { if (wb) winningIds.add(bc.getPlayer().getId()); else losingIds.add(bc.getPlayer().getId()); }
-                boolean wbl = inn.getBowlingTeam().getId().equals(winnerId);
-                for (BowlingScorecard bw : inn.getBowlingCards()) { if (wbl) winningIds.add(bw.getPlayer().getId()); else losingIds.add(bw.getPlayer().getId()); }
-            }
-        }
-
         UUID motmId = result.getManOfMatch() != null ? result.getManOfMatch().getId() : null;
         boolean isFC = "FC".equalsIgnoreCase(format), isT20 = "T20".equalsIgnoreCase(format);
         int baseFitnessLoss; double batDivisor, bowlDivisor;
@@ -280,10 +269,10 @@ public class PostMatchProcessor {
             else if (fieldingContrib >= 2)  confDelta += 2;
             else if (fieldingContrib == 1)  confDelta += 1;
 
-            if (pid.equals(motmId))            confDelta += 5;
-            if (winningIds.contains(pid))      confDelta += 2;
-            else if (losingIds.contains(pid))  confDelta -= 2;
-            p.setConfidence(Math.max(0, Math.min(100, p.getConfidence() + confDelta)));
+            if (pid.equals(motmId)) confDelta += 5;
+            double afterPerf = p.getConfidence() + confDelta;
+            double reverted = afterPerf + (50.0 - afterPerf) * 0.10;
+            p.setConfidence(Math.max(25, Math.min(100, reverted)));
 
             int rawXp = 1;
             if (isFC) rawXp++;

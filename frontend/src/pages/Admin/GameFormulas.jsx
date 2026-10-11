@@ -415,7 +415,7 @@ const sections = [
           ['Sixes → shift', '+shift × 0.08'],
           ['Wicket → shift', '−shift × 0.35'],
           ['Elite Feast (gap > 25)', 'Massive non-linear boundary boost & dot reduction'],
-          ['Tail Crush (gap < -25)', 'Up to 95% boundary reduction & +15% absolute wicket risk'],
+          ['Mismatch Crush (gap < -25)', 'Up to 85%/90% fewer 4s/6s, more dots; wicket bump only +4%'],
         ],
       },
       {
@@ -482,7 +482,7 @@ const sections = [
         rows: [
           ['Base', 'batRating'],
           ['+ Aggression', 'aggrMod × 8.0  (A: +1.5, N: 0, D: −1.0)'],
-          ['+ Confidence', 'confidence / 100 × 6.0'],
+          ['+ Confidence', 'confidence / 100 × 3.0'],
           ['+ Experience', 'Min(experience × 0.3, 10)'],
           ['+ Fitness', 'fitness / 100 × 3.0'],
           ['+ Pitch Bat Mod', 'varies by pitch & handedness'],
@@ -498,7 +498,7 @@ const sections = [
         rows: [
           ['Base', 'bowlRating'],
           ['+ Aggression', 'aggrMod × 5.0'],
-          ['+ Confidence', 'confidence / 100 × 5.0'],
+          ['+ Confidence', 'confidence / 100 × 2.5'],
           ['+ Experience', 'Min(experience × 0.3, 10)'],
           ['+ Fitness', 'fitness / 100 × 3.0'],
           ['+ Pitch Bonus', 'bowlerBonus by type & pitch'],
@@ -972,8 +972,9 @@ const sections = [
         title: 'Confidence Change Overview',
         rows: [
           ['When', 'After every match, based on individual performance'],
-          ['Range', '0 – 100 (clamped)'],
-          ['Factors', 'Batting runs, bowling wickets/economy, MoM, win/loss'],
+          ['Range', '25 – 100 (floor 25 so slumps cannot collapse a squad)'],
+          ['Factors', 'Batting runs, bowling wickets/economy, MoM — not the match result'],
+          ['Mean-reversion', 'After the performance delta, 10% pull back toward 50'],
           ['Format-aware', 'Thresholds differ for T20, ODI, and FC'],
         ],
       },
@@ -1002,15 +1003,15 @@ const sections = [
         note: 'In FC matches, wickets and economy are aggregated across all bowled innings.',
       },
       {
-        title: 'Bonus & Team Result',
+        title: 'Bonus & Recovery',
         header: ['Factor', 'Δ Confidence'],
         grid: [
           ['Man of the Match', '+5'],
-          ['Winning team', '+2'],
-          ['Losing team', '−2'],
-          ['Draw / Tie / NR', '0'],
+          ['Match result (win/loss/draw)', '0 — result does not change confidence'],
+          ['Mean-reversion', '10% of the gap back toward 50, after performance Δ'],
+          ['Floor', '25'],
         ],
-        note: 'All factors stack. A batter scoring 50 on the winning team with MoM gets +4 +5 +2 = +11.',
+        note: 'A 50 in a loss still counts as a 50. Team-wide win/loss swings were removed so a short losing streak cannot snowball into weaker next matches.',
       },
       {
         title: 'Experience Gain (diminishing returns)',

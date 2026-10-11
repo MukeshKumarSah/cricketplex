@@ -112,7 +112,7 @@ public class DeliverySimulator {
         // ── Composite strengths ──
         double batStrength = batter.player.getBatRating()
                 + batAggrMod   * 8.0
-                + batConfidence * 6.0
+                + batConfidence * 3.0
                 + batExpBonus
                 + batFitness   * 3.0
                 - effectivePitchBonus * 0.75
@@ -126,7 +126,7 @@ public class DeliverySimulator {
 
         double bowlStrength = bowler.getBowlRating()
                 + bowlAggrMod    * 5.0
-                + bowlConfidence * 5.0
+                + bowlConfidence * 2.5
                 + bowlExpBonus
                 + bowlFitness    * 3.0
                 + effectivePitchBonus
@@ -435,13 +435,15 @@ public class DeliverySimulator {
         pWicket += fieldWktMod;
 
         // 6. Mismatch crush / feast
+        // Weak batter vs strong bowler: more dots, far fewer boundaries.
+        // Wicket bump stays small so a mismatch is ugly scoring, not an innings collapse.
         if (skill_diff < -25) {
             double mm = Math.min(1.0, Math.abs(skill_diff + 25) / 50.0);
             p4      *= (1.0 - 0.85 * mm);
-            p6      *= (1.0 - 0.95 * mm);
-            pWicket += 0.15 * mm;
-            pDot    += 0.10 * mm;
-            p1      += 0.05 * mm;
+            p6      *= (1.0 - 0.90 * mm);
+            pWicket += 0.04 * mm;
+            pDot    += 0.12 * mm;
+            p1      += 0.04 * mm;
         } else if (skill_diff > 25) {
             double fi = Math.min(1.0, (skill_diff - 25) / 50.0);
             p4      += 0.10 * fi;

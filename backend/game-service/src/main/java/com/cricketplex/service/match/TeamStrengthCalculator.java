@@ -17,7 +17,7 @@ public final class TeamStrengthCalculator {
         double topOrder = 0, middleOrder = 0, lowerOrder = 0, totalFielding = 0, wkSkill = 0;
         for (LineupPlayer lp : sortedPlayers) {
             Player p = lp.getPlayer(); int pos = lp.getBattingPosition();
-            double batEff = p.getBatRating() + (p.getConfidence() / 100.0) * 6.0
+            double batEff = p.getBatRating() + (p.getConfidence() / 100.0) * 3.0
                     + Math.min(p.getExperience() * 0.3, 10.0) + (p.getFitness() / 100.0) * 3.0
                     + PitchWeatherCalculator.getBatterPitchModifier(pitchType, p.getBatHand(), (int) p.getBatRating(), p.getExperience(), 1, 50)
                     + PitchWeatherCalculator.getWeatherEffect(condition, temperature, p.getBowlType()).battingMod
@@ -36,7 +36,7 @@ public final class TeamStrengthCalculator {
             String bType = p.getBowlType() != null ? p.getBowlType() : "M";
             PitchEffect pe = PitchWeatherCalculator.getPitchEffect(pitchType, bType);
             WeatherEffect we = PitchWeatherCalculator.getWeatherEffect(condition, temperature, bType);
-            double bowlEff = p.getBowlRating() + (p.getConfidence() / 100.0) * 5.0
+            double bowlEff = p.getBowlRating() + (p.getConfidence() / 100.0) * 2.5
                     + Math.min(p.getExperience() * 0.3, 10.0) + (p.getFitness() / 100.0) * 3.0
                     + pe.bowlerBonus + we.bowlingMod + PitchWeatherCalculator.getBowlerTypeMatchup(bType, "RH", pitchType);
             bowlEff = Math.max(5, Math.min(bowlEff, 120));
