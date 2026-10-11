@@ -42,7 +42,7 @@ public class StatsController {
         List<BowlingScorecard> allBowl = bowlingScorecardRepository.findByTeamCompleted(team.getId());
         List<BattingScorecard> allFld = battingScorecardRepository.findFieldingByTeamCompleted(team.getId());
 
-        // Filter by format, matchType (and optionally season for CUP)
+        // Filter by format, matchType, and optional season (null = all seasons)
         List<BattingScorecard> filteredBat = allBat.stream()
                 .filter(bs -> {
                     Fixture f = bs.getInnings().getMatchResult().getFixture();

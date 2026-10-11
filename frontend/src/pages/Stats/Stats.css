@@ -47,7 +47,7 @@
   border-color: var(--accent);
 }
 
-/* Season selector (shown for CUP) */
+/* Season selector */
 .st-season-select {
   display: flex;
   align-items: center;
@@ -243,6 +243,22 @@
   .st-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .st-controls {
+    width: 100%;
+  }
+  .st-format-select,
+  .st-season-select select,
+  .st-type-btn,
+  .st-tab {
+    min-height: 44px;
+  }
+  .st-type-toggle {
+    flex: 1 1 auto;
+  }
+  .st-type-btn {
+    flex: 1;
+    padding: 0.45rem 0.6rem;
   }
   .st-table {
     font-size: 0.72rem;
