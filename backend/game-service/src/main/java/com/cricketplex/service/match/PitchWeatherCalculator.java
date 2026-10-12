@@ -21,60 +21,6 @@ public final class PitchWeatherCalculator {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    //  FIX: DYNAMIC FIELD PLACEMENT
-    //  Captain adjusts field based on phase and match situation.
-    //  Returns [p4Mod, p6Mod, pWicketMod]
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    public static double[] getDynamicFieldPlacement(SimContext ctx, int overNumber,
-                                               int totalRuns, int totalWickets) {
-        // In powerplay: handled by getPowerplayBoost; no additional effect here
-        boolean inMandatoryPP = ("T20".equalsIgnoreCase(ctx.format) && overNumber <= 6)
-                || ("ODI".equalsIgnoreCase(ctx.format) && overNumber <= 10);
-        if (inMandatoryPP) return new double[]{0, 0, 0};
-
-        int wicketsLeft = 10 - totalWickets;
-        double completedOvers = overNumber / (double) ctx.maxOvers;
-
-        // Attacking field: more slips, more catchers → higher pWicket, lower p4
-        // Defensive field: spread field → lower pWicket, higher p4
-        boolean isDeathOvers = ("T20".equalsIgnoreCase(ctx.format) && overNumber > 16)
-                || ("ODI".equalsIgnoreCase(ctx.format) && overNumber > 43);
-
-        if (isDeathOvers) {
-            // Defensive spread field in death — batter can hit freely but fewer catches
-            return new double[]{0.015, 0.010, -0.008};
-        }
-
-        if (wicketsLeft <= 3) {
-            // Tail: attacking field — more cordon, short leg
-            return new double[]{-0.010, -0.008, 0.020};
-        }
-
-        if (ctx.isChasing) {
-            int runsNeeded = Math.max(0, ctx.target - totalRuns);
-            int ballsLeft  = Math.max(1, (ctx.maxOvers - overNumber) * 6);
-            double rrr     = runsNeeded * 6.0 / ballsLeft;
-            double par     = getPitchAwareParRate(ctx.format, ctx.pitchType);
-            if (rrr > par * 1.3) {
-                // Chasing hard — batter opening up, fielding captain sets attacking cordon
-                return new double[]{0.005, 0.005, 0.010};
-            }
-            if (rrr < par * 0.7) {
-                // Chase very comfortable — fielding captain spreads to prevent easy singles
-                return new double[]{0.010, 0.000, -0.005};
-            }
-        }
-
-        // Middle overs default: mild attacking field (2-3 catchers)
-        if (completedOvers > 0.25 && completedOvers < 0.75) {
-            return new double[]{-0.005, -0.003, 0.008};
-        }
-
-        return new double[]{0, 0, 0};
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
     //  FIX: INTRA-INNINGS PITCH WEAR (ODI/T20)
     //  After over 25 in ODI / over 13 in T20, rough develops from footmarks.
     //  Spin benefits; pace loses conventional swing aid.

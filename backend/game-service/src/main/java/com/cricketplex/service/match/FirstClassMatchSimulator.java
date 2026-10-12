@@ -401,13 +401,16 @@ public class FirstClassMatchSimulator {
                     Player evB = (delivery.isWicket && delivery.isNonStrikerOut) ? nonStriker.player : striker.player;
                     innings.getBallEvents().add(BallEvent.builder()
                             .innings(innings).overNumber(overNumber).ballNumber(ballInOver)
-                            .batsman(evB).bowler(currentBowler)
+                            .batsman(evB).nonStriker(nonStriker.player).bowler(currentBowler)
                             .runs(delivery.runs).isWicket(delivery.isWicket)
                             .isBoundary(delivery.isBoundary).isSix(delivery.isSix)
                             .isWide(delivery.isWide).isNoBall(delivery.isNoBall)
                             .isBye(delivery.isBye).isLegBye(delivery.isLegBye)
                             .dismissalType(delivery.dismissalType)
-                            .fielder(delivery.fielder).commentary(delivery.commentary).build());
+                            .fielder(delivery.fielder)
+                            .commentarySubmission(delivery.commentarySubmission)
+                            .commentary(delivery.commentary)
+                            .build());
                 }
 
                 previousBatHand = striker.player.getBatHand();

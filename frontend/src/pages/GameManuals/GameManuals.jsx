@@ -102,12 +102,16 @@ const sections = [
         text: 'Before each match you select your playing eleven from your fit squad. The lineup page shows available players with their attributes highlighted. You must select a wicket-keeper and maintain a sensible batting order.',
       },
       {
+        heading: 'Batting Aggression',
+        text: 'Each batter\'s aggression (Attacking, Normal, Defensive) is set on the lineup and is the base for that match. If wickets fall early or in a cluster, the engine overlays a slowdown — fewer boundaries, more dots — so an all-attacking XI rebuilds instead of collapsing. Death overs still boost scoring, but that boost shrinks when few wickets remain.',
+      },
+      {
         heading: 'Left & Right Hand Combinations',
         text: 'The match engine heavily penalizes bowlers who have to constantly adjust their line and length. Constructing partnerships that rotate the strike between a Left-Handed and Right-Handed batter will disrupt the bowler\'s rhythm and increase your scoring rate.',
       },
       {
         heading: 'Captain & Vice-Captain',
-        text: 'Assign a captain and vice-captain in your XI. The captain\'s leadership score provides a morale bonus during matches. A strong captain can swing close matches in your favour.',
+        text: 'Assign a captain in your XI. The captain\'s overall rating and experience give a small in-match bonus to batting and bowling strength. It is modest by design — a strong captain helps, but will not swing matches on its own.',
       },
       {
         heading: 'Default Lineups',
@@ -116,6 +120,10 @@ const sections = [
       {
         heading: 'First Class Strategy',
         text: 'For First Class (multi-day) matches you have an additional FC Strategy tab. Set your batting approach and bowling strategy. Be aware that FC pitches physically deteriorate as the match progresses — batting last on a Day 4 dustbowl is incredibly difficult, making your 1st Innings declaration timing crucial!',
+      },
+      {
+        heading: 'Field Placement',
+        text: 'You do not set the field each over. The captain auto-places the nine fielders by situation — powerplay ring, attacking cordon, death-overs spread, tail packed close. Better fielders stand in catching positions; catches and run-outs are credited to the player at that spot, so fielding skill of individuals actually matters.',
       },
       {
         heading: 'Bowling Order',

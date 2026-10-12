@@ -5,6 +5,7 @@ import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.MatchEngine;
 import com.cricketplex.service.WeatherService;
+import com.cricketplex.service.match.BallCommentaryResolver;
 import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -46,6 +47,7 @@ public class MatchSimController {
     private final MatchFCStrategyRepository matchFCStrategyRepository;
     private final WeatherService weatherService;
     private final TeamHelper teamHelper;
+    private final BallCommentaryResolver ballCommentaryResolver;
 
     /**
      * Compute session break positions for FC matches.
@@ -710,10 +712,14 @@ public class MatchSimController {
             innMap.put("declared", inn.getDeclared());
             innMap.put("allOut", inn.getAllOut());
 
-            List<BallEvent> events = ballEventRepository.findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+            List<BallEvent> events = ballEventRepository.findByInningsIdWithCommentary(inn.getId());
             List<Map<String, Object>> balls = new ArrayList<>();
+            int scoreBefore = 0;
+            int wicketsBefore = 0;
             for (BallEvent be : events) {
-                balls.add(buildBallEventMap(be));
+                balls.add(buildBallEventMap(be, inn, scoreBefore, wicketsBefore));
+                scoreBefore += be.getRuns() != null ? be.getRuns() : 0;
+                if (Boolean.TRUE.equals(be.getIsWicket())) wicketsBefore++;
             }
             innMap.put("ballEvents", balls);
             inningsList.add(innMap);
@@ -827,8 +833,7 @@ public class MatchSimController {
         for (Innings inn : result.getInningsList()) {
             if (remaining <= 0) break; // Innings not yet started
 
-            List<BallEvent> allEvents = ballEventRepository
-                    .findByInningsIdOrderByOverNumberAscBallNumberAsc(inn.getId());
+            List<BallEvent> allEvents = ballEventRepository.findByInningsIdWithCommentary(inn.getId());
             int revealCount = Math.min(remaining, allEvents.size());
             remaining -= revealCount;
             boolean innComplete = revealCount >= allEvents.size();
@@ -846,8 +851,12 @@ public class MatchSimController {
             innMap.put("declared", innComplete && Boolean.TRUE.equals(inn.getDeclared()));
 
             List<Map<String, Object>> balls = new ArrayList<>();
+            int scoreBefore = 0;
+            int wicketsBefore = 0;
             for (BallEvent be : allEvents.subList(0, revealCount)) {
-                balls.add(buildBallEventMap(be));
+                balls.add(buildBallEventMap(be, inn, scoreBefore, wicketsBefore));
+                scoreBefore += be.getRuns() != null ? be.getRuns() : 0;
+                if (Boolean.TRUE.equals(be.getIsWicket())) wicketsBefore++;
             }
             innMap.put("ballEvents", balls);
             inningsList.add(innMap);
@@ -857,7 +866,7 @@ public class MatchSimController {
     }
 
     /** Build the map for a single ball event (shared by full and live commentary). */
-    private Map<String, Object> buildBallEventMap(BallEvent be) {
+    private Map<String, Object> buildBallEventMap(BallEvent be, Innings inn, int scoreBefore, int wicketsBefore) {
         Map<String, Object> b = new LinkedHashMap<>();
         b.put("over", be.getOverNumber() - 1);
         b.put("ball", be.getBallNumber());
@@ -881,7 +890,7 @@ public class MatchSimController {
         if (be.getFielder() != null) {
             b.put("fielder", be.getFielder().getFirstName() + " " + be.getFielder().getLastName());
         }
-        b.put("commentary", be.getCommentary());
+        b.put("commentary", ballCommentaryResolver.resolve(be, inn, scoreBefore, wicketsBefore));
         return b;
     }
 

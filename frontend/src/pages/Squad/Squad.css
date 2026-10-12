@@ -166,9 +166,21 @@
   color: var(--text-1);
   cursor: pointer;
   outline: none;
+  color-scheme: dark;
 }
 .sq-sort-select:focus {
   border-color: var(--accent);
+}
+.sq-sort-select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+html[data-theme="light"] .sq-sort-select {
+  color-scheme: light;
+}
+html[data-theme="light"] .sq-sort-select option {
+  background: #ffffff;
+  color: #0f172a;
 }
 .sq-sort-dir {
   display: flex;

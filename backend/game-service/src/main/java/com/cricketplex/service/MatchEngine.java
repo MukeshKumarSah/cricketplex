@@ -49,8 +49,8 @@ import java.util.UUID;
  *
  *  ─ REALISM ADDITIONS
  *    • Positional wicket modifier: tail-enders (pos 8-11) face 1.8-2.5× base pWicket.
- *    • Dynamic field placement: captain sets field based on phase and required rate,
- *      affecting p4/p6/pCaught beyond the powerplay.
+ *    • Individual field placement: captain auto-places 9 fielders by situation;
+ *      best fielders stand in catching spots; catches use that player's fldRating.
  *    • Intra-innings pitch wear for ODI/T20: footmarks and rough develop after over 25.
  *    • Bowler variety selection in fallback: rotates among top bowlers, not always highest.
  *    • Stumped dismissal corrected to require batter out of crease (spin/off-length only).

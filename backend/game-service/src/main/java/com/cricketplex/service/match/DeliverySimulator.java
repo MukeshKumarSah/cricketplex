@@ -103,11 +103,10 @@ public class DeliverySimulator {
             else                                                                    lrDisruption = -2.5;
         }
 
-        // FIX: dynamic field placement — affects p4/p6/pCaught outside powerplay
-        double[] fieldPlacement = PitchWeatherCalculator.getDynamicFieldPlacement(ctx, overNumber, totalRuns, totalWickets);
-        double fieldP4Mod  = fieldPlacement[0];
-        double fieldP6Mod  = fieldPlacement[1];
-        double fieldWktMod = fieldPlacement[2];
+        FieldPlacement.FieldSet fieldSet = FieldPlacement.place(ctx, bowler, overNumber, totalRuns, totalWickets);
+        double fieldP4Mod  = fieldSet.p4Mod;
+        double fieldP6Mod  = fieldSet.p6Mod;
+        double fieldWktMod = fieldSet.pWicketMod;
 
         // ── Composite strengths ──
         double batStrength = batter.player.getBatRating()
@@ -120,7 +119,8 @@ public class DeliverySimulator {
                 + weatherEffect.battingMod
                 + batWeatherMod
                 + phaseModifier * 2.0
-                + setBatsmanFactor * 3.5;
+                + setBatsmanFactor * 3.5
+                + ctx.battingCaptainBonus;
         batStrength *= batFatigue;
         batStrength  = Math.max(5, Math.min(batStrength, 120));
 
@@ -136,7 +136,8 @@ public class DeliverySimulator {
                 + typeMatchup
                 + teamFieldingAvg * 0.15
                 + keeperSkill     * 0.05
-                + lrDisruption;
+                + lrDisruption
+                + ctx.bowlingCaptainBonus;
         bowlStrength *= bowlFatigue;
         bowlStrength  = Math.max(5, Math.min(bowlStrength, 120));
 
@@ -176,10 +177,13 @@ public class DeliverySimulator {
                 else if (extraRoll < 0.15)  { result.runs += 2; }
                 else if (extraRoll < 0.20)  { result.runs += 1; }
                 // FIX: wide boundary does NOT set isBoundary — it's extras, not batting boundary
-                String userComm = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, "WD", result.runs, totalRuns, totalWickets);
-                result.commentary = userComm != null ? userComm : 
-                        (result.runs >= 5 ? "Wide — races away for 4 wides to the boundary"
-                        : "Wide ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : ""));
+                CommentaryPick extraPick = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, "WD", result.runs, totalRuns, totalWickets);
+                if (extraPick != null) {
+                    result.apply(extraPick);
+                } else {
+                    result.setFallback(result.runs >= 5 ? "Wide — races away for 4 wides to the boundary"
+                            : "Wide ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : ""));
+                }
 
                 // FIX: stumped off wide — possible if spinner bowling and batter ventures out
                 boolean isSpinner = MatchFormatRules.SPIN_TYPES.contains(bowler.getBowlType());
@@ -188,17 +192,20 @@ public class DeliverySimulator {
                     result.isWicket     = true;
                     result.dismissalType = "STUMPED";
                     result.fielder       = ctx.bowlingLineup.getKeeper();
-                    result.commentary    = "Stumped off a wide! Batter strayed out of crease.";
+                    result.setFallback("Stumped off a wide! Batter strayed out of crease.");
                 }
             } else {
                 double extraRoll = rng.nextDouble();
                 if      (extraRoll < 0.05)  { result.runs += 4; result.isBoundary = true; }
                 else if (extraRoll < 0.15)  { result.runs += 2; }
                 else if (extraRoll < 0.20)  { result.runs += 1; }
-                String userComm = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, "NB", result.runs, totalRuns, totalWickets);
-                result.commentary = userComm != null ? userComm :
-                        ("No ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : "")
-                        + (result.isBoundary ? " away to the boundary" : ""));
+                CommentaryPick extraPick = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, "NB", result.runs, totalRuns, totalWickets);
+                if (extraPick != null) {
+                    result.apply(extraPick);
+                } else {
+                    result.setFallback("No ball" + (result.runs > 1 ? ", plus " + (result.runs - 1) + " run" + (result.runs > 2 ? "s" : "") : "")
+                            + (result.isBoundary ? " away to the boundary" : ""));
+                }
             }
             if (isFreeHit) result.commentary = "Free Hit! " + result.commentary;
             return result;
@@ -305,38 +312,35 @@ public class DeliverySimulator {
         }
 
         // ─── SITUATIONAL MODIFIERS ───
+        // Lineup A/N/D is the base. Wickets fallen overlay a slowdown so an
+        // all-attacking XI does not keep slogging into a collapse.
 
         String playerAggr = batter.lineupPlayer.getBatAggression();
         if (playerAggr == null) playerAggr = "N";
 
-        // 1. Wicket-cluster pressure — FIXED: thresholds raised, pWicket reduced
-        // and cluster now REDUCES in chasing innings to prevent triple-compounding
+        // 1. Wicket-cluster pressure — consolidate when wickets fall quickly
         {
             double completedOvers   = Math.max(1.0, legalBallsBowled / 6.0);
             double wktsPerOver      = totalWickets / completedOvers;
-            // RAISED thresholds — was 0.60/0.35/0.45, too trigger-happy
             double collapseThreshold = "T20".equalsIgnoreCase(ctx.format) ? 0.75
                     : "FC".equalsIgnoreCase(ctx.format) ? 0.45 : 0.60;
             double collapseFactor   = 0;
             if (wktsPerOver > collapseThreshold)
                 collapseFactor = Math.min(1.0, (wktsPerOver - collapseThreshold) / 0.9);
-            // RAISED floor thresholds — was 8/6/4, now 9/7/5
             if (totalWickets >= 9)      collapseFactor = Math.max(collapseFactor, 0.60);
             else if (totalWickets >= 7) collapseFactor = Math.max(collapseFactor, 0.25);
             else if (totalWickets >= 5) collapseFactor = Math.max(collapseFactor, 0.08);
             double resistFactor     = "A".equals(playerAggr) ? 0.7 : ("D".equals(playerAggr) ? 1.2 : 1.0);
             double adjustedCollapse = collapseFactor * resistFactor;
-            // In chasing innings, halve the collapse wicket penalty — teams fight back
             if (ctx.isChasing) adjustedCollapse *= 0.5;
-            pDot    += 0.050 * adjustedCollapse;  // was 0.060
-            p1      += 0.020 * adjustedCollapse;  // was 0.030
-            p4      -= 0.030 * adjustedCollapse;  // was 0.040
-            p6      -= 0.020 * adjustedCollapse;  // was 0.030
-            pWicket += 0.006 * adjustedCollapse;  // was 0.010 — significantly reduced
+            pDot    += 0.050 * adjustedCollapse;
+            p1      += 0.020 * adjustedCollapse;
+            p4      -= 0.030 * adjustedCollapse;
+            p6      -= 0.020 * adjustedCollapse;
+            pWicket += 0.006 * adjustedCollapse;
         }
 
-        // 2. Chase pressure — FIXED: boundary compensation raised, pWicket reduced
-        // so teams accelerate scoring rather than just losing wickets faster.
+        // 2. Chase pressure — required rate vs par
         if (ctx.isChasing) {
             int runsNeeded     = ctx.target - totalRuns;
             int totalBalls     = ctx.maxOvers * 6;
@@ -374,8 +378,9 @@ public class DeliverySimulator {
             }
         }
 
-        // 3a. Early innings pacing
         double oversDone = legalBallsBowled / 6.0;
+
+        // 3a. Early wickets — slow down to rebuild, even if lineup is all Attacking
         if (oversDone < 4 && totalWickets >= 2) {
             double earlyPressure = Math.min(1.0, totalWickets / 3.0);
             pDot    += 0.04 * earlyPressure;
@@ -393,17 +398,14 @@ public class DeliverySimulator {
             pWicket -= 0.01 * earlyPressure;
         }
 
-        // 3b. ODI middle overs consolidation — FIXED: removed p1+=0.07 which was
-        // consuming too many balls on singles for BOTH innings. Now a mild
-        // dot+boundary reshuffle only. Chasing teams in particular benefit from
-        // keeping boundary probability alive in the middle overs.
+        // 3b. ODI middle overs consolidation
         if ("ODI".equalsIgnoreCase(ctx.format) && oversDone >= 10 && oversDone < 40) {
-            pDot += 0.02;   // slightly more defensive
-            p1   += 0.02;   // modest singles increase (was +0.07 — removed)
-            p4   -= 0.01;   // mild boundary reduction vs powerplay
+            pDot += 0.02;
+            p1   += 0.02;
+            p4   -= 0.01;
         }
 
-        // 3c. Death overs acceleration
+        // 3c. Death overs — phase boost, scaled down when few wickets remain
         if ("T20".equalsIgnoreCase(ctx.format) && oversDone >= 15) {
             double wktFactor = Math.max(0.0, 1.0 - (Math.max(0, totalWickets - 4) * 0.2));
             double deathPush = Math.min(0.90, (0.5 + (oversDone - 15) * 0.16)) * wktFactor;
@@ -518,26 +520,32 @@ public class DeliverySimulator {
                 result.isLegBye  = isLegBye;
                 result.isBoundary = (byeRuns == 4);
                 String extraType = isLegBye ? "LB" : "BYE";
-                String userComm = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, extraType, byeRuns, totalRuns, totalWickets);
-                result.commentary = userComm != null ? userComm :
-                        ((isLegBye ? "Leg bye, " : "Bye, ") + byeRuns + " run" + (byeRuns > 1 ? "s" : "")
-                        + (result.isBoundary ? " away to the boundary" : ""));
+                CommentaryPick extraPick = commentaryEngine.getExtraCommentary(rng, ctx, overNumber, batter, bowler, extraType, byeRuns, totalRuns, totalWickets);
+                if (extraPick != null) {
+                    result.apply(extraPick);
+                } else {
+                    result.setFallback((isLegBye ? "Leg bye, " : "Bye, ") + byeRuns + " run" + (byeRuns > 1 ? "s" : "")
+                            + (result.isBoundary ? " away to the boundary" : ""));
+                }
             } else {
-                result.runs       = 0;
-                result.commentary += commentaryEngine.getDotBallCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+                result.runs = 0;
+                result.apply(commentaryEngine.getDotBallCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets));
             }
         } else if (roll < (cumulative += p1)) {
-            result.runs = 1; result.commentary += commentaryEngine.getSingleCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+            result.runs = 1;
+            result.apply(commentaryEngine.getSingleCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets));
         } else if (roll < (cumulative += p2)) {
-            result.runs = 2; result.commentary += commentaryEngine.getTwoRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+            result.runs = 2;
+            result.apply(commentaryEngine.getTwoRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets));
         } else if (roll < (cumulative += p3)) {
-            result.runs = 3; result.commentary += commentaryEngine.getThreeRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+            result.runs = 3;
+            result.apply(commentaryEngine.getThreeRunsCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets));
         } else if (roll < (cumulative += p4)) {
             result.runs = 4; result.isBoundary = true;
-            result.commentary += "FOUR! " + commentaryEngine.getBoundaryCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+            result.apply(commentaryEngine.getBoundaryCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets), "FOUR! ");
         } else if (roll < (cumulative += p6)) {
             result.runs = 6; result.isSix = true;
-            result.commentary += "SIX! " + commentaryEngine.getSixCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets);
+            result.apply(commentaryEngine.getSixCommentary(rng, ctx, overNumber, batter, bowler, totalRuns, totalWickets), "SIX! ");
         } else {
             // ─── WICKET ───
             // FIX: free hit — run through normal scoring but suppress wicket (except run out)
@@ -548,8 +556,8 @@ public class DeliverySimulator {
                         : fhRoll < 0.85 ? 4 : 6;
                 if (result.runs == 4)  result.isBoundary = true;
                 if (result.runs == 6)  result.isSix      = true;
-                result.commentary = "Free Hit! Would have been out, but batter survives!"
-                        + (result.runs > 0 ? " Scores " + result.runs + "." : "");
+                result.setFallback("Free Hit! Would have been out, but batter survives!"
+                        + (result.runs > 0 ? " Scores " + result.runs + "." : ""));
                 return result;
             }
 
@@ -557,7 +565,7 @@ public class DeliverySimulator {
             result.runs     = 0;
             DismissalInfo dismissal = determineDismissal(
                     rng, bowler, batter, teamFieldingAvg, keeperSkill, ctx,
-                    legalBallsBowled, totalRuns, totalWickets, battingPosition);
+                    legalBallsBowled, totalRuns, totalWickets, battingPosition, fieldSet);
             if ("RUN_OUT".equals(dismissal.type) && rng.nextDouble() < 0.25) {
                 result.runs = 1;
             }
@@ -567,7 +575,7 @@ public class DeliverySimulator {
                 }
             result.dismissalType = dismissal.type;
             result.fielder       = dismissal.fielder;
-            result.commentary   += "OUT! " + commentaryEngine.getWicketCommentary(
+            result.apply(commentaryEngine.getWicketCommentary(
                     rng,
                     ctx,
                     overNumber,
@@ -579,14 +587,14 @@ public class DeliverySimulator {
                     result.runs,
                     totalRuns,
                     totalWickets
-            );
+            ), "OUT! ");
 
             if ("DROPPED".equals(dismissal.type)) {
                 result.isWicket      = false;
                 result.runs          = 0;
                 result.dismissalType = null;
                 result.fielder       = dismissal.fielder;
-                result.commentary    = dismissal.commentary + " Batter survives!";
+                result.setFallback(dismissal.commentary + " Batter survives!");
             }
         }
 
@@ -599,7 +607,8 @@ public class DeliverySimulator {
     public DismissalInfo determineDismissal(
             Random rng, Player bowler, BatsmanState batter,
             double fieldingAvg, double keeperSkill, SimContext ctx,
-            int legalBallsBowled, int totalRuns, int totalWickets, int battingPosition) {
+            int legalBallsBowled, int totalRuns, int totalWickets, int battingPosition,
+            FieldPlacement.FieldSet fieldSet) {
 
         String bowlType = bowler.getBowlType() != null ? bowler.getBowlType() : "M";
         boolean isPace  = MatchFormatRules.PACE_TYPES.contains(bowlType);
@@ -685,15 +694,18 @@ public class DeliverySimulator {
         double dRoll = rng.nextDouble() * dTotal;
         double dCum  = 0;
 
-        List<LineupPlayer> fieldingPlayers = ctx.bowlingLineup.getPlayers();
-        Player keeper = ctx.bowlingLineup.getKeeper();
-        List<Player> nonKeeperFielders = fieldingPlayers.stream()
-                .map(LineupPlayer::getPlayer)
-                .filter(p -> keeper == null || !p.getId().equals(keeper.getId()))
-                .toList();
-        Player randomFielder = nonKeeperFielders.isEmpty()
-                ? fieldingPlayers.get(rng.nextInt(fieldingPlayers.size())).getPlayer()
-                : nonKeeperFielders.get(rng.nextInt(nonKeeperFielders.size()));
+        if (fieldSet == null) {
+            fieldSet = FieldPlacement.place(ctx, bowler, Math.max(1, legalBallsBowled / 6), totalRuns, totalWickets);
+        }
+        Player keeper = fieldSet.keeper != null ? fieldSet.keeper : ctx.bowlingLineup.getKeeper();
+        Player catcher = fieldSet.pickCatcher(rng, bowlType);
+        if (catcher == null) catcher = keeper;
+        if (catcher == null && ctx.bowlingLineup.getPlayers() != null && !ctx.bowlingLineup.getPlayers().isEmpty())
+            catcher = ctx.bowlingLineup.getPlayers().get(0).getPlayer();
+        String catchPos = fieldSet.positionOf(catcher);
+        if (catchPos == null) catchPos = "the infield";
+        Player runOutFielder = fieldSet.pickRunOutFielder(rng);
+        if (runOutFielder == null) runOutFielder = catcher;
 
         if (dRoll < (dCum += pBowled)) {
             return new DismissalInfo("BOWLED", null,
@@ -701,16 +713,17 @@ public class DeliverySimulator {
                     + " bowled by " + bowler.getFirstName() + " " + bowler.getLastName());
 
         } else if (dRoll < (dCum += pCaught)) {
-            double catchChance = 0.40 + (randomFielder.getFldRating() * 0.006);
+            double fld = catcher != null ? catcher.getFldRating() : 40;
+            double catchChance = 0.40 + (fld * 0.006);
             catchChance = Math.min(0.97, catchChance);
+            String catcherName = catcher != null
+                    ? catcher.getFirstName() + " " + catcher.getLastName() : "a fielder";
             if (rng.nextDouble() > catchChance) {
-                return new DismissalInfo("DROPPED", randomFielder,
-                        "Dropped! " + randomFielder.getFirstName() + " "
-                        + randomFielder.getLastName() + " puts it down at "
-                        + getFieldPosition(rng) + "!");
+                return new DismissalInfo("DROPPED", catcher,
+                        "Dropped! " + catcherName + " puts it down at " + catchPos + "!");
             }
-            return new DismissalInfo("CAUGHT", randomFielder,
-                    "Caught by " + randomFielder.getFirstName() + " " + randomFielder.getLastName()
+            return new DismissalInfo("CAUGHT", catcher,
+                    "Caught by " + catcherName + " at " + catchPos
                     + " off " + bowler.getFirstName() + " " + bowler.getLastName());
 
         } else if (dRoll < (dCum += pLBW)) {
@@ -724,8 +737,11 @@ public class DeliverySimulator {
                     + " off " + bowler.getFirstName() + " " + bowler.getLastName());
 
         } else if (dRoll < (dCum += pRunOut)) {
-            return new DismissalInfo("RUN_OUT", randomFielder,
-                    "Run out! Direct hit by " + randomFielder.getFirstName() + " " + randomFielder.getLastName());
+            String roPos = fieldSet.positionOf(runOutFielder);
+            String roName = runOutFielder != null
+                    ? runOutFielder.getFirstName() + " " + runOutFielder.getLastName() : "a fielder";
+            return new DismissalInfo("RUN_OUT", runOutFielder,
+                    "Run out! Direct hit from " + (roPos != null ? roPos + " by " : "") + roName);
 
         } else if (dRoll < (dCum += pCaughtBehind)) {
             double catchChance = 0.55 + (keeper != null ? keeper.getKeeperRating() * 0.004 : 0);
@@ -746,12 +762,6 @@ public class DeliverySimulator {
                     "Hit wicket! " + batter.player.getFirstName() + " " + batter.player.getLastName()
                     + " dislodged the bails");
         }
-    }
-
-    public String getFieldPosition(Random rng) {
-        String[] positions = {"mid-on", "mid-off", "square leg", "fine leg", "cover",
-                "point", "gully", "slip", "third man", "long-on", "long-off", "deep mid-wicket"};
-        return positions[rng.nextInt(positions.length)];
     }
 
     public void applyStrikeFarming(SimContext ctx, BatsmanState striker, BatsmanState nonStriker,
@@ -777,16 +787,16 @@ public class DeliverySimulator {
             if (legalBallsThisOver < 4) {
                 if (delivery.runs % 2 != 0) {
                     delivery.runs--;
-                    delivery.commentary = "Refuses the single to keep the strike.";
+                    delivery.setFallback("Refuses the single to keep the strike.");
                 }
             } else {
                 if (delivery.runs % 2 == 0) {
                     if (delivery.runs == 0) {
                         delivery.runs = 1;
-                        delivery.commentary = "Tapped for a quick single to farm the strike next over.";
+                        delivery.setFallback("Tapped for a quick single to farm the strike next over.");
                     } else if (delivery.runs == 2) {
                         delivery.runs = 1;
-                        delivery.commentary = "Settles for one to keep strike.";
+                        delivery.setFallback("Settles for one to keep strike.");
                     }
                 }
             }
@@ -795,16 +805,16 @@ public class DeliverySimulator {
                 if (delivery.runs % 2 == 0) {
                     if (delivery.runs == 0) {
                         delivery.runs = 1;
-                        delivery.commentary = "Nudges one to give strike to the set batter.";
+                        delivery.setFallback("Nudges one to give strike to the set batter.");
                     } else if (delivery.runs == 2) {
                         delivery.runs = 1;
-                        delivery.commentary = "Declines the second to hand over the strike.";
+                        delivery.setFallback("Declines the second to hand over the strike.");
                     }
                 }
             } else {
                 if (delivery.runs % 2 != 0) {
                     delivery.runs--;
-                    delivery.commentary = "Refuses the single to keep the better batter on strike next over.";
+                    delivery.setFallback("Refuses the single to keep the better batter on strike next over.");
                 }
             }
         }

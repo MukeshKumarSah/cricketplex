@@ -10,6 +10,7 @@ public class SimContext {
     public final boolean isChasing;
     public final MatchLineup battingLineup, bowlingLineup;
     public final int firstInningsTotal;
+    public final double battingCaptainBonus, bowlingCaptainBonus;
 
     public SimContext(Random rng, String pitchType, String condition, int temperature,
                int maxOvers, int maxPerBowler, String format,
@@ -29,5 +30,7 @@ public class SimContext {
         this.format = format; this.isChasing = isChasing; this.target = target;
         this.battingLineup = battingLineup; this.bowlingLineup = bowlingLineup;
         this.firstInningsTotal = firstInningsTotal;
+        this.battingCaptainBonus = TeamStrengthCalculator.captainSkillBonus(battingLineup);
+        this.bowlingCaptainBonus = TeamStrengthCalculator.captainSkillBonus(bowlingLineup);
     }
 }

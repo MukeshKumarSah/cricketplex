@@ -99,9 +99,21 @@
   cursor: pointer;
   transition: border-color 0.15s;
   outline: none;
+  color-scheme: dark;
 }
 .matches-filter-item select:focus {
   border-color: var(--accent);
+}
+.matches-filter-item select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+html[data-theme="light"] .matches-filter-item select {
+  color-scheme: light;
+}
+html[data-theme="light"] .matches-filter-item select option {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 /* ── Tabs ── */

@@ -11,6 +11,16 @@ import java.util.UUID;
 
 public interface BallEventRepository extends JpaRepository<BallEvent, UUID> {
     List<BallEvent> findByInningsIdOrderByOverNumberAscBallNumberAsc(UUID inningsId);
+
+    @Query("SELECT be FROM BallEvent be " +
+           "LEFT JOIN FETCH be.commentarySubmission " +
+           "LEFT JOIN FETCH be.batsman " +
+           "LEFT JOIN FETCH be.bowler " +
+           "LEFT JOIN FETCH be.nonStriker " +
+           "LEFT JOIN FETCH be.fielder " +
+           "WHERE be.innings.id = :inningsId " +
+           "ORDER BY be.overNumber ASC, be.ballNumber ASC")
+    List<BallEvent> findByInningsIdWithCommentary(@Param("inningsId") UUID inningsId);
     long countByInningsId(UUID inningsId);
 
     @Modifying

@@ -194,13 +194,15 @@ public class InningsSimulator {
                             ? nonStriker.player : striker.player;
                     innings.getBallEvents().add(BallEvent.builder()
                             .innings(innings).overNumber(overNumber).ballNumber(ballInOver)
-                            .batsman(eventBatsman).bowler(currentBowler)
+                            .batsman(eventBatsman).nonStriker(nonStriker.player).bowler(currentBowler)
                             .runs(delivery.runs).isWicket(delivery.isWicket)
                             .isBoundary(delivery.isBoundary).isSix(delivery.isSix)
                             .isWide(delivery.isWide).isNoBall(delivery.isNoBall)
                             .isBye(delivery.isBye).isLegBye(delivery.isLegBye)
                             .dismissalType(delivery.dismissalType)
-                            .fielder(delivery.fielder).commentary(delivery.commentary)
+                            .fielder(delivery.fielder)
+                            .commentarySubmission(delivery.commentarySubmission)
+                            .commentary(delivery.commentary)
                             .build());
                 }
 

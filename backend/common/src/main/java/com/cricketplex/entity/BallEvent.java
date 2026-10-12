@@ -32,6 +32,10 @@ public class BallEvent {
     @JoinColumn(name = "bowler_id", nullable = false)
     private Player bowler;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "non_striker_id")
+    private Player nonStriker;
+
     @Column(nullable = false)
     @Builder.Default
     private Integer runs = 0;
@@ -70,6 +74,10 @@ public class BallEvent {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fielder_id")
     private Player fielder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commentary_submission_id")
+    private CommentarySubmission commentarySubmission;
 
     @Column(columnDefinition = "TEXT")
     private String commentary;
