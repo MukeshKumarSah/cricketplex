@@ -288,10 +288,22 @@
   cursor: pointer;
   transition: border-color 0.15s;
   min-width: 160px;
+  color-scheme: dark;
 }
 .pitch-select-wrap select:focus {
   outline: none;
   border-color: var(--accent);
+}
+.pitch-select-wrap select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+html[data-theme="light"] .pitch-select-wrap select {
+  color-scheme: light;
+}
+html[data-theme="light"] .pitch-select-wrap select option {
+  background: #ffffff;
+  color: #0f172a;
 }
 .pitch-hint {
   font-size: 0.72rem;

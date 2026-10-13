@@ -42,9 +42,24 @@
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s;
+  color-scheme: dark;
 }
 .st-format-select:focus {
   border-color: var(--accent);
+}
+.st-format-select option,
+.st-season-select select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+html[data-theme="light"] .st-format-select,
+html[data-theme="light"] .st-season-select select {
+  color-scheme: light;
+}
+html[data-theme="light"] .st-format-select option,
+html[data-theme="light"] .st-season-select select option {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 /* Season selector */
@@ -66,6 +81,7 @@
   font-weight: 600;
   cursor: pointer;
   outline: none;
+  color-scheme: dark;
 }
 .st-season-select select:focus {
   border-color: var(--accent);

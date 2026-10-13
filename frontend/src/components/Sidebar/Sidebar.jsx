@@ -145,6 +145,7 @@ export default function Sidebar({ isOpen, toggle }) {
                   `sidebar-link sidebar-link-admin ${isActive ? 'active' : ''}`
                 }
                 title={item.label}
+                data-tour={item.path.replace('/', '')}
               >
                 <item.icon className="sidebar-icon" />
                 {isOpen && <span className="sidebar-label">{item.label}</span>}

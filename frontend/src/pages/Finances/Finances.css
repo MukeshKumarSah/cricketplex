@@ -131,8 +131,20 @@
   font-weight: 600;
   outline: none;
   cursor: pointer;
+  color-scheme: dark;
 }
 .fin-filter-select:focus { border-color: var(--accent); }
+.fin-filter-select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+html[data-theme="light"] .fin-filter-select {
+  color-scheme: light;
+}
+html[data-theme="light"] .fin-filter-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
 
 /* -- Transaction List -- */
 .fin-tx-list {
