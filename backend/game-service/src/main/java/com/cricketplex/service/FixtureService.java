@@ -99,11 +99,24 @@ public class FixtureService {
     /**
      * Generate the full fixture list for a league.
      * T20/ODI: 14 rounds (56 matches). FC: 14 rounds spanning 2 seasons.
-     * Idempotent — skips if any non-completed fixtures still exist.
+     *
+     * Idempotent and season-scoped: a league row is reused across seasons (its
+     * {@code season} is bumped in place), so leftover fixtures from previous
+     * seasons must not block generating the current season's fixtures.
      */
     @Transactional
     public void generateFixtures(League league) {
-        if (fixtureRepository.countByLeagueIdAndStatusNot(league.getId(), "COMPLETED") > 0) return;
+        int season = league.getSeason();
+
+        // Skip if the current season already has fixtures.
+        if (fixtureRepository.countByLeagueIdAndSeason(league.getId(), season) > 0) return;
+
+        // FC seasons overlap: rounds 8-14 are played in the following season, so a
+        // new FC season must not start until the previous FC season has fully finished.
+        if ("FC".equalsIgnoreCase(league.getFormat())
+                && fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), season - 1, "COMPLETED") > 0) {
+            return;
+        }
 
         List<LeagueTeam> leagueTeams = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), league.getSeason());
         if (leagueTeams.size() != 8) {

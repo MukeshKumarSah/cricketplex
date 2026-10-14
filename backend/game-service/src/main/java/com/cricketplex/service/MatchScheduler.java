@@ -103,9 +103,11 @@ public class MatchScheduler {
     }
 
     /**
-     * On startup, generate fixtures for any league that has 8 teams but no fixtures.
-     * This covers leagues created via DB migration (V9/V10) + bot assignment that
-     * predates the eager fixture generation in createLeague().
+     * On startup, generate fixtures for any league that has 8 teams but no fixtures
+     * for its current season. This covers leagues created via DB migration (V9/V10) +
+     * bot assignment that predates the eager fixture generation in createLeague(), and
+     * heals bot-only leagues whose season rollover fixture generation was missed
+     * (they have no human visitors to trigger lazy generation).
      */
     @PostConstruct
     public void generateMissingFixturesOnStartup() {
@@ -113,8 +115,8 @@ public class MatchScheduler {
             List<League> allLeagues = leagueRepository.findAll();
             int generated = 0;
             for (League league : allLeagues) {
-                long teamCount = leagueTeamRepository.countByLeagueId(league.getId());
-                if (teamCount >= 8 && fixtureRepository.countByLeagueId(league.getId()) == 0) {
+                long teamCount = leagueTeamRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason());
+                if (teamCount >= 8 && fixtureRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason()) == 0) {
                     try {
                         txTemplate.executeWithoutResult(status ->
                             fixtureService.generateFixtures(league)

@@ -497,8 +497,9 @@ public class SeasonalUpdateService {
     private void generateNewFixtures() {
         int generated = 0;
         for (League league : leagueRepository.findAll()) {
-            long upcoming = fixtureRepository.countByLeagueIdAndStatusNot(league.getId(), "COMPLETED");
-            if (upcoming > 0) continue;
+            // Season-scoped: pending fixtures from previous seasons must not block the
+            // new season's generation (league rows are reused across seasons).
+            if (fixtureRepository.countByLeagueIdAndSeason(league.getId(), league.getSeason()) > 0) continue;
             fixtureService.generateFixtures(league);
             generated++;
         }
