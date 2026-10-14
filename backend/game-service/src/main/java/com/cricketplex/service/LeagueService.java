@@ -333,8 +333,9 @@ public class LeagueService {
                     // Replace the bot entry with the human team
                     botSlot.setTeam(team);
                     leagueTeamRepository.save(botSlot);
-                    // Update fixtures in the target league
-                    fixtureService.swapTeamInFixtures(botSlot.getLeague().getId(), oldBotId, team.getId());
+                    // Update fixtures in the target league (only the affected season)
+                    fixtureService.swapTeamInFixtures(
+                            botSlot.getLeague().getId(), botSlot.getSeason(), oldBotId, team.getId());
                 }
             }
         }

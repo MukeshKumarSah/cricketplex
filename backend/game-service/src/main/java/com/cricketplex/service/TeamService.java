@@ -228,7 +228,7 @@ public class TeamService {
                 botEntry.setTeam(team);
                 botEntry.setSeason(currentSeason);
                 leagueTeamRepository.save(botEntry);
-                fixtureService.swapTeamInFixtures(targetLeague.getId(), oldBotId, team.getId());
+                fixtureService.swapTeamInFixtures(targetLeague.getId(), currentSeason, oldBotId, team.getId());
             }
         }
 

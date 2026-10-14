@@ -206,19 +206,25 @@ public class FixtureService {
     }
 
     /**
-     * Replace all references to oldTeamId with newTeam in a league's fixtures.
-     * Called when a bot team is replaced by a human team (or vice versa).
+     * Replace all references to oldTeamId with newTeam in a league's fixtures
+     * for a single season. Called when a bot team is replaced by a human team
+     * (or vice versa).
+     *
+     * A league row is reused across seasons (its {@code season} field is bumped
+     * on rollover), so fixtures from previous seasons hang off the same league id.
+     * The swap must therefore be scoped to {@code season}; otherwise the new team
+     * would be retroactively written into previous seasons' results and points.
      *
      * SCHEDULED fixtures: swap homeTeam/awayTeam (upcoming matches show new team).
      * COMPLETED fixtures: keep original homeTeam/awayTeam (scorecard shows who actually played),
      *                     but swap MatchResult winner/tossWinner and Innings team refs (for standings).
      */
     @Transactional
-    public void swapTeamInFixtures(UUID leagueId, UUID oldTeamId, UUID newTeamId) {
+    public void swapTeamInFixtures(UUID leagueId, Integer season, UUID oldTeamId, UUID newTeamId) {
         Team newTeam = teamRepository.findById(newTeamId).orElse(null);
         if (newTeam == null) return;
 
-        List<Fixture> fixtures = fixtureRepository.findByLeagueId(leagueId);
+        List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeason(leagueId, season);
         boolean changed = false;
         for (Fixture f : fixtures) {
             // IN_PROGRESS / LIVE: MatchEngine is actively writing — can't swap now.
