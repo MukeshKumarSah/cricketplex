@@ -245,7 +245,11 @@ export default function LeaguePage() {
           </p>
           {league.availableSeasons?.length > 1 && (
             <div style={{ marginTop: 12 }}>
-              <select value={season ?? league.season} onChange={(e) => setSeason(Number(e.target.value))}>
+              <select
+                className="lp-season-select"
+                value={season ?? league.season}
+                onChange={(e) => setSeason(Number(e.target.value))}
+              >
                 {league.availableSeasons.map((s) => (
                   <option key={s} value={s}>Season {s}</option>
                 ))}

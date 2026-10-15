@@ -87,6 +87,7 @@
   cursor: pointer;
   transition: all 0.2s;
   min-width: 150px;
+  color-scheme: dark;
 }
 
 .lp-filter-select:hover {
@@ -100,8 +101,45 @@
 }
 
 .lp-filter-select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+
+/* Season selector (header) */
+.lp-season-select {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text-1);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+  color-scheme: dark;
+}
+
+.lp-season-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.lp-season-select option {
+  background: #1a1d29;
+  color: #f1f5f9;
+}
+
+/* Light theme — native dropdown relists follow the OS palette */
+html[data-theme="light"] .lp-filter-select,
+html[data-theme="light"] .lp-season-select {
+  color-scheme: light;
+}
+
+html[data-theme="light"] .lp-filter-select option,
+html[data-theme="light"] .lp-season-select option {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 /* Format buttons */

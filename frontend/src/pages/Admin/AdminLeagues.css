@@ -151,6 +151,7 @@
   min-width: 220px;
   cursor: pointer;
   transition: border-color 0.15s;
+  color-scheme: dark;
 }
 .al-select:focus {
   outline: none;
@@ -354,6 +355,7 @@
   color: #e2e8f0;
   cursor: pointer;
   transition: border-color 0.15s;
+  color-scheme: dark;
 }
 .al-season-select:focus {
   outline: none;
