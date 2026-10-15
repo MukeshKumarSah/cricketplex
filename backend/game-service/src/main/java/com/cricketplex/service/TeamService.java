@@ -225,10 +225,11 @@ public class TeamService {
 
             if (botEntry != null) {
                 UUID oldBotId = botEntry.getTeam().getId();
-                botEntry.setTeam(team);
-                botEntry.setSeason(currentSeason);
-                leagueTeamRepository.save(botEntry);
-                fixtureService.swapTeamInFixtures(targetLeague.getId(), currentSeason, oldBotId, team.getId());
+                // Replace the bot across this league's active and later memberships so
+                // the human appears in standings. For FC the running edition is stored
+                // under the previous season even though currentSeason has advanced.
+                fixtureService.replaceBotInLeague(targetLeague, oldBotId, team);
+                fixtureService.swapTeamInFixtures(targetLeague.getId(), oldBotId, team.getId());
             }
         }
 

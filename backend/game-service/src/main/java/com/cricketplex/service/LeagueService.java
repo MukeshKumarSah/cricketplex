@@ -330,12 +330,12 @@ public class LeagueService {
                 if (formatPlan != null && formatPlan.containsKey(lg.getFormat())) {
                     LeagueTeam botSlot = formatPlan.get(lg.getFormat());
                     UUID oldBotId = botSlot.getTeam().getId();
-                    // Replace the bot entry with the human team
-                    botSlot.setTeam(team);
-                    leagueTeamRepository.save(botSlot);
-                    // Update fixtures in the target league (only the affected season)
+                    // Replace the bot with the human across the target league's active
+                    // and later memberships (settled seasons stay untouched).
+                    fixtureService.replaceBotInLeague(botSlot.getLeague(), oldBotId, team);
+                    // Update the target league's currently running fixtures
                     fixtureService.swapTeamInFixtures(
-                            botSlot.getLeague().getId(), botSlot.getSeason(), oldBotId, team.getId());
+                            botSlot.getLeague().getId(), oldBotId, team.getId());
                 }
             }
         }
@@ -376,7 +376,8 @@ public class LeagueService {
         for (League candidate : candidates) {
             if (excludeIds.contains(candidate.getId())) continue;
 
-            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueId(candidate.getId());
+            List<LeagueTeam> entries = leagueTeamRepository.findByLeagueIdAndSeason(
+                    candidate.getId(), fixtureService.resolveActiveSeason(candidate));
             for (LeagueTeam entry : entries) {
                 if (Boolean.TRUE.equals(entry.getTeam().getIsBot())) {
                     if (!fixtureService.hasActiveMatch(candidate.getId(), entry.getTeam().getId())) {

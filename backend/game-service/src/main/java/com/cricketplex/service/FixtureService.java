@@ -2,6 +2,7 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.FixtureRepository;
+import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.StadiumSeatsRepository;
@@ -21,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FixtureService {
 
     private final FixtureRepository fixtureRepository;
+    private final LeagueRepository leagueRepository;
     private final LeagueTeamRepository leagueTeamRepository;
     private final MatchResultRepository matchResultRepository;
     private final TeamRepository teamRepository;
@@ -219,23 +221,30 @@ public class FixtureService {
     }
 
     /**
-     * Replace all references to oldTeamId with newTeam in a league's fixtures
-     * for a single season. Called when a bot team is replaced by a human team
+     * Replace all references to oldTeamId with newTeam in a league's currently
+     * running fixtures. Called when a bot team is replaced by a human team
      * (or vice versa).
      *
      * A league row is reused across seasons (its {@code season} field is bumped
      * on rollover), so fixtures from previous seasons hang off the same league id.
-     * The swap must therefore be scoped to {@code season}; otherwise the new team
-     * would be retroactively written into previous seasons' results and points.
+     * The swap is therefore scoped to the league's <em>active</em> season
+     * (see {@link #resolveActiveSeason(League)}) so the new team is not
+     * retroactively written into settled seasons' results and points. For FC this
+     * matters because an edition stored under season N is still being played
+     * during season N+1.
      *
      * SCHEDULED fixtures: swap homeTeam/awayTeam (upcoming matches show new team).
      * COMPLETED fixtures: keep original homeTeam/awayTeam (scorecard shows who actually played),
      *                     but swap MatchResult winner/tossWinner and Innings team refs (for standings).
      */
     @Transactional
-    public void swapTeamInFixtures(UUID leagueId, Integer season, UUID oldTeamId, UUID newTeamId) {
+    public void swapTeamInFixtures(UUID leagueId, UUID oldTeamId, UUID newTeamId) {
         Team newTeam = teamRepository.findById(newTeamId).orElse(null);
         if (newTeam == null) return;
+
+        League league = leagueRepository.findById(leagueId).orElse(null);
+        if (league == null) return;
+        int season = resolveActiveSeason(league);
 
         List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeason(leagueId, season);
         boolean changed = false;
@@ -287,6 +296,53 @@ public class FixtureService {
             }
         }
         if (changed) fixtureRepository.saveAll(fixtures);
+    }
+
+    /**
+     * The season whose fixtures are currently being played for this league.
+     *
+     * A league row is reused across seasons (its {@code season} is bumped on
+     * rollover). For T20/ODI the whole competition lives in one season, so this
+     * is simply the league's current season. For FC an edition spans two real
+     * seasons — rounds 1-7 are played in season N and rounds 8-14 in season N+1,
+     * all stored under season N — so while the league's season has already
+     * advanced to N+1 the still-running edition is stored under N.
+     */
+    public int resolveActiveSeason(League league) {
+        int season = league.getSeason();
+        if (league.getId() == null || !"FC".equalsIgnoreCase(league.getFormat())) return season;
+
+        int previous = season - 1;
+        if (previous >= 1
+                && fixtureRepository.existsByLeagueIdAndSeason(league.getId(), previous)
+                && fixtureRepository.countByLeagueIdAndSeasonAndStatusNot(league.getId(), previous, "COMPLETED") > 0) {
+            return previous;
+        }
+        return season;
+    }
+
+    /**
+     * Replace a bot team with a human team in every membership of this league at
+     * the active season or later, leaving settled past seasons untouched. This
+     * keeps the human in the running edition's standings and carries them forward
+     * into future editions. Returns the number of rows changed.
+     */
+    @Transactional
+    public int replaceBotInLeague(League league, UUID oldTeamId, Team newTeam) {
+        if (league == null || league.getId() == null || newTeam == null) return 0;
+
+        int activeSeason = resolveActiveSeason(league);
+        List<LeagueTeam> changed = new ArrayList<>();
+        for (LeagueTeam lt : leagueTeamRepository.findByLeagueId(league.getId())) {
+            Integer season = lt.getSeason();
+            if (season == null || season < activeSeason) continue;
+            if (lt.getTeam() != null && lt.getTeam().getId().equals(oldTeamId)) {
+                lt.setTeam(newTeam);
+                changed.add(lt);
+            }
+        }
+        if (!changed.isEmpty()) leagueTeamRepository.saveAll(changed);
+        return changed.size();
     }
 
     /**
