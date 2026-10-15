@@ -21,42 +21,96 @@ public class LineupGenerator {
     public MatchLineup getOrGenerateLineup(Fixture fixture, Team team, String format) {
         Optional<MatchLineup> existing = matchLineupRepository.findByFixtureIdAndTeamId(fixture.getId(), team.getId());
         if (existing.isPresent()) return existing.get();
+
         Optional<DefaultLineup> savedDefault = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format);
+        if (savedDefault.isEmpty()) {
+            // No default yet — build one and persist it as the team's system default
+            // so subsequent matches reuse it instead of regenerating every time.
+            log.info("No default lineup for team {} ({}) — generating and saving one", team.getTeamName(), format);
+            savedDefault = Optional.ofNullable(ensureDefaultLineup(team, format));
+        }
         if (savedDefault.isPresent()) {
             MatchLineup fromDefault = buildLineupFromDefault(fixture, team, format, savedDefault.get());
             if (fromDefault != null) return fromDefault;
         }
-        log.info("No lineup found for team {} — auto-generating", team.getTeamName());
+        throw new IllegalStateException("Team " + team.getTeamName() + " has fewer than 11 players");
+    }
+
+    /**
+     * Return the team's saved default lineup for a format, creating and persisting
+     * a system-generated one on first use. The default is built once from the squad
+     * and then reused for every match; players who have since been fired or sold are
+     * replaced at build time by {@link #buildLineupFromDefault}.
+     *
+     * @return the default lineup, or {@code null} if the squad has fewer than 11 players
+     */
+    public DefaultLineup ensureDefaultLineup(Team team, String format) {
+        Optional<DefaultLineup> existing = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format);
+        if (existing.isPresent()) return existing.get();
+
+        Map<String, Object> data = buildSystemDefaultData(team, format);
+        if (data == null) return null;
+        log.info("Saving system-generated default lineup for team {} ({})", team.getTeamName(), format);
+        return defaultLineupRepository.save(DefaultLineup.builder()
+                .team(team).format(format).lineupData(data).build());
+    }
+
+    /**
+     * Build (but don't persist) the system default lineup data map for a team.
+     * Uses the same auto-selection heuristics as the legacy on-demand generator,
+     * and stores it in the same shape the lineup UI reads and writes.
+     */
+    public Map<String, Object> buildSystemDefaultData(Team team, String format) {
         List<Player> squad = playerRepository.findByTeam(team);
-        if (squad.size() < 11) throw new IllegalStateException("Team " + team.getTeamName() + " has fewer than 11 players (" + squad.size() + ")");
-        List<Player> selected     = autoSelectPlaying11(squad);
+        if (squad.size() < 11) return null;
+
+        List<Player> selected = autoSelectPlaying11(squad);
         List<Player> battingOrder = buildAutoBattingOrder(selected);
-        MatchLineup lineup = MatchLineup.builder().fixture(fixture).team(team).bowlingPlan("BALANCED").build();
-        Player keeper = selected.stream().filter(p -> "KEEPER".equals(p.getRole())).max(Comparator.comparingDouble(Player::getKeeperRating))
+        Player keeper = selected.stream().filter(p -> "KEEPER".equals(p.getRole()))
+                .max(Comparator.comparingDouble(Player::getKeeperRating))
                 .orElse(selected.stream().max(Comparator.comparingDouble(Player::getKeeperRating)).orElse(selected.get(0)));
-        lineup.setKeeper(keeper);
         Player captain = selected.stream().max(Comparator.comparingInt(Player::getRating)).orElse(selected.get(0));
-        lineup.setCaptain(captain);
-        for (int i = 0; i < battingOrder.size(); i++) {
-            lineup.getPlayers().add(LineupPlayer.builder().lineup(lineup).player(battingOrder.get(i))
-                    .battingPosition(i + 1).batAggression(battingOrder.get(i).getBatAggression()).build());
-        }
-        List<Player> topBowlers;
-        if ("FC".equalsIgnoreCase(format)) {
-            topBowlers = selected.stream().filter(p -> p.getBowlRating() >= 15)
-                    .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).toList();
-            if (topBowlers.size() < 5) topBowlers = selected.stream()
-                    .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
-        } else {
-            topBowlers = selected.stream().sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
-        }
+        List<Player> topBowlers = pickTopBowlers(selected, format);
         int bowlingPlanOvers = "FC".equalsIgnoreCase(format) ? 100 : MatchFormatRules.getMaxOvers(format);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("captainId", captain.getId().toString());
+        data.put("keeperId", keeper.getId().toString());
+        data.put("bowlingPlan", "BALANCED");
+        data.put("tossChoice", null);
+        data.put("batOrBowl", null);
+
+        List<Map<String, Object>> players = new ArrayList<>();
+        for (int i = 0; i < battingOrder.size(); i++) {
+            Player p = battingOrder.get(i);
+            Map<String, Object> pm = new LinkedHashMap<>();
+            pm.put("playerId", p.getId().toString());
+            pm.put("battingPosition", i + 1);
+            pm.put("batAggression", p.getBatAggression());
+            players.add(pm);
+        }
+        data.put("players", players);
+
+        List<Map<String, Object>> orders = new ArrayList<>();
         for (int over = 1; over <= bowlingPlanOvers; over++) {
             Player bowler = topBowlers.get((over - 1) % topBowlers.size());
-            lineup.getBowlingOrders().add(BowlingOrder.builder().lineup(lineup).overNumber(over)
-                    .bowler(bowler).aggression(bowler.getBowlAggression()).build());
+            Map<String, Object> bo = new LinkedHashMap<>();
+            bo.put("overNumber", over);
+            bo.put("bowlerId", bowler.getId().toString());
+            bo.put("aggression", bowler.getBowlAggression());
+            orders.add(bo);
         }
-        return matchLineupRepository.save(lineup);
+        data.put("bowlingOrders", orders);
+        return data;
+    }
+
+    private List<Player> pickTopBowlers(List<Player> selected, String format) {
+        if ("FC".equalsIgnoreCase(format)) {
+            List<Player> topBowlers = selected.stream().filter(p -> p.getBowlRating() >= 15)
+                    .sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).toList();
+            if (topBowlers.size() >= 5) return topBowlers;
+        }
+        return selected.stream().sorted((a, b) -> Double.compare(b.getBowlRating(), a.getBowlRating())).limit(5).toList();
     }
 
     @SuppressWarnings("unchecked")

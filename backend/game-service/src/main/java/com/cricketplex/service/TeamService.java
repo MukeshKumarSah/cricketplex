@@ -3,6 +3,7 @@ package com.cricketplex.service;
 import com.cricketplex.dto.TeamSetupRequest;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.service.match.LineupGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class TeamService {
     private final LeagueTeamRepository leagueTeamRepository;
     private final FixtureService fixtureService;
     private final CupService cupService;
+    private final LineupGenerator lineupGenerator;
 
     @Transactional
     public Team setupTeam(User owner, TeamSetupRequest request) {
@@ -51,6 +53,16 @@ public class TeamService {
 
         // Generate 16 players for this team
         generateSquadForTeam(team);
+
+        // Pre-build the system default lineup for each format so the first match
+        // doesn't have to generate one from scratch.
+        for (String fmt : new String[]{"T20", "ODI", "FC"}) {
+            try {
+                lineupGenerator.ensureDefaultLineup(team, fmt);
+            } catch (Exception e) {
+                // Non-critical — the match engine will generate a default on demand.
+            }
+        }
 
         // Assign team to leagues (one per format: T20, ODI, FC)
         assignTeamToLeagues(team);

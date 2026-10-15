@@ -363,20 +363,22 @@ public class LineupService {
 
     @Transactional
     public void saveDefaultLineup(Team team, String format, Map<String, Object> lineupData) {
-        // Strip fixture-specific fields, keep the order/plan
+        // Strip the request-only flag; keep the order, plan, and toss preferences
         Map<String, Object> data = new LinkedHashMap<>(lineupData);
         data.remove("saveAsDefault");
-        data.remove("tossChoice");
 
         DefaultLineup def = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format)
                 .orElse(DefaultLineup.builder().team(team).format(format).build());
 
-        // Preserve the existing batOrBowl preference if the new save didn't set one
-        // (Home team games don't require a toss call, so batOrBowl may arrive as null;
-        //  we keep the value from the last away game rather than overwriting with null)
-        if (data.get("batOrBowl") == null && def.getLineupData() != null) {
-            Object prev = def.getLineupData().get("batOrBowl");
-            if (prev != null) data.put("batOrBowl", prev);
+        // Preserve the last toss call and bat/bowl preference when this save didn't
+        // provide them. Home games don't require a toss call (tossChoice arrives null)
+        // and batOrBowl is optional, so we keep the previous values rather than
+        // overwriting them with null.
+        Map<String, Object> prev = def.getLineupData();
+        if (prev != null) {
+            for (String key : List.of("tossChoice", "batOrBowl")) {
+                if (data.get(key) == null && prev.get(key) != null) data.put(key, prev.get(key));
+            }
         }
 
         def.setLineupData(data);
