@@ -55,7 +55,7 @@ export default function BlogCreate() {
         navigate(`/blogs/${res.data.id}`);
       }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to save blog');
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to save blog');
     } finally {
       setSaving(false);
     }

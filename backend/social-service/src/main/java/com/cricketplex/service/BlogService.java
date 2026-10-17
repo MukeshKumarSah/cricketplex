@@ -124,9 +124,12 @@ public class BlogService {
                 UUID blogId = blog.getId();
                 String threadBody = description.trim()
                         + "\n\n[Read the full blog here →](/blogs/" + blogId + ")";
+                // forum_threads.title is VARCHAR(200) while blogs.title is VARCHAR(300)
+                String threadTitle = title.trim().length() > 200
+                        ? title.trim().substring(0, 200) : title.trim();
                 ForumThread thread = ForumThread.builder()
                         .category(blogCat)
-                        .title(title.trim())
+                        .title(threadTitle)
                         .body(threadBody)
                         .createdBy(author)
                         .isLocked(false)
