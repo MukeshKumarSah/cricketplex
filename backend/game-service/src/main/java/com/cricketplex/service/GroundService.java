@@ -7,6 +7,7 @@ import com.cricketplex.repository.StadiumSeatsRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.UserRepository;
 import com.cricketplex.security.UserPrincipal;
+import com.cricketplex.service.match.MatchFormatRules;
 import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -132,9 +133,8 @@ public class GroundService {
             throw new IllegalArgumentException("You can only set pitch for your home matches");
         }
 
-        List<String> validPitches = List.of("STANDARD", "DUSTY", "GREEN", "FLAT", "UNEVEN", "DRY", "SLOW", "BOUNCY");
         String normalized = pitchType.toUpperCase();
-        if (!validPitches.contains(normalized)) {
+        if (!MatchFormatRules.PITCH_TYPES.contains(normalized)) {
             throw new IllegalArgumentException("Invalid pitch type: " + pitchType);
         }
 
@@ -151,9 +151,8 @@ public class GroundService {
     @Transactional
     public Map<String, Object> updateDefaultPitch(User user, String pitchType) {
         Team team = getTeam(user);
-        List<String> validPitches = List.of("STANDARD", "DUSTY", "GREEN", "FLAT", "UNEVEN", "DRY", "SLOW", "BOUNCY");
         String normalized = pitchType.toUpperCase();
-        if (!validPitches.contains(normalized)) {
+        if (!MatchFormatRules.PITCH_TYPES.contains(normalized)) {
             throw new IllegalArgumentException("Invalid pitch type: " + pitchType);
         }
         StadiumSeats seats = stadiumSeatsRepository.findByTeam(team)

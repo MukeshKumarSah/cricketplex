@@ -10,6 +10,7 @@ import {
   simulateChallenge,
 } from '../../api/auth';
 import toast from 'react-hot-toast';
+import { PITCH_OPTIONS } from '../../constants/pitches';
 import {
   HiOutlineBolt,
   HiOutlinePaperAirplane,
@@ -435,14 +436,9 @@ export default function Challenges() {
               <div className="cm-field">
                 <label>Pitch Type</label>
                 <select value={pitchType} onChange={(e) => setPitchType(e.target.value)}>
-                  <option value="STANDARD">Standard</option>
-                  <option value="FLAT">Flat</option>
-                  <option value="GREEN">Green</option>
-                  <option value="DUSTY">Dusty</option>
-                  <option value="DRY">Dry</option>
-                  <option value="BOUNCY">Bouncy</option>
-                  <option value="SLOW">Slow</option>
-                  <option value="UNEVEN">Uneven</option>
+                  {PITCH_OPTIONS.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
                 </select>
               </div>
             </div>

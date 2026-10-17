@@ -2,6 +2,7 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.service.match.MatchFormatRules;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -118,7 +119,7 @@ public class SimulationService {
         String format = session.getFormat();
         int numMatches = session.getNumMatches();
         int maxOvers = "T20".equalsIgnoreCase(format) ? 20 : 50;
-        String pitchType = (String) config.getOrDefault("pitchType", "STANDARD");
+        String pitchType = MatchFormatRules.normalizePitch((String) config.get("pitchType"));
         String country = (String) config.getOrDefault("country", "England");
 
         List<Map<String, Object>> playersACfg = (List<Map<String, Object>>) config.get("playersA");

@@ -17,6 +17,7 @@ import {
   getSimSession,
   deleteSimSession,
 } from '../../api/auth';
+import { PITCH_OPTIONS } from '../../constants/pitches';
 import './AdminSims.css';
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
@@ -25,7 +26,7 @@ const ROLES = ['BATSMAN', 'BOWLER', 'ALL_ROUNDER', 'KEEPER'];
 const HANDS = ['RH', 'LH'];
 const BOWL_TYPES = ['FS', 'WS', 'F', 'M', 'FM', 'MF'];
 const AGGRESSION = ['D', 'N', 'A'];
-const PITCH_TYPES = ['STANDARD', 'BATTING', 'BOWLING', 'SPIN', 'FAST', 'BALANCED'];
+const PITCH_TYPES = PITCH_OPTIONS.map((p) => p.key);
 
 function blankPlayer(pos) {
   return {

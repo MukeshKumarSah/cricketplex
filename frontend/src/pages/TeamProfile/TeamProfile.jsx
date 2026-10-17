@@ -11,6 +11,7 @@ import {
 } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
+import { PITCH_OPTIONS } from '../../constants/pitches';
 import {
   HiOutlineTrophy,
   HiOutlineCalendarDays,
@@ -574,11 +575,9 @@ export default function TeamProfile() {
               <div className="tp-form-row">
                 <label>Pitch Type</label>
                 <select value={pitchType} onChange={(e) => setPitchType(e.target.value)}>
-                  <option value="STANDARD">Standard</option>
-                  <option value="BATTING">Batting Friendly</option>
-                  <option value="BOWLING">Bowling Friendly</option>
-                  <option value="SPIN">Spin Friendly</option>
-                  <option value="PACE">Pace Friendly</option>
+                  {PITCH_OPTIONS.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="tp-form-row">

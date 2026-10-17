@@ -14,6 +14,7 @@ import {
   updateMatchPitch,
   updateDefaultPitch,
 } from '../../api/auth';
+import { PITCH_OPTIONS as pitchOptions } from '../../constants/pitches';
 import './Ground.css';
 
 const seatTypes = [
@@ -21,17 +22,6 @@ const seatTypes = [
   { key: 'standard', label: 'Standard', color: '#38bdf8', desc: 'Covered stands, comfortable seating', icon: '💺' },
   { key: 'economy', label: 'Economy', color: '#a3e635', desc: 'Open stands, basic seating', icon: '🪑' },
   { key: 'standing', label: 'Standing', color: '#f472b6', desc: 'Standing area, most affordable', icon: '🧍' },
-];
-
-const pitchOptions = [
-  { key: 'STANDARD', label: 'Standard', desc: 'Balanced for bat and ball', icon: '⚖️' },
-  { key: 'DUSTY', label: 'Dusty', desc: 'Helps spinners, low bounce', icon: '🌪️' },
-  { key: 'GREEN', label: 'Green', desc: 'Assists seamers, extra movement', icon: '🟢' },
-  { key: 'FLAT', label: 'Flat', desc: 'Batting paradise, high scores', icon: '🏏' },
-  { key: 'UNEVEN', label: 'Uneven', desc: 'Unpredictable bounce, tough for batters', icon: '📈' },
-  { key: 'DRY', label: 'Dry', desc: 'Cracks up, helps spin late', icon: '☀️' },
-  { key: 'SLOW', label: 'Slow', desc: 'Low pace, hard to score quickly', icon: '🐢' },
-  { key: 'BOUNCY', label: 'Bouncy', desc: 'Extra bounce, suits fast bowlers', icon: '🏀' },
 ];
 
 const formatBadge = (fmt) => {

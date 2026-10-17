@@ -3,6 +3,7 @@ package com.cricketplex.service;
 import com.cricketplex.client.NotificationClient;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.service.match.MatchFormatRules;
 import com.cricketplex.util.TeamHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,9 @@ public class FriendlyChallengeService {
         if (!"T20".equalsIgnoreCase(format) && !"ODI".equalsIgnoreCase(format) && !"FC".equalsIgnoreCase(format)) {
             throw new IllegalArgumentException("Format must be T20, ODI, or FC");
         }
+        if (pitchType != null && !MatchFormatRules.PITCH_TYPES.contains(pitchType.trim().toUpperCase())) {
+            throw new IllegalArgumentException("Invalid pitch type: " + pitchType);
+        }
         if (matchTime == null || !ALLOWED_TIMES.contains(matchTime)) {
             throw new IllegalArgumentException("Match time must be one of: 02:00, 07:00, 12:00, 17:00, 21:00");
         }
@@ -87,7 +91,7 @@ public class FriendlyChallengeService {
                 .challengerTeam(myTeam)
                 .challengedTeam(opponentTeam)
                 .format(format.toUpperCase())
-                .pitchType(pitchType != null ? pitchType : "STANDARD")
+                .pitchType(MatchFormatRules.normalizePitch(pitchType))
                 .matchDate(matchDate)
                 .matchTime(matchTime)
                 .message(message)
@@ -141,7 +145,7 @@ public class FriendlyChallengeService {
                 .awayTeam(challenge.getChallengedTeam())
                 .matchDate(challenge.getMatchDate())
                 .matchTime(challenge.getMatchTime())
-                .pitchType(challenge.getPitchType())
+                .pitchType(MatchFormatRules.normalizePitch(challenge.getPitchType()))
                 .matchType("FRIENDLY")
                 .format(challenge.getFormat())
                 .status("SCHEDULED")
