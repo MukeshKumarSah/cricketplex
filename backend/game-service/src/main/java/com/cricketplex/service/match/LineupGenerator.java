@@ -7,6 +7,7 @@ import com.cricketplex.repository.PlayerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -20,7 +21,15 @@ public class LineupGenerator {
 
     public MatchLineup getOrGenerateLineup(Fixture fixture, Team team, String format) {
         Optional<MatchLineup> existing = matchLineupRepository.findByFixtureIdAndTeamId(fixture.getId(), team.getId());
-        if (existing.isPresent()) return existing.get();
+        if (existing.isPresent()) {
+            MatchLineup lineup = existing.get();
+            // A player may have been sold/fired after this fixture's lineup was saved.
+            // Repair it so a departed player can't take the field.
+            if (sanitizeLineup(lineup, team)) {
+                lineup = matchLineupRepository.save(lineup);
+            }
+            return lineup;
+        }
 
         Optional<DefaultLineup> savedDefault = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format);
         if (savedDefault.isEmpty()) {
@@ -209,6 +218,210 @@ public class LineupGenerator {
         }
         lineup.getBowlingOrders().sort(Comparator.comparingInt(BowlingOrder::getOverNumber));
         return matchLineupRepository.save(lineup);
+    }
+
+    /**
+     * Repair an already-saved match lineup so it never fields a player who has left
+     * the squad. Removed players are replaced slot-for-slot by the best available
+     * player of the same role, preserving batting positions, aggression and the
+     * bowling plan. Returns true if anything changed (caller persists).
+     */
+    @Transactional
+    public boolean sanitizeLineup(MatchLineup lineup, Team team) {
+        List<Player> squad = playerRepository.findByTeam(team);
+        if (squad.size() < 11) return false;
+        Map<UUID, Player> squadById = new HashMap<>();
+        for (Player p : squad) squadById.put(p.getId(), p);
+
+        List<LineupPlayer> players = lineup.getPlayers();
+        if (players == null || players.isEmpty()) return false;
+        List<LineupPlayer> ordered = new ArrayList<>(players);
+        ordered.sort(Comparator.comparingInt(LineupPlayer::getBattingPosition));
+
+        Set<UUID> used = new HashSet<>();
+        Map<UUID, Player> replacementByOriginal = new HashMap<>();
+        List<Player> selected = new ArrayList<>();
+        boolean changed = false;
+
+        for (LineupPlayer lp : ordered) {
+            Player current = lp.getPlayer();
+            Player chosen = current != null ? squadById.get(current.getId()) : null;
+            if (chosen == null || used.contains(chosen.getId())) {
+                String role = current != null ? current.getRole() : null;
+                chosen = pickReplacementByRole(squad, used, role);
+                if (chosen == null) chosen = pickBestRemainingPlayer(squad, used);
+                if (chosen == null) continue;
+                if (current != null) replacementByOriginal.put(current.getId(), chosen);
+                lp.setPlayer(chosen);
+                lp.setBatAggression(chosen.getBatAggression());
+                changed = true;
+            }
+            used.add(chosen.getId());
+            selected.add(chosen);
+        }
+
+        Map<UUID, Player> selectedById = new HashMap<>();
+        for (Player p : selected) selectedById.put(p.getId(), p);
+
+        Player captain = lineup.getCaptain();
+        if (captain == null || !squadById.containsKey(captain.getId())) {
+            Player rep = captain != null ? replacementByOriginal.get(captain.getId()) : null;
+            if (rep == null) rep = selected.stream().max(Comparator.comparingInt(Player::getRating)).orElse(null);
+            if (rep != null) { lineup.setCaptain(rep); changed = true; }
+        }
+
+        Player keeper = lineup.getKeeper();
+        if (keeper == null || !selectedById.containsKey(keeper.getId())) {
+            Player rep = keeper != null ? replacementByOriginal.get(keeper.getId()) : null;
+            if (rep == null) rep = selected.stream().filter(p -> "KEEPER".equals(p.getRole()))
+                    .max(Comparator.comparingDouble(Player::getKeeperRating))
+                    .orElse(selected.stream().max(Comparator.comparingDouble(Player::getKeeperRating)).orElse(null));
+            if (rep != null) { lineup.setKeeper(rep); changed = true; }
+        }
+
+        if (lineup.getBowlingOrders() != null) {
+            Player defaultBowler = selected.stream().max(Comparator.comparingDouble(Player::getBowlRating)).orElse(null);
+            for (BowlingOrder bo : lineup.getBowlingOrders()) {
+                Player bowler = bo.getBowler();
+                if (bowler != null && selectedById.containsKey(bowler.getId())) continue;
+                Player rep = null;
+                if (bowler != null) {
+                    rep = replacementByOriginal.get(bowler.getId());
+                    if (rep != null && !selectedById.containsKey(rep.getId())) rep = null;
+                }
+                if (rep == null) rep = pickSelectedByRole(selected, bowler != null ? bowler.getRole() : null);
+                if (rep == null) rep = defaultBowler;
+                if (rep != null) { bo.setBowler(rep); changed = true; }
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * Repair a team's stored default lineups so they never reference a player who
+     * has left the squad (fired, retired, or sold). Each removed player is replaced
+     * slot-for-slot by the best available player of the same role, preserving the
+     * rest of the saved order. Call this whenever a player leaves the team so the
+     * stored default stays current and never needs regenerating from scratch.
+     *
+     * @return the number of default lineups that were updated
+     */
+    @Transactional
+    public int healDefaultLineups(Team team) {
+        if (team == null || team.getId() == null) return 0;
+        int updated = 0;
+        for (String format : List.of("T20", "ODI", "FC")) {
+            if (healDefaultLineup(team, format)) updated++;
+        }
+        return updated;
+    }
+
+    /**
+     * Repair a single stored default lineup for the given format.
+     *
+     * @return true if the stored data was changed
+     */
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public boolean healDefaultLineup(Team team, String format) {
+        Optional<DefaultLineup> opt = defaultLineupRepository.findByTeamIdAndFormat(team.getId(), format);
+        if (opt.isEmpty()) return false;
+        DefaultLineup def = opt.get();
+        Map<String, Object> data = def.getLineupData();
+        if (data == null) return false;
+
+        List<Player> squad = playerRepository.findByTeam(team);
+        if (squad.size() < 11) return false;
+        Map<String, Player> squadById = new HashMap<>();
+        for (Player p : squad) squadById.put(p.getId().toString(), p);
+
+        List<Map<String, Object>> rawPlayers = (List<Map<String, Object>>) data.get("players");
+        if (rawPlayers == null || rawPlayers.isEmpty()) return false;
+
+        // Build a fresh object graph (Hibernate JSON dirty-checking is unreliable
+        // for in-place mutations of the mapped Map).
+        Map<String, Object> newData = new LinkedHashMap<>(data);
+        List<Map<String, Object>> newPlayers = new ArrayList<>(rawPlayers.size());
+
+        Set<UUID> usedIds = new HashSet<>();
+        Map<String, String> replacementByOriginalId = new HashMap<>();
+        List<Player> selected = new ArrayList<>();
+        boolean changed = false;
+
+        for (Map<String, Object> slot : rawPlayers) {
+            Map<String, Object> copy = new LinkedHashMap<>(slot);
+            String playerId = Objects.toString(copy.get("playerId"), null);
+            Player chosen = playerId == null ? null : squadById.get(playerId);
+            if (chosen == null || usedIds.contains(chosen.getId())) {
+                String requiredRole = resolveRole(playerId);
+                chosen = pickReplacementByRole(squad, usedIds, requiredRole);
+                if (chosen == null) chosen = pickBestRemainingPlayer(squad, usedIds);
+                if (chosen == null) { newPlayers.add(copy); continue; }
+                if (playerId != null) replacementByOriginalId.put(playerId, chosen.getId().toString());
+                copy.put("playerId", chosen.getId().toString());
+                copy.put("batAggression", chosen.getBatAggression());
+                changed = true;
+            }
+            usedIds.add(chosen.getId());
+            selected.add(chosen);
+            newPlayers.add(copy);
+        }
+        newData.put("players", newPlayers);
+
+        Map<UUID, Player> selectedById = new HashMap<>();
+        for (Player p : selected) selectedById.put(p.getId(), p);
+
+        // Captain
+        String captainId = Objects.toString(newData.get("captainId"), null);
+        if (captainId != null && !squadById.containsKey(captainId)) {
+            Player rep = squadById.get(replacementByOriginalId.get(captainId));
+            if (rep == null) rep = selected.stream().max(Comparator.comparingInt(Player::getRating)).orElse(null);
+            if (rep != null) { newData.put("captainId", rep.getId().toString()); changed = true; }
+        }
+
+        // Wicket-keeper
+        String keeperId = Objects.toString(newData.get("keeperId"), null);
+        if (keeperId != null && !squadById.containsKey(keeperId)) {
+            Player rep = squadById.get(replacementByOriginalId.get(keeperId));
+            if (rep == null) rep = selected.stream().filter(p -> "KEEPER".equals(p.getRole()))
+                    .max(Comparator.comparingDouble(Player::getKeeperRating))
+                    .orElse(selected.stream().max(Comparator.comparingDouble(Player::getKeeperRating)).orElse(null));
+            if (rep != null) { newData.put("keeperId", rep.getId().toString()); changed = true; }
+        }
+
+        // Bowling orders
+        List<Map<String, Object>> rawBowling = (List<Map<String, Object>>) data.get("bowlingOrders");
+        if (rawBowling != null) {
+            Player defaultBowler = selected.stream().max(Comparator.comparingDouble(Player::getBowlRating)).orElse(null);
+            List<Map<String, Object>> newBowling = new ArrayList<>(rawBowling.size());
+            for (Map<String, Object> bo : rawBowling) {
+                Map<String, Object> copy = new LinkedHashMap<>(bo);
+                String bowlerId = Objects.toString(copy.get("bowlerId"), null);
+                if (bowlerId != null) {
+                    Player direct = squadById.get(bowlerId);
+                    boolean keep = direct != null && selectedById.containsKey(direct.getId());
+                    if (!keep) {
+                        Player rep = null;
+                        if (direct == null) {
+                            rep = squadById.get(replacementByOriginalId.get(bowlerId));
+                            if (rep != null && !selectedById.containsKey(rep.getId())) rep = null;
+                        }
+                        if (rep == null) rep = pickSelectedByRole(selected, resolveRole(bowlerId));
+                        if (rep == null) rep = defaultBowler;
+                        if (rep != null) { copy.put("bowlerId", rep.getId().toString()); changed = true; }
+                    }
+                }
+                newBowling.add(copy);
+            }
+            newData.put("bowlingOrders", newBowling);
+        }
+
+        if (changed) {
+            def.setLineupData(newData);
+            defaultLineupRepository.save(def);
+            log.info("Healed default lineup for team {} ({})", team.getTeamName(), format);
+        }
+        return changed;
     }
 
     public String resolveRole(String playerId) {

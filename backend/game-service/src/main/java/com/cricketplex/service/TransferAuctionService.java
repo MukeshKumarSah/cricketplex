@@ -3,6 +3,7 @@ package com.cricketplex.service;
 import com.cricketplex.client.TransferEventClient;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.service.match.LineupGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +36,7 @@ public class TransferAuctionService {
     private final ActivityLogService activityLogService;
     private final TransferEventClient transferEventClient;
     private final TrainingAssignmentRepository trainingAssignmentRepository;
+    private final LineupGenerator lineupGenerator;
 
     @Scheduled(fixedDelay = 30_000, initialDelay = 10_000)
     @Transactional
@@ -95,6 +97,10 @@ public class TransferAuctionService {
         trainingAssignmentRepository.deleteByTeamIdAndPlayerId(sellerTeam.getId(), player.getId());
         player.setTeam(buyerTeam);
         playerRepository.save(player);
+
+        // The player has left the seller's squad — drop them from the seller's
+        // stored default lineups so they stay current.
+        lineupGenerator.healDefaultLineups(sellerTeam);
 
         // Update listing
         listing.setStatus("SOLD");

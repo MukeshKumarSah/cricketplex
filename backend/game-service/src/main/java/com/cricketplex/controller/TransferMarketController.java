@@ -5,6 +5,7 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ActivityLogService;
+import com.cricketplex.service.match.LineupGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,6 +37,7 @@ public class TransferMarketController {
     private final ActivityLogService activityLogService;
     private final TransferEventClient transferEventClient;
     private final TrainingAssignmentRepository trainingAssignmentRepository;
+    private final LineupGenerator lineupGenerator;
 
     // ════════════════════════════════════════════
     //  POST /api/transfer/list — list player on TM (48h auction)
@@ -353,6 +355,9 @@ public class TransferMarketController {
         player.setTeam(null);
         playerRepository.save(player);
 
+        // Keep the stored default lineups free of the released player
+        lineupGenerator.healDefaultLineups(team);
+
         activityLogService.log(team, "released", "Released " + player.getFirstName() + " " + player.getLastName() + " from the squad.");
 
         return ResponseEntity.ok(Map.of("message", player.getFirstName() + " " + player.getLastName() + " has been released."));
@@ -384,6 +389,9 @@ public class TransferMarketController {
 
         player.setTeam(null);
         playerRepository.save(player);
+
+        // Keep the stored default lineups free of the retired player
+        lineupGenerator.healDefaultLineups(team);
 
         activityLogService.log(team, "retired", player.getFirstName() + " " + player.getLastName() + " has retired.");
 
