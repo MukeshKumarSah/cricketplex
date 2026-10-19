@@ -819,16 +819,25 @@ const sections = [
     title: 'Team Morale & Fans',
     subsections: [
       {
-        title: 'Team Morale (derived, never 0)',
+        title: 'Team Morale (derived target, stepped, never 0)',
         rows: [
           ['What it is', 'Weighted mix of three independent categories — not a running total'],
-          ['Updated', 'Recomputed after every match (and on dashboard load)'],
+          ['Target', 'form×0.50 + squad×0.30 + academy×0.20, clamped 1–100'],
+          ['Updated', 'After every match, stored morale steps 1–3 toward the target (dashboard does not snap)'],
           ['Form (50%)', 'Last 10 results: (wins×100 + draws×50) ÷ matches. No matches → 50'],
           ['Squad (30%)', 'Average confidence of all squad players (0–100). Empty squad → 50'],
           ['Academy (20%)', 'Academy Level × 25 (Lv1=25, Lv2=50, Lv3=75, Lv4=100)'],
-          ['Formula', 'morale = form×0.50 + squad×0.30 + academy×0.20, clamped 1–100'],
         ],
         note: 'Each category is clamped at 0–100 and never goes negative. Academy is at least 25, so overall morale cannot be 0 even after a losing streak.',
+      },
+      {
+        title: 'Per-match step (never 6–7 in one go)',
+        rows: [
+          ['Loss / falling', 'High (≥75) −3, mid (≥50) −2, low −1 — never more than the gap to target'],
+          ['Win / rising', 'Low (<50) +3, mid (<75) +2, high +1 — never more than the gap to target'],
+          ['Floor', '1 (academy Lv1 alone keeps target ≥ 5)'],
+        ],
+        note: 'A 4–5 game losing streak lowers morale gradually. It takes a longer run of results to reach the form-driven floor.',
       },
       {
         title: 'Morale — Example (squad confidence 70, academy Lv 2 = 50)',

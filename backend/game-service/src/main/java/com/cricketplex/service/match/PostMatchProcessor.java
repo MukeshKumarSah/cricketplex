@@ -163,7 +163,8 @@ public class PostMatchProcessor {
             if (current != null && current.getId() != null && current.getId().equals(mr.getId())) continue;
             recent.add(mr);
         }
-        team.setMorale(MoraleCalculator.compute(recent, team.getId(), avgConfidence, team.getAcademyLevel()).morale());
+        int target = MoraleCalculator.compute(recent, team.getId(), avgConfidence, team.getAcademyLevel()).morale();
+        team.setMorale(MoraleCalculator.stepToward(team.getMorale(), target));
     }
 
     public void applyFanDelta(Team team, String outcome) {

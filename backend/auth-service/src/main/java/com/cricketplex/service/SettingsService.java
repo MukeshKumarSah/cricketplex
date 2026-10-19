@@ -145,13 +145,14 @@ public class SettingsService {
                 avgConfidence,
                 team.getAcademyLevel());
 
-        if (team.getMorale() == null || team.getMorale() != morale.morale()) {
-            team.setMorale(morale.morale());
+        int displayed = team.getMorale() != null ? team.getMorale() : morale.morale();
+        if (team.getMorale() == null) {
+            team.setMorale(displayed);
             teamRepository.save(team);
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("morale", morale.morale());
+        result.put("morale", displayed);
         result.put("formFactor", morale.formFactor());
         result.put("squadConfidenceFactor", morale.squadFactor());
         result.put("facilityFactor", morale.academyFactor());

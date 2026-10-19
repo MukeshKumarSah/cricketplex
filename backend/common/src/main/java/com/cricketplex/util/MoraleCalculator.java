@@ -55,6 +55,23 @@ public final class MoraleCalculator {
         return Math.max(1, Math.min(100, morale));
     }
 
+    /**
+     * Step stored morale toward the derived target. Never more than 3 in one match.
+     * High morale drops faster and rises slower; low morale drops slower and rises faster.
+     */
+    public static int stepToward(Integer stored, int target) {
+        int current = stored != null ? stored : 50;
+        current = Math.max(1, Math.min(100, current));
+        target = Math.max(1, Math.min(100, target));
+        if (current == target) return current;
+        int step = current >= 75 ? 3 : current >= 50 ? 2 : 1;
+        if (target < current) {
+            return Math.max(target, current - step);
+        }
+        step = current < 50 ? 3 : current < 75 ? 2 : 1;
+        return Math.min(target, current + step);
+    }
+
     public static Breakdown compute(List<MatchResult> recent, UUID teamId,
                                    double avgConfidence, Integer academyLevel) {
         int wins = 0, draws = 0, losses = 0, count = 0;
