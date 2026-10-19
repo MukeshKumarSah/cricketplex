@@ -278,9 +278,6 @@ html[data-theme="light"] .st-season-select select option {
   }
   .st-table {
     font-size: 0.72rem;
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
   .st-table th,
   .st-table td {

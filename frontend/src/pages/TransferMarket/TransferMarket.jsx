@@ -523,6 +523,7 @@ function ActivitySection({ sales, loading, onLoad }) {
 
   return (
     <div className="tm-activity">
+      <div className="tm-activity-table-wrap">
       <table className="tm-activity-table">
         <thead>
           <tr>
@@ -557,6 +558,7 @@ function ActivitySection({ sales, loading, onLoad }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

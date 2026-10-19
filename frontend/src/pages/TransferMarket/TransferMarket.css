@@ -443,6 +443,10 @@
 
 /* -- Activity Table -- */
 .tm-activity { margin-top: 0.5rem; }
+.tm-activity-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .tm-activity-table {
   width: 100%;
   border-collapse: collapse;

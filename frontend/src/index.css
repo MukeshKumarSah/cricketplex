@@ -139,15 +139,25 @@ code {
     max-width: 100%;
   }
 
-  .home-content table,
-  .home-content [class*="table"],
-  .home-content [class*="standings"],
-  .home-content [class*="scorecard"] {
+  /* Only wrappers scroll horizontally. Setting display:block on a <table>
+     makes the browser wrap <thead> and <tbody> in separate anonymous tables,
+     so the header cells no longer line up with the body columns. */
+  .home-content [class*="table-wrap"],
+  .home-content [class*="table-scroll"],
+  .home-content [class*="table-container"],
+  .home-content [class*="standings"]:not(table),
+  .home-content [class*="scorecard"]:not(table) {
     display: block;
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep real tables laid out as tables so header/body columns stay in sync. */
+  .home-content table {
+    width: 100%;
+    max-width: none;
   }
 
   .home-content input,

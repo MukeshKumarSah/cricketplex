@@ -244,6 +244,7 @@ export default function TournamentDetail() {
           {!data.standings || data.standings.length === 0 ? (
             <p className="tournaments-empty">Standings will appear once the tournament starts.</p>
           ) : (
+            <div className="standings-table-wrap">
             <table className="standings-table">
               <thead>
                 <tr>
@@ -272,9 +273,10 @@ export default function TournamentDetail() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          )}
+               </tbody>
+             </table>
+            </div>
+           )}
         </div>
       )}
 

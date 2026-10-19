@@ -44,6 +44,8 @@ const TRAINING_SKILL_LABELS = {
 };
 const FORMAT_ORDER = ['T20', 'ODI', 'FC'];
 const FORMAT_COLORS = { T20: '#22d3ee', ODI: '#3b82f6', FC: '#f59e0b' };
+const TYPE_ORDER = ['LEAGUE', 'FRIENDLY', 'CUP'];
+const TYPE_LABELS = { LEAGUE: 'Official', FRIENDLY: 'Friendly', CUP: 'Cup' };
 
 function AuctionCountdown({ endStr }) {
   const remaining = useCountdown(endStr);
@@ -120,9 +122,10 @@ export default function Player() {
         if (res.data.stats) {
           const keys = Object.keys(res.data.stats);
           if (keys.length > 0) {
-            const [fmt, type] = keys[0].split('_');
-            setActiveFormat(fmt);
-            setActiveType(type);
+            const firstFormat = keys[0].split('_')[0];
+            const types = keys.filter(k => k.startsWith(firstFormat + '_')).map(k => k.split('_')[1]);
+            setActiveFormat(firstFormat);
+            setActiveType(types.includes('LEAGUE') ? 'LEAGUE' : types[0]);
           }
         }
       } catch {
@@ -218,9 +221,11 @@ export default function Player() {
   const availableFormats = [...new Set(availableKeys.map(k => k.split('_')[0]))];
   availableFormats.sort((a, b) => FORMAT_ORDER.indexOf(a) - FORMAT_ORDER.indexOf(b));
 
-  const typesForFormat = availableKeys
-    .filter(k => k.startsWith(activeFormat + '_'))
-    .map(k => k.split('_')[1]);
+  const typesForFormat = [...new Set(
+    availableKeys
+      .filter(k => k.startsWith(activeFormat + '_'))
+      .map(k => k.split('_')[1])
+  )].sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
 
   const currentKey = activeFormat + '_' + activeType;
   const current = stats[currentKey];
@@ -425,12 +430,12 @@ export default function Player() {
                   key={t}
                   className={`pp-type-btn ${activeType === t ? 'active' : ''}`}
                   onClick={() => setActiveType(t)}
-                >{t === 'LEAGUE' ? 'Official' : 'Friendly'}</button>
+                >{TYPE_LABELS[t] || t}</button>
               ))}
             </div>
           )}
           {typesForFormat.length === 1 && (
-            <div className="pp-type-single">{typesForFormat[0] === 'LEAGUE' ? 'Official' : 'Friendly'}</div>
+            <div className="pp-type-single">{TYPE_LABELS[typesForFormat[0]] || typesForFormat[0]}</div>
           )}
 
           {current ? (

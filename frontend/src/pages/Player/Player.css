@@ -712,14 +712,14 @@
     justify-content: flex-start;
     flex-wrap: wrap;
   }
-  .pp-transfer-head {
-    display: none;
+  /* Keep the transfer table's header row aligned with its data columns;
+     scroll horizontally instead of collapsing every row into a column. */
+  .pp-transfer-history {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
+  .pp-transfer-head,
   .pp-transfer-row {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-  .pp-transfer-price {
-    text-align: left;
+    min-width: 540px;
   }
 }
