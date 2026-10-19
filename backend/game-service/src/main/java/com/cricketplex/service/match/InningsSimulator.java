@@ -234,6 +234,8 @@ public class InningsSimulator {
                             BattingScorecard bc = batCards.get(striker.player.getId());
                             bc.setDismissalType("STUMPED");
                             bc.setFielder(delivery.fielder);
+                            bowlCard.setWickets(bowlCard.getWickets() + 1);
+                            bc.setBowler(currentBowler);
                             if (totalWickets >= 10 || nextBatIdx >= battingOrder.size()) {
                                 innings.setAllOut(true); break outerLoop;
                             }
@@ -249,7 +251,7 @@ public class InningsSimulator {
                     if (delivery.isNoBall) bowlCard.setNoBalls(bowlCard.getNoBalls() + 1);
                     maidenPossible = false;
                     runsThisOver  += delivery.runs;
-                    if ((delivery.runs % 2) == 1) {
+                    if ((delivery.runs % 2) == 1 && !delivery.isWicket) {
                         BatsmanState t = striker; striker = nonStriker; nonStriker = t;
                     }
                 } else {

@@ -424,12 +424,32 @@ public class FirstClassMatchSimulator {
                         BattingScorecard bc = batCards.get(striker.player.getId());
                         bc.setBallsFaced(bc.getBallsFaced() + 1);
                         if (rob > 0) { bc.setRunsScored(bc.getRunsScored() + rob); if (delivery.isBoundary) bc.setFours(bc.getFours() + 1); if (delivery.isSix) bc.setSixes(bc.getSixes() + 1); }
-                    } else { totalExtras += delivery.runs; }
+                    } else {
+                        totalExtras += delivery.runs;
+                        if (delivery.isWide && delivery.isWicket && "STUMPED".equals(delivery.dismissalType)) {
+                            totalWickets++;
+                            BattingScorecard bc = batCards.get(striker.player.getId());
+                            bc.setDismissalType("STUMPED");
+                            bc.setFielder(delivery.fielder);
+                            bowlCard.setWickets(bowlCard.getWickets() + 1);
+                            bc.setBowler(currentBowler);
+                            if (totalWickets >= 10 || nextBatIdx >= battingOrder.size()) {
+                                innings.setAllOut(true); allOut = true; break outerLoop;
+                            }
+                            striker = new BatsmanState(battingOrder.get(nextBatIdx));
+                            batCards.put(striker.player.getId(),
+                                    ScorecardFactory.createBatCard(innings, striker.lineupPlayer, nextBatIdx + 1));
+                            nextBatIdx++;
+                            partnershipBalls = 0;
+                        }
+                    }
                     bowlCard.setRunsConceded(bowlCard.getRunsConceded() + delivery.runs);
                     if (delivery.isWide) bowlCard.setWides(bowlCard.getWides() + 1);
                     if (delivery.isNoBall) bowlCard.setNoBalls(bowlCard.getNoBalls() + 1);
                     maidenPossible = false; runsThisOver += delivery.runs;
-                    if ((delivery.runs % 2) == 1) { BatsmanState t = striker; striker = nonStriker; nonStriker = t; }
+                    if ((delivery.runs % 2) == 1 && !delivery.isWicket) {
+                        BatsmanState t = striker; striker = nonStriker; nonStriker = t;
+                    }
                 } else {
                     legalBallsThisOver++; ballsBowled++;
                     bowlerBallCounts.merge(currentBowler.getId(), 1, Integer::sum);

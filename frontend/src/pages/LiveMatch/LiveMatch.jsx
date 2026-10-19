@@ -571,7 +571,8 @@ export default function LiveMatch() {
             <div className="lm-strip-batsmen">
               {batsmenAtCrease.map((name) => {
                 const stats = batsmenMap[name] || { runs: 0, balls: 0 };
-                const isStriker = visibleBalls.length > 0 && visibleBalls[visibleBalls.length - 1].batsman === name;
+                const lastBall = visibleBalls.length > 0 ? visibleBalls[visibleBalls.length - 1] : null;
+                const isStriker = lastBall && !lastBall.isWicket && lastBall.batsman === name;
                 return (
                   <span key={name} className={`lm-strip-bat ${isStriker ? 'striker' : ''}`}>
                     {name} {stats.runs}({stats.balls}){isStriker ? '*' : ''}
