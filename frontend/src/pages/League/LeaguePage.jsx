@@ -24,6 +24,30 @@ const STAT_TABS = [
   { key: 'fielding', label: 'Fielding' },
 ];
 
+function compareStats(aVal, bVal) {
+  const parse = (v) => {
+    if (typeof v === 'number') return { t: 'n', n: v, x: 0 };
+    if (v == null || v === '') return { t: 'n', n: 0, x: 0 };
+    const s = String(v).trim();
+    const bb = s.match(/^(\d+)\s*\/\s*(\d+)/);
+    if (bb) return { t: 'bb', n: Number(bb[1]), x: Number(bb[2]) };
+    const hs = s.match(/^(-?\d+(?:\.\d+)?)\*?$/);
+    if (hs) return { t: 'n', n: Number(hs[1]), x: s.endsWith('*') ? 1 : 0 };
+    return { t: 's', s };
+  };
+  const a = parse(aVal);
+  const b = parse(bVal);
+  if (a.t === 's' || b.t === 's') {
+    return String(aVal ?? '').localeCompare(String(bVal ?? ''));
+  }
+  if (a.t === 'bb' && b.t === 'bb') {
+    if (a.n !== b.n) return a.n - b.n;
+    return b.x - a.x;
+  }
+  if (a.n !== b.n) return a.n - b.n;
+  return a.x - b.x;
+}
+
 export default function LeaguePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -142,23 +166,8 @@ export default function LeaguePage() {
   // Sort data based on current sort field and order
   const sortData = useCallback((data, field, order) => {
     if (!field || !data) return data;
-    
-    const sorted = [...data].sort((a, b) => {
-      let aVal = a[field];
-      let bVal = b[field];
-
-      // Handle string comparisons
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-
-      // Handle numeric comparisons
-      aVal = Number(aVal) || 0;
-      bVal = Number(bVal) || 0;
-      return order === 'asc' ? aVal - bVal : bVal - aVal;
-    });
-
-    return sorted;
+    const dir = order === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => dir * compareStats(a[field], b[field]));
   }, []);
 
   // Get sorted stats data
