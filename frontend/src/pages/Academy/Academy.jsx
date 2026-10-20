@@ -365,9 +365,13 @@ function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, ca
 }
 
 /* ════════════ Training Tab ════════════ */
+function byAge(a, b) {
+  return (a.age - b.age) || ((a.ageDays ?? 0) - (b.ageDays ?? 0)) || a.name.localeCompare(b.name);
+}
+
 function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, handleRemove, navigate }) {
-  const focused = overview.players.filter(p => p.trainingType);
-  const general = overview.players.filter(p => !p.trainingType);
+  const focused = [...overview.players.filter(p => p.trainingType)].sort(byAge);
+  const general = [...overview.players.filter(p => !p.trainingType)].sort(byAge);
 
   return (
     <div className="ac-section">
@@ -417,7 +421,7 @@ function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, 
             <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
               <span className="ac-player-name">{p.name}</span>
               <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
-              <span className="ac-player-age">Age {p.age}</span>
+              <span className="ac-player-age">Age {p.age}yr {p.ageDays ?? 0}d</span>
             </div>
             <div className="ac-player-training">
               <span className="ac-training-badge general">General</span>

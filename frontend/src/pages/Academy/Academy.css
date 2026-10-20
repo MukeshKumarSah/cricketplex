@@ -465,13 +465,57 @@
 .ac-modal-btn.confirm-upgrade { background: linear-gradient(135deg, #22d3ee, #06b6d4); color: #0a0f1a; }
 .ac-modal-btn.confirm-downgrade { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
 
-/* ── Responsive ── */
+/* ── Compact: desktop-in-phone keeps laptop rows ── */
 @media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
-  .ac-page { padding: 1rem; }
-  .ac-management-card { flex-direction: column; align-items: flex-start; }
   .ac-mgmt-info { flex-wrap: wrap; gap: 1rem; }
-  .ac-pull-controls { flex-direction: column; }
-  .ac-player-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
-  .ac-history-row { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+  .ac-mgmt-actions { width: 100%; }
+  .ac-upgrade-btn,
+  .ac-downgrade-btn,
+  .ac-pull-btn,
+  .ac-tab,
+  .ac-history-subtab,
   .ac-modal-btn { min-height: 44px; }
+  .ac-select { min-height: 44px; color-scheme: dark; }
+  html[data-theme="light"] .ac-select { color-scheme: light; }
+}
+
+/* ── Phone ── */
+@media (max-width: 600px) {
+  .ac-management-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .ac-mgmt-info { gap: 0.85rem; }
+  .ac-mgmt-divider { display: none; }
+  .ac-mgmt-actions { flex-direction: column; }
+  .ac-upgrade-btn,
+  .ac-downgrade-btn { width: 100%; justify-content: center; }
+  .ac-tabs { overflow-x: auto; }
+  .ac-tab { min-width: 0; }
+  .ac-history-subtabs { width: 100%; }
+  .ac-history-subtab { flex: 1; text-align: center; }
+  .ac-pull-controls { flex-direction: column; align-items: stretch; }
+  .ac-select,
+  .ac-pull-btn { width: 100%; }
+  .ac-player-row,
+  .ac-history-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.75rem 0.85rem;
+  }
+  .ac-player-info,
+  .ac-history-left { flex-wrap: wrap; }
+  .ac-player-training,
+  .ac-player-actions,
+  .ac-history-right {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .ac-type-picker { width: 100%; }
+  .ac-btn-sm { min-height: 40px; }
+  .ac-result-stats { gap: 0.3rem; }
 }
