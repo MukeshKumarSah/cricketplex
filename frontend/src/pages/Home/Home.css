@@ -17,6 +17,7 @@
   overflow: hidden;
   margin-left: 260px;
   transition: margin-left 0.3s ease;
+  min-width: 0;
 }
 
 .home-main.sidebar-collapsed {
@@ -241,6 +242,7 @@
 /* ── Content Area ────────────────────────────────── */
 .home-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 1.5rem;
@@ -250,9 +252,23 @@
 
 /* ── Compact: overlay hamburger only (desktop-in-phone keeps laptop content) ─ */
 @media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+  .home-layout,
+  .home-main,
+  .home-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .home-main,
   .home-main.sidebar-collapsed {
     margin-left: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .home-content {
+    min-height: 0;
   }
 
   .home-layout.is-compact .sidebar {
