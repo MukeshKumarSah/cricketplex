@@ -423,6 +423,24 @@
   white-space: nowrap;
 }
 
+.cup-sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+}
+
+.cup-sortable:hover {
+  background-color: var(--surface-3);
+}
+
+.cup-sort-icon {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.65rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .cup-stats-table th.cup-hi-col,
 .cup-stats-table td.cup-hi-col {
   color: var(--accent);

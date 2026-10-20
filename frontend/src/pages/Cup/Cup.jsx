@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getCupCurrent, getCupBySeason, getCupMyStatus, getTeamStats, getCupStats } from '../../api/auth';
+import { compareStats } from '../../utils/compareStats';
 import { HiOutlineTrophy, HiOutlineCalendarDays } from 'react-icons/hi2';
 import './Cup.css';
 
@@ -396,6 +397,34 @@ export default function Cup() {
 
 // ── Reusable stats panel ────────────────────────────────────────────────────
 function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam }) {
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortRows = (rows) => {
+    if (!sortField || !rows) return rows;
+    const dir = sortOrder === 'asc' ? 1 : -1;
+    return [...rows].sort((a, b) => dir * compareStats(a[sortField], b[sortField]));
+  };
+
+  const Th = ({ field, children, className = '' }) => (
+    <th
+      className={`cup-sortable ${className}`.trim()}
+      onClick={() => handleSort(field)}
+    >
+      {children}
+      {sortField === field && <span className="cup-sort-icon">{sortOrder === 'asc' ? '↑' : '↓'}</span>}
+    </th>
+  );
+
   if (loading) return <div className="cup-loading">Loading stats…</div>;
   if (!data) return (
     <div className="cup-empty">
@@ -404,6 +433,9 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam 
   );
 
   const tabs = ['batting', 'bowling', 'fielding'];
+  const batting = sortRows(data.batting);
+  const bowling = sortRows(data.bowling);
+  const fielding = sortRows(data.fielding);
 
   return (
     <div className="cup-stats-section">
@@ -412,22 +444,30 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam 
           <button
             key={k}
             className={`cup-stats-tab ${statsTab === k ? 'active' : ''}`}
-            onClick={() => setStatsTab(k)}
+            onClick={() => { setStatsTab(k); setSortField(null); setSortOrder('desc'); }}
           >{k.charAt(0).toUpperCase() + k.slice(1)}</button>
         ))}
       </div>
 
       {statsTab === 'batting' && (
-        data.batting?.length
+        batting?.length
           ? <div className="cup-stats-table-wrap"><table className="cup-stats-table">
               <thead><tr>
-                <th className="cup-stats-player-col">Player</th>
-                {showTeam && <th>Team</th>}
-                <th>Mat</th><th>Inn</th><th>NO</th>
-                <th className="cup-hi-col">Runs</th><th>HS</th>
-                <th>Avg</th><th>SR</th><th>100s</th><th>50s</th><th>4s</th><th>6s</th>
+                <Th field="name" className="cup-stats-player-col">Player</Th>
+                {showTeam && <Th field="teamName">Team</Th>}
+                <Th field="matches">Mat</Th>
+                <Th field="innings">Inn</Th>
+                <Th field="notOuts">NO</Th>
+                <Th field="runs" className="cup-hi-col">Runs</Th>
+                <Th field="highest">HS</Th>
+                <Th field="average">Avg</Th>
+                <Th field="strikeRate">SR</Th>
+                <Th field="hundreds">100s</Th>
+                <Th field="fifties">50s</Th>
+                <Th field="fours">4s</Th>
+                <Th field="sixes">6s</Th>
               </tr></thead>
-              <tbody>{data.batting.map(r => (
+              <tbody>{batting.map(r => (
                 <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
@@ -447,16 +487,25 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam 
       )}
 
       {statsTab === 'bowling' && (
-        data.bowling?.length
+        bowling?.length
           ? <div className="cup-stats-table-wrap"><table className="cup-stats-table">
               <thead><tr>
-                <th className="cup-stats-player-col">Player</th>
-                {showTeam && <th>Team</th>}
-                <th>Mat</th><th>Inn</th><th>Overs</th><th>Runs</th>
-                <th className="cup-hi-col">Wkts</th>
-                <th>Best</th><th>Avg</th><th>Econ</th><th>SR</th><th>Mdns</th><th>5W</th><th>3W</th>
+                <Th field="name" className="cup-stats-player-col">Player</Th>
+                {showTeam && <Th field="teamName">Team</Th>}
+                <Th field="matches">Mat</Th>
+                <Th field="innings">Inn</Th>
+                <Th field="overs">Overs</Th>
+                <Th field="runs">Runs</Th>
+                <Th field="wickets" className="cup-hi-col">Wkts</Th>
+                <Th field="best">Best</Th>
+                <Th field="average">Avg</Th>
+                <Th field="economy">Econ</Th>
+                <Th field="strikeRate">SR</Th>
+                <Th field="maidens">Mdns</Th>
+                <Th field="fiveWickets">5W</Th>
+                <Th field="threeWickets">3W</Th>
               </tr></thead>
-              <tbody>{data.bowling.map(r => (
+              <tbody>{bowling.map(r => (
                 <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
@@ -476,16 +525,18 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam 
       )}
 
       {statsTab === 'fielding' && (
-        data.fielding?.length
+        fielding?.length
           ? <div className="cup-stats-table-wrap"><table className="cup-stats-table">
               <thead><tr>
-                <th className="cup-stats-player-col">Player</th>
-                {showTeam && <th>Team</th>}
-                <th>Mat</th>
-                <th className="cup-hi-col">Ct</th><th>St</th><th>RO</th>
-                <th className="cup-hi-col">Total</th>
+                <Th field="name" className="cup-stats-player-col">Player</Th>
+                {showTeam && <Th field="teamName">Team</Th>}
+                <Th field="matches">Mat</Th>
+                <Th field="catches" className="cup-hi-col">Ct</Th>
+                <Th field="stumpings">St</Th>
+                <Th field="runOuts">RO</Th>
+                <Th field="total" className="cup-hi-col">Total</Th>
               </tr></thead>
-              <tbody>{data.fielding.map(r => (
+              <tbody>{fielding.map(r => (
                 <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
