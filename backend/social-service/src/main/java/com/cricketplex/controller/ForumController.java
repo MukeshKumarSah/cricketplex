@@ -26,8 +26,8 @@ public class ForumController {
     // -- Categories ------------------------------------------------------------
 
     @GetMapping("/categories")
-    public ResponseEntity<?> listCategories() {
-        return ResponseEntity.ok(forumService.listCategories());
+    public ResponseEntity<?> listCategories(@AuthenticationPrincipal UserPrincipal user) {
+        return ResponseEntity.ok(forumService.listCategories(user != null ? user.getId() : null));
     }
 
     @PostMapping("/categories")
@@ -118,8 +118,14 @@ public class ForumController {
     // -- Panel -----------------------------------------------------------------
 
     @GetMapping("/panel")
-    public ResponseEntity<?> getPanel() {
-        return ResponseEntity.ok(forumService.getPanel());
+    public ResponseEntity<?> getPanel(@AuthenticationPrincipal UserPrincipal user) {
+        return ResponseEntity.ok(forumService.getPanel(user != null ? user.getId() : null));
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<?> unreadCount(@AuthenticationPrincipal UserPrincipal user) {
+        if (user == null) return ResponseEntity.ok(Map.of("count", 0));
+        return ResponseEntity.ok(forumService.getUnreadSummary(user.getId()));
     }
 
     // -- Admin actions ---------------------------------------------------------

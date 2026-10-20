@@ -235,6 +235,7 @@ export const confirmStripePayment = (paymentIntentId) => API.post('/supporter/st
 
 // Forum
 export const getForumCategories  = ()              => API.get('/forum/categories');
+export const getForumUnreadCount = ()              => API.get('/forum/unread-count');
 export const createForumCategory = (data)          => API.post('/forum/categories', data);
 export const getForumThreads     = (catId, page)   => API.get(`/forum/categories/${catId}/threads`, { params: { page } });
 export const createForumThread   = (catId, data)   => API.post(`/forum/categories/${catId}/threads`, data);

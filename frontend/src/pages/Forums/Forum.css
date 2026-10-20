@@ -151,6 +151,16 @@
   color: var(--accent);
 }
 
+.fcc-unread-badge {
+  background: #ef4444;
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: .15rem .45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .fcc-latest {
   white-space: nowrap;
   overflow: hidden;

@@ -24,8 +24,19 @@ public class ForumService {
     // ── Categories ────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> listCategories() {
+    public List<Map<String, Object>> listCategories(UUID userId) {
         List<ForumCategory> cats = categoryRepo.findAllByOrderByDisplayOrderAsc();
+        Map<UUID, Long> unreadByThread = new HashMap<>();
+        Map<UUID, Long> unreadByCategory = new HashMap<>();
+        if (userId != null) {
+            for (Object[] row : threadRepo.findUnreadCountsByUser(userId)) {
+                UUID threadId = (UUID) row[0];
+                UUID categoryId = (UUID) row[1];
+                long unread = ((Number) row[2]).longValue();
+                unreadByThread.put(threadId, unread);
+                unreadByCategory.merge(categoryId, unread, Long::sum);
+            }
+        }
         List<Map<String, Object>> result = new ArrayList<>();
         for (ForumCategory c : cats) {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -34,8 +45,8 @@ public class ForumService {
             m.put("description",  c.getDescription());
             m.put("displayOrder", c.getDisplayOrder());
             m.put("threadCount",  threadRepo.countByCategory(c));
+            m.put("unreadCount",  unreadByCategory.getOrDefault(c.getId(), 0L));
 
-            // Recent threads sorted by last activity
             Page<ForumThread> recent = threadRepo.findByCategoryOrderByIsPinnedDescLastActivityAtDesc(
                     c, PageRequest.of(0, 5));
             List<Map<String, Object>> recentThreads = new ArrayList<>();
@@ -46,6 +57,7 @@ public class ForumService {
                 lt.put("lastActivityAt", t.getLastActivityAt());
                 lt.put("authorName",     t.getCreatedBy().getName());
                 lt.put("commentCount",   t.getCommentCount());
+                lt.put("unreadCount",    unreadByThread.getOrDefault(t.getId(), 0L));
                 recentThreads.add(lt);
             }
             m.put("recentThreads", recentThreads);
@@ -207,16 +219,26 @@ public class ForumService {
     // ── Panel ─────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Map<String, Object> getPanel() {
+    public Map<String, Object> getPanel(UUID userId) {
         List<ForumThread> mostActive     = threadRepo.findMostActiveThreads(PageRequest.of(0, 5));
         List<ForumThread> recentlyCreated = threadRepo.findRecentlyCreatedThreads(PageRequest.of(0, 5));
         List<ForumThread> recentActivity  = threadRepo.findRecentActivityThreads(PageRequest.of(0, 5));
+        Map<UUID, Long> unreadByThread = unreadByThread(userId);
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("mostActiveThreads",      mostActive.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
-        result.put("recentlyCreatedThreads", recentlyCreated.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
-        result.put("recentActivityThreads",  recentActivity.stream().map(this::toThreadRef).collect(java.util.stream.Collectors.toList()));
+        result.put("mostActiveThreads",      mostActive.stream().map(t -> toThreadRef(t, unreadByThread)).collect(java.util.stream.Collectors.toList()));
+        result.put("recentlyCreatedThreads", recentlyCreated.stream().map(t -> toThreadRef(t, unreadByThread)).collect(java.util.stream.Collectors.toList()));
+        result.put("recentActivityThreads",  recentActivity.stream().map(t -> toThreadRef(t, unreadByThread)).collect(java.util.stream.Collectors.toList()));
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUnreadSummary(UUID userId) {
+        long total = 0;
+        for (Object[] row : threadRepo.findUnreadCountsByUser(userId)) {
+            total += ((Number) row[2]).longValue();
+        }
+        return Map.of("count", total);
     }
 
     // ── Admin: pin / lock ─────────────────────────────────────────────────────
@@ -308,11 +330,21 @@ public class ForumService {
         return m;
     }
 
-    private Map<String, Object> toThreadRef(ForumThread t) {
+    private Map<UUID, Long> unreadByThread(UUID userId) {
+        Map<UUID, Long> map = new HashMap<>();
+        if (userId == null) return map;
+        for (Object[] row : threadRepo.findUnreadCountsByUser(userId)) {
+            map.put((UUID) row[0], ((Number) row[2]).longValue());
+        }
+        return map;
+    }
+
+    private Map<String, Object> toThreadRef(ForumThread t, Map<UUID, Long> unreadByThread) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",           t.getId());
         m.put("title",        t.getTitle());
         m.put("commentCount", t.getCommentCount());
+        m.put("unreadCount",  unreadByThread.getOrDefault(t.getId(), 0L));
         m.put("createdAt",    t.getCreatedAt());
         m.put("lastActivityAt", t.getLastActivityAt());
         m.put("authorName",   t.getCreatedBy().getName());

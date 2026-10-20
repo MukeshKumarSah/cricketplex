@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
-import { getPendingChallengeCount, getNewBlogCount } from '../../api/auth';
+import { getPendingChallengeCount, getNewBlogCount, getForumUnreadCount } from '../../api/auth';
 import TeamSwitcher from '../TeamSwitcher/TeamSwitcher';
 import {
   HiOutlineHome,
@@ -71,6 +71,7 @@ export default function Sidebar({ isOpen, toggle }) {
   const location = useLocation();
   const [pendingChallenges, setPendingChallenges] = useState(0);
   const [newBlogCount, setNewBlogCount] = useState(0);
+  const [forumUnread, setForumUnread] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -94,6 +95,17 @@ export default function Sidebar({ isOpen, toggle }) {
     };
     fetchBlogCount();
     const interval = setInterval(fetchBlogCount, 60_000);
+    return () => clearInterval(interval);
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchForumUnread = () =>
+      getForumUnreadCount()
+        .then((res) => setForumUnread(res.data.count || 0))
+        .catch(() => {});
+    fetchForumUnread();
+    const interval = setInterval(fetchForumUnread, 60_000);
     return () => clearInterval(interval);
   }, [user, location.pathname]);
 
@@ -129,6 +141,9 @@ export default function Sidebar({ isOpen, toggle }) {
             )}
             {item.path === '/blogs' && newBlogCount > 0 && (
               <span className="sidebar-badge">{newBlogCount > 99 ? '99+' : newBlogCount}</span>
+            )}
+            {item.path === '/forums' && forumUnread > 0 && (
+              <span className="sidebar-badge">{forumUnread > 99 ? '99+' : forumUnread}</span>
             )}
           </NavLink>
         ))}

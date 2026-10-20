@@ -98,6 +98,11 @@ export default function Forum() {
                 </div>
                 <div className="fcc-meta">
                   <span className="fcc-count">{cat.threadCount ?? 0} threads</span>
+                  {cat.unreadCount > 0 && (
+                    <span className="fcc-unread-badge" title={`${cat.unreadCount} unread`}>
+                      {cat.unreadCount > 99 ? '99+' : cat.unreadCount} new
+                    </span>
+                  )}
                 </div>
                 <HiOutlineChevronRight className="fcc-arrow" />
               </Link>
@@ -116,6 +121,11 @@ export default function Forum() {
                       <span className="fcc-tr-meta">
                         <HiOutlineChatBubbleLeftRight className="fcc-tr-icon" />
                         {t.commentCount}
+                        {t.unreadCount > 0 && (
+                          <span className="fcc-unread-badge" title={`${t.unreadCount} unread`}>
+                            {t.unreadCount > 99 ? '99+' : t.unreadCount} new
+                          </span>
+                        )}
                         <span className="fcc-tr-dot">·</span>
                         {timeAgo(t.lastActivityAt)}
                       </span>
@@ -212,6 +222,11 @@ function PanelCard({ title, threads, badge }) {
             <p className="panel-thread-title">{thread.title}</p>
             <div className="panel-thread-meta">
               <span className="panel-cat-name">{thread.categoryName}</span>
+              {thread.unreadCount > 0 && (
+                <span className="fcc-unread-badge" title={`${thread.unreadCount} unread`}>
+                  {thread.unreadCount > 99 ? '99+' : thread.unreadCount} new
+                </span>
+              )}
               <span className="panel-badge">{badge(thread)}</span>
             </div>
           </Link>
