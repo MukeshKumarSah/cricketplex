@@ -269,7 +269,9 @@
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sc-section-title {
@@ -286,10 +288,12 @@
 .sc-table {
   display: flex;
   flex-direction: column;
+  min-width: 620px;
 }
 
 .sc-table-head {
   display: flex;
+  flex-wrap: nowrap;
   padding: 0.5rem 1.25rem;
   border-bottom: 1px solid #334155;
 }
@@ -304,6 +308,7 @@
 
 .sc-table-row {
   display: flex;
+  flex-wrap: nowrap;
   padding: 0.55rem 1.25rem;
   border-bottom: 1px solid #1a2332;
   transition: background 0.15s;
@@ -314,7 +319,7 @@
 .sc-table-row.sc-wicket-haul { background: #f59e0b08; }
 
 .sc-col-name {
-  flex: 2.5;
+  flex: 2.5 0 120px;
   font-size: 0.88rem;
   font-weight: 600;
   color: #e2e8f0;
@@ -329,7 +334,7 @@
 }
 
 .sc-col-dismissal {
-  flex: 3;
+  flex: 3 0 140px;
   font-size: 0.82rem;
   color: #94a3b8;
   display: flex;
@@ -341,7 +346,7 @@
 }
 
 .sc-col-num {
-  flex: 0.8;
+  flex: 0 0 44px;
   font-size: 0.88rem;
   color: #cbd5e1;
   text-align: center;
@@ -502,4 +507,6 @@
     border-bottom: 1px solid #334155;
   }
   .sc-perf-team:last-child { border-bottom: none; }
+  .sc-table { min-width: 620px; }
+  .sc-table-footer { min-width: 620px; }
 }

@@ -376,26 +376,30 @@
   background: #0f172a;
   border: 1px solid #1e293b;
   border-radius: 10px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .lm-sc-head {
   display: grid;
-  grid-template-columns: 1fr repeat(6, 42px);
+  grid-template-columns: minmax(140px, 1fr) repeat(6, 42px);
   gap: 4px;
   padding: 8px 12px;
   background: #111827;
   border-bottom: 1px solid #1e293b;
+  min-width: 520px;
 }
 .lm-sc-head .lm-sc-name { color: #64748b; font-size: 0.72rem; text-transform: uppercase; font-weight: 600; }
 .lm-sc-head .lm-sc-num { color: #64748b; font-size: 0.72rem; text-align: center; font-weight: 600; }
 
 .lm-sc-row {
   display: grid;
-  grid-template-columns: 1fr repeat(6, 42px);
+  grid-template-columns: minmax(140px, 1fr) repeat(6, 42px);
   gap: 4px;
   padding: 8px 12px;
   border-bottom: 1px solid #0f172a;
   transition: background 0.15s;
+  min-width: 520px;
 }
 .lm-sc-row:hover { background: #111827; }
 .lm-sc-row.lm-sc-notout { background: #22d3ee06; }
@@ -548,10 +552,9 @@
   .lm-strip { padding: 10px 12px; }
   .lm-feed { max-height: none; min-height: 240px; }
   .lm-ball-row { grid-template-columns: 40px 52px 1fr; padding: 10px; }
-  .lm-sc-head, .lm-sc-row {
+  .lm-sc-head, .lm-sc-row, .lm-sc-footer {
     min-width: 520px;
   }
-  .lm-sc-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .lm-overlay-actions button,
   .lm-overlay-actions a { min-height: 44px; }
 }

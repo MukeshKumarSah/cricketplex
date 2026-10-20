@@ -221,7 +221,7 @@ public class DeliverySimulator {
         // FIX: Recalibrated for real international averages (2019-2024 ball-by-ball data):
         //   T20:  E = 0.25×0 + 0.27×1 + 0.10×2 + 0.02×3 + 0.13×4 + 0.07×6 = 1.41 → 8.46 RPO (baseline)
         //   ODI:  E = 0.44×0 + 0.28×1 + 0.09×2 + 0.02×3 + 0.09×4 + 0.04×6 = 1.10 → 6.6 RPO → ~5.6 after wickets
-        //   FC:   E = 0.52×0 + 0.25×1 + 0.08×2 + 0.03×3 + 0.05×4 + 0.01×6 = 0.76 → ~3.3 RPO after wickets
+        //   FC:   E = 0.66×0 + 0.20×1 + 0.055×2 + 0.015×3 + 0.038×4 + 0.002×6 = 0.52 → ~3.1 RPO
         double pDot, p1, p2, p3, p4, p6, pWicket;
 
         if ("T20".equalsIgnoreCase(ctx.format)) {
@@ -233,13 +233,13 @@ public class DeliverySimulator {
             p6      = 0.055;
             pWicket = 0.050;
         } else if ("FC".equalsIgnoreCase(ctx.format)) {
-            pDot    = 0.57;
-            p1      = 0.24;
-            p2      = 0.07;
-            p3      = 0.02;
-            p4      = 0.04;
-            p6      = 0.005;
-            pWicket = 0.023;
+            pDot    = 0.66;
+            p1      = 0.20;
+            p2      = 0.055;
+            p3      = 0.015;
+            p4      = 0.038;
+            p6      = 0.002;
+            pWicket = 0.030;
         } else { // ODI
             pDot    = 0.50;   // was 0.48 — more dots means pitch-reading matters
             p1      = 0.27;   // was 0.31 — KEY FIX: fewer singles, more decisive play
