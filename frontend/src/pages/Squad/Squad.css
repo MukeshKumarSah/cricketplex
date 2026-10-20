@@ -408,10 +408,12 @@ html[data-theme="light"] .sq-sort-select option {
   color: var(--text-1);
 }
 
-/* ── Responsive ── */
-@media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
+/* Compact MQ: overlay nav only — keep laptop card grid / ratings. */
+
+/* ── Phone view only ── */
+@media (max-width: 600px) {
   .sq-page { gap: 0.85rem; }
-  .sq-header { flex-wrap: wrap; padding: 1.15rem; }
+  .sq-header { flex-wrap: wrap; padding: 1rem 1.15rem; }
   .sq-header h1 { font-size: 1.25rem; }
   .sq-grid { grid-template-columns: 1fr; }
   .sq-filters, .sq-sort-bar { gap: 0.5rem; }
@@ -424,7 +426,6 @@ html[data-theme="light"] .sq-sort-select option {
   .sq-detail-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 480px) {
-  .sq-header { padding: 1rem; }
+  .sq-header { padding: 0.85rem 1rem; }
   .sq-card { padding: 0.85rem 1rem; }
-  .sq-detail-grid { grid-template-columns: 1fr 1fr; }
 }

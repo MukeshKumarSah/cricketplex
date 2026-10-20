@@ -284,12 +284,12 @@
 /* ── Phone view ── */
 @media (max-width: 600px) {
   .top-bar {
-    height: 52px;
-    min-height: 52px;
-    padding: 0 0.85rem;
-    padding-left: max(0.85rem, env(safe-area-inset-left));
-    padding-right: max(0.85rem, env(safe-area-inset-right));
-    gap: 0.6rem;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 0.7rem;
+    padding-left: max(0.7rem, env(safe-area-inset-left));
+    padding-right: max(0.7rem, env(safe-area-inset-right));
+    gap: 0.45rem;
   }
 
   .top-bar-center {
@@ -297,7 +297,14 @@
   }
 
   .page-title {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+  }
+
+  .menu-toggle {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0.25rem 0.35rem;
+    font-size: 1.1rem;
   }
 
   .profile-chevron {
@@ -306,12 +313,12 @@
 
   .profile-avatar,
   .profile-initials {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 
   .home-content {
-    padding: 0.85rem;
+    padding: 0.7rem;
     padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
   }
 }
