@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   getPlayerProfile, getPlayerTransferStatus,
@@ -239,7 +239,7 @@ export default function Player() {
             <h1 className="pp-name">{data.firstName} {data.lastName}</h1>
             <div className="pp-meta-row">
               <span className="pp-role-badge">{ROLE_LABELS[data.role] || data.role}</span>
-              <span className="pp-team-link" onClick={() => navigate(`/team/${data.teamId}`)}>{data.teamName}</span>
+              <Link to={`/team/${data.teamId}`} className="pp-team-link">{data.teamName}</Link>
             </div>
           </div>
           <div className="pp-rating-badge">{data.rating}</div>
@@ -501,7 +501,7 @@ export default function Player() {
                   <h3 className="pp-stat-heading">Last 5 Matches</h3>
                   <div className="pp-last5-list">
                     {current.last5.map((m, i) => (
-                      <div key={i} className="pp-last5-row" onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}>
+                      <Link key={i} to={`/match/${m.fixtureId}?tab=scorecard`} className="pp-last5-row">
                         <div className="pp-last5-meta">
                           <span className="pp-last5-vs">vs {m.vs}</span>
                           {m.date && <span className="pp-last5-date">{m.date}</span>}
@@ -518,7 +518,7 @@ export default function Player() {
                             </span>
                           ))}
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -576,18 +576,20 @@ export default function Player() {
                 <span className="pp-transfer-date">
                   {sale.soldAt ? new Date(sale.soldAt).toLocaleDateString() : '-'}
                 </span>
-                <span
-                  className={`pp-transfer-team ${sale.fromTeamId ? 'link' : ''}`}
-                  onClick={() => sale.fromTeamId && navigate(`/team/${sale.fromTeamId}`)}
-                >
-                  {sale.fromTeam || '-'}
-                </span>
-                <span
-                  className={`pp-transfer-team ${sale.toTeamId ? 'link' : ''}`}
-                  onClick={() => sale.toTeamId && navigate(`/team/${sale.toTeamId}`)}
-                >
-                  {sale.toTeam || '-'}
-                </span>
+                {sale.fromTeamId ? (
+                  <Link to={`/team/${sale.fromTeamId}`} className="pp-transfer-team link">
+                    {sale.fromTeam || '-'}
+                  </Link>
+                ) : (
+                  <span className="pp-transfer-team">{sale.fromTeam || '-'}</span>
+                )}
+                {sale.toTeamId ? (
+                  <Link to={`/team/${sale.toTeamId}`} className="pp-transfer-team link">
+                    {sale.toTeam || '-'}
+                  </Link>
+                ) : (
+                  <span className="pp-transfer-team">{sale.toTeam || '-'}</span>
+                )}
                 <span className="pp-transfer-price">{sale.price ? `$${Number(sale.price).toLocaleString()}` : '-'}</span>
               </div>
             ))}

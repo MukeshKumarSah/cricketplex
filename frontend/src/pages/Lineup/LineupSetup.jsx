@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getLineupData, getFCState, saveLineup as saveLineupApi, saveFCStrategy } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -48,7 +48,6 @@ const TEMPLATE_LABELS = {
 
 export default function LineupSetup() {
   const { fixtureId } = useParams();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -431,12 +430,12 @@ export default function LineupSetup() {
           <span className="lu-mi-tag" style={{ background: fmtColor + '18', color: fmtColor, borderColor: fmtColor + '40' }}>
             {format}
           </span>
-          <span
+          <Link
             className="lu-mi-league-link"
-            onClick={() => navigate(`/league/${matchInfo.leagueId}`)}
+            to={`/league/${matchInfo.leagueId}`}
           >
             {matchInfo.leagueLabel}
-          </span>
+          </Link>
           <span className="lu-mi-detail">
             <HiOutlineCalendarDays /> {matchInfo.matchDate} · R{matchInfo.round}
           </span>

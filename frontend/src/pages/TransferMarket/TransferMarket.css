@@ -108,6 +108,8 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
 }
 .tm-player-name {
   font-weight: 700;
@@ -222,6 +224,7 @@
   font-size: 0.78rem;
   color: var(--text-2);
   cursor: pointer;
+  text-decoration: none;
 }
 .tm-seller-link:hover { color: var(--accent); }
 

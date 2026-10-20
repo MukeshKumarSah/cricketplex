@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getMyMatches, getCurrentSeason } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -14,7 +14,6 @@ const FORMAT_LABELS = { T20: 'T20', ODI: 'OD', FC: 'FC' };
 const FRIENDLY_FORMAT_LABELS = { T20: 'T20 F', ODI: 'OD F', FC: 'FC F' };
 
 export default function Matches() {
-  const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [season, setSeason] = useState(null);
@@ -154,13 +153,9 @@ export default function Matches() {
               const rowRoute = getRowRoute(m);
 
               return (
-                <a
+                <Link
                   key={m.id}
-                  href={rowRoute}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(rowRoute);
-                  }}
+                  to={rowRoute}
                   className="matches-row matches-row-clickable"
                 >
                   <div className="mt-col-date">
@@ -244,28 +239,30 @@ export default function Matches() {
                   <div className="mt-col-action">
                     {activeTab === 'upcoming' ? (
                       m.status === 'FC_DAY1_COMPLETE' ? (
-                        <button
+                        <Link
                           className="matches-action-btn matches-live-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/fc-strategy`); }}
+                          to={`/match/${m.id}/fc-strategy`}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           Day 2 Strategy
-                        </button>
+                        </Link>
                       ) : (m.status === 'LIVE' || m.status === 'IN_PROGRESS') ? (
-                        <button
+                        <Link
                           className="matches-action-btn matches-live-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}?tab=commentary`); }}
+                          to={`/match/${m.id}?tab=commentary`}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           View Live
-                        </button>
+                        </Link>
                       ) : (
-                        <button
+                        <Link
                           className="matches-action-btn matches-lineup-btn"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/match/${m.id}/lineup`); }}
-                        ><a href={`/match/${m.id}/lineup`}>
+                          to={`/match/${m.id}/lineup`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {m.lineupSet && <span className="matches-tick">✓</span>}
                           Lineup Setup
-                          </a>
-                        </button>
+                        </Link>
                       )
                     ) : (
                       <span className={`matches-result${
@@ -282,7 +279,7 @@ export default function Matches() {
                       </span>
                     )}
                   </div>
-                </a>
+                </Link>
               );
             })}
           </div>

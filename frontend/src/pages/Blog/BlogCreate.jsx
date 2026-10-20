@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { createBlog, editBlog, getBlog, uploadBlogImage } from '../../api/auth';
 import RichTextEditor from '../../components/RichTextEditor/RichTextEditor';
@@ -65,9 +65,9 @@ export default function BlogCreate() {
 
   return (
     <div className="blog-create-page">
-      <button className="blog-post-back" onClick={() => navigate(isEdit ? `/blogs/${id}` : '/blogs')}>
+      <Link to={isEdit ? `/blogs/${id}` : '/blogs'} className="blog-post-back">
         <HiOutlineArrowLeft /> {isEdit ? 'Back to Blog' : 'Back to Blogs'}
-      </button>
+      </Link>
 
       <div className="blog-create-header">
         <h1 className="blog-create-title">{isEdit ? 'Edit Blog' : 'New Blog'}</h1>
@@ -132,13 +132,12 @@ export default function BlogCreate() {
           </div>
 
           <div className="blog-form-actions">
-            <button
-              type="button"
+            <Link
               className="btn-secondary"
-              onClick={() => navigate(isEdit ? `/blogs/${id}` : '/blogs')}
+              to={isEdit ? `/blogs/${id}` : '/blogs'}
             >
               Cancel
-            </button>
+            </Link>
             <button type="submit" className="btn-primary" disabled={saving}>
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Publish Blog'}
             </button>

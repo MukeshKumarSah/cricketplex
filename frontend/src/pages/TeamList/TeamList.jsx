@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { HiOutlineQueueList, HiChevronUp, HiChevronDown, HiChevronUpDown } from 'react-icons/hi2';
 import { getTeamList } from '../../api/auth';
@@ -25,7 +25,6 @@ const ratingColor = (r) => {
 const STATUS_ORDER = { GREEN: 0, YELLOW: 1, GREY: 2, ORANGE: 3, RED: 4 };
 
 export default function TeamList() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,9 +156,9 @@ export default function TeamList() {
                   const status = STATUS_META[team.activityStatus] || STATUS_META.RED;
                   const isActiveTeam = team.id === user?.activeTeamId;
                   return (
-                    <tr key={team.id} className="tl-row tl-row-clickable" onClick={() => navigate(isActiveTeam ? '/' : `/team/${team.id}`)}>
+                    <tr key={team.id} className="tl-row">
                       <td className="tl-cell-team">
-                        <div className="tl-team-info">
+                        <Link to={isActiveTeam ? '/' : `/team/${team.id}`} className="tl-team-info">
                           {team.teamProfilePicUrl ? (
                             <img
                               src={`/api/files/${team.teamProfilePicUrl}`}
@@ -172,7 +171,7 @@ export default function TeamList() {
                             </span>
                           )}
                           <span className="tl-team-name">{team.teamName}</span>
-                        </div>
+                        </Link>
                       </td>
                       <td className="tl-cell-manager">
                         <div className="tl-manager-wrap">

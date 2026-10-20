@@ -90,6 +90,7 @@
   color: var(--accent);
   cursor: pointer;
   transition: color 0.15s;
+  text-decoration: none;
 }
 
 .lu-mi-league-link:hover {

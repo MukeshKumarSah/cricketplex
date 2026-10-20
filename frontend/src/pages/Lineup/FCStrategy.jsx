@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getFCState, saveFCStrategy } from '../../api/auth';
 import toast from 'react-hot-toast';
 import './FCStrategy.css';
@@ -74,7 +74,7 @@ export default function FCStrategy() {
       <header className="fcs-header">
         <h1 className="fcs-title">Update Day 2 Strategy</h1>
         <p className="fcs-sub">Review Day 1 scorecard and adjust your strategy for Day 2.</p>
-        <button className="fcs-scorecard-btn" onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}>View Full Scorecard</button>
+        <Link className="fcs-scorecard-btn" to={`/match/${fixtureId}?tab=scorecard`}>View Full Scorecard</Link>
       </header>
 
       {/* Day 1 Innings Summary */}

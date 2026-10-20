@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   getActiveListings, getMyListings, placeBid, cancelListing, getRecentSales,
 } from '../../api/auth';
@@ -35,7 +35,6 @@ function useCountdown(endStr) {
 }
 
 export default function TransferMarket() {
-  const navigate = useNavigate();
   const [tab, setTab] = useState(() => sessionStorage.getItem('tm_tab') || 'browse');
     useEffect(() => {
       sessionStorage.setItem('tm_tab', tab);
@@ -197,7 +196,6 @@ export default function TransferMarket() {
           listings={listings} loading={loading}
           bidInputs={bidInputs} setBidInputs={setBidInputs}
           bidding={bidding} handleBid={handleBid}
-          navigate={navigate}
         />
       )}
 
@@ -205,7 +203,6 @@ export default function TransferMarket() {
         <MyListingsSection
           listings={myListings}
           handleCancel={handleCancel}
-          navigate={navigate}
         />
       )}
 
@@ -227,7 +224,7 @@ function AuctionTimer({ endStr }) {
   );
 }
 
-function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, handleBid, navigate }) {
+function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, handleBid }) {
   const [showFilters, setShowFilters] = useState(false);
   const defaultFilters = {
     name: '', country: '', role: '', batHand: '', bowlType: '',
@@ -359,12 +356,12 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
         {filtered.map(l => (
         <div key={l.listingId} className={`tm-card${l.isLeadingBidder ? ' tm-card-leading' : l.hasBid ? ' tm-card-outbid' : ''}`}>
           <div className="tm-card-top">
-            <div className="tm-player-info" onClick={() => navigate(`/player/${l.player.id}`)}>
+            <Link to={`/player/${l.player.id}`} className="tm-player-info">
               <span className="tm-player-name">{l.player.name}</span>
               <span className="tm-player-role">{ROLE_SHORT[l.player.role]}</span>
               <span className="tm-player-age">Age {l.player.age}yr {l.player.ageDays ?? 0}d</span>
               <span className="tm-player-country">{l.player.country}</span>
-            </div>
+            </Link>
             <div className="tm-player-rating">{l.player.rating}</div>
           </div>
 
@@ -405,7 +402,7 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
             </div>
             <div className="tm-price-row">
               <span className="tm-price-label">Seller</span>
-              <span className="tm-seller-link" onClick={(e) => { e.stopPropagation(); navigate(l.isOwn ? '/' : `/team/${l.sellerTeamId}`); }}>{l.sellerTeam}</span>
+              <Link to={l.isOwn ? '/' : `/team/${l.sellerTeamId}`} className="tm-seller-link">{l.sellerTeam}</Link>
             </div>
           </div>
 
@@ -435,7 +432,7 @@ function BrowseSection({ listings, loading, bidInputs, setBidInputs, bidding, ha
   );
 }
 
-function MyListingsSection({ listings, handleCancel, navigate }) {
+function MyListingsSection({ listings, handleCancel }) {
   if (!listings.length) return <div className="tm-empty">You have no listings</div>;
 
   return (
@@ -443,11 +440,11 @@ function MyListingsSection({ listings, handleCancel, navigate }) {
       {listings.map(l => (
         <div key={l.listingId} className={`tm-card ${l.status !== 'ACTIVE' ? 'tm-card-inactive' : ''}`}>
           <div className="tm-card-top">
-            <div className="tm-player-info" onClick={() => navigate(`/player/${l.player.id}`)}>
+            <Link to={`/player/${l.player.id}`} className="tm-player-info">
               <span className="tm-player-name">{l.player.name}</span>
               <span className="tm-player-role">{ROLE_SHORT[l.player.role]}</span>
               <span className="tm-player-age">Age {l.player.age}yr {l.player.ageDays ?? 0}d</span>
-            </div>
+            </Link>
             <span className={`tm-status-badge ${l.status.toLowerCase()}`}>{l.status}</span>
           </div>
 
@@ -515,7 +512,6 @@ function MyListingsSection({ listings, handleCancel, navigate }) {
 }
 
 function ActivitySection({ sales, loading, onLoad }) {
-  const navigate = useNavigate();
   useEffect(() => { onLoad(); }, [onLoad]);
 
   if (loading) return <div className="tm-loading">Loading recent sales…</div>;
@@ -539,17 +535,17 @@ function ActivitySection({ sales, loading, onLoad }) {
             <tr key={i}>
               <td>
                 {s.playerId
-                  ? <span className="tm-seller-link" onClick={() => navigate(`/player/${s.playerId}`)}>{s.playerName}</span>
+                  ? <Link to={`/player/${s.playerId}`} className="tm-seller-link">{s.playerName}</Link>
                   : s.playerName}
               </td>
               <td>
                 {s.sellerTeamId
-                  ? <span className="tm-seller-link" onClick={() => navigate(`/team/${s.sellerTeamId}`)}>{s.soldFrom}</span>
+                  ? <Link to={`/team/${s.sellerTeamId}`} className="tm-seller-link">{s.soldFrom}</Link>
                   : s.soldFrom}
               </td>
               <td>
                 {s.buyerTeamId
-                  ? <span className="tm-seller-link" onClick={() => navigate(`/team/${s.buyerTeamId}`)}>{s.soldTo}</span>
+                  ? <Link to={`/team/${s.buyerTeamId}`} className="tm-seller-link">{s.soldTo}</Link>
                   : (s.soldTo ?? '—')}
               </td>
               <td>${s.initialPrice?.toLocaleString()}</td>

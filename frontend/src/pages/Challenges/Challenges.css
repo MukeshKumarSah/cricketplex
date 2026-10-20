@@ -247,6 +247,7 @@
   cursor: pointer;
   border: 1px solid;
   transition: all 0.15s;
+  text-decoration: none;
 }
 .ch-accept   { background: #10b98115; color: #10b981; border-color: #10b98135; }
 .ch-accept:hover { background: #10b98128; }

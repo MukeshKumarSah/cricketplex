@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getForumCategories, getForumPanel, createForumCategory } from '../../api/auth';
 import { HiOutlineChatBubbleLeftRight, HiOutlinePlus, HiOutlineChevronRight, HiOutlineChatBubbleOvalLeft } from 'react-icons/hi2';
@@ -23,7 +23,6 @@ function timeAgo(dateStr) {
 
 export default function Forum() {
   const { user } = useAuth();
-  const navigate  = useNavigate();
   const isAdmin   = user?.role === 'ADMIN';
 
   const [categories, setCategories] = useState([]);
@@ -86,12 +85,9 @@ export default function Forum() {
           {categories.map((cat) => (
             <div key={cat.id} className="forum-category-card">
               {/* ── Category header ── */}
-              <div
+              <Link
                 className="fcc-header"
-                onClick={() => navigate(`category/${cat.id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && navigate(`category/${cat.id}`)}
+                to={`category/${cat.id}`}
               >
                 <div className="fcc-icon">
                   <HiOutlineChatBubbleOvalLeft />
@@ -104,19 +100,16 @@ export default function Forum() {
                   <span className="fcc-count">{cat.threadCount ?? 0} threads</span>
                 </div>
                 <HiOutlineChevronRight className="fcc-arrow" />
-              </div>
+              </Link>
 
               {/* ── Recent threads ── */}
               {cat.recentThreads && cat.recentThreads.length > 0 && (
                 <div className="fcc-thread-list">
                   {cat.recentThreads.map((t) => (
-                    <div
+                    <Link
                       key={t.id}
+                      to={`thread/${t.id}`}
                       className="fcc-thread-row"
-                      onClick={(e) => { e.stopPropagation(); navigate(`thread/${t.id}`); }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && navigate(`thread/${t.id}`)}
                     >
                       <span className="fcc-tr-avatar">{t.authorName?.charAt(0) ?? '?'}</span>
                       <span className="fcc-tr-title">{t.title}</span>
@@ -126,7 +119,7 @@ export default function Forum() {
                         <span className="fcc-tr-dot">·</span>
                         {timeAgo(t.lastActivityAt)}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -146,19 +139,16 @@ export default function Forum() {
                 title="Most Active"
                 threads={panel.mostActiveThreads}
                 badge={(t) => `${t.commentCount} replies`}
-                navigate={navigate}
               />
               <PanelCard
                 title="Recently Created"
                 threads={panel.recentlyCreatedThreads}
                 badge={(t) => timeAgo(t.createdAt)}
-                navigate={navigate}
               />
               <PanelCard
                 title="Recent Activity"
                 threads={panel.recentActivityThreads}
                 badge={(t) => timeAgo(t.lastActivityAt)}
-                navigate={navigate}
               />
             </>
           )}
@@ -202,7 +192,7 @@ export default function Forum() {
   );
 }
 
-function PanelCard({ title, threads, badge, navigate }) {
+function PanelCard({ title, threads, badge }) {
   if (!threads || threads.length === 0) return (
     <div className="panel-card">
       <h3 className="panel-card-title">{title}</h3>
@@ -214,20 +204,17 @@ function PanelCard({ title, threads, badge, navigate }) {
       <h3 className="panel-card-title">{title}</h3>
       <div className="panel-thread-list">
         {threads.map((thread) => (
-          <div
+          <Link
             key={thread.id}
+            to={`thread/${thread.id}`}
             className="panel-thread"
-            onClick={() => navigate(`thread/${thread.id}`)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && navigate(`thread/${thread.id}`)}
           >
             <p className="panel-thread-title">{thread.title}</p>
             <div className="panel-thread-meta">
               <span className="panel-cat-name">{thread.categoryName}</span>
               <span className="panel-badge">{badge(thread)}</span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

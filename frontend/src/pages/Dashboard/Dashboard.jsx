@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getSettings, getStadiumSeats, getMyLeagues, getWeatherForecast, getRecentActivities, getDashboardStats, getMyMatches, getAttendanceHistory, getMyTrophies } from '../../api/auth';
 import {
@@ -132,7 +132,6 @@ const getMoraleColor = (m) => {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const d = mockData;
   const [team, setTeam] = useState(null);
   const [totalSeats, setTotalSeats] = useState(0);
@@ -406,7 +405,7 @@ export default function Dashboard() {
         <div className="dash-card-header">
           <HiOutlineCalendarDays className="dash-card-icon" />
           <h2>Matches</h2>
-          <span className="dash-matches-view-all" onClick={() => navigate('/matches')}>View All</span>
+          <Link to="/matches" className="dash-matches-view-all">View All</Link>
         </div>
         <div className="dash-matches-list">
           {dashMatches.length > 0 ? dashMatches.map((m) => {
@@ -423,11 +422,12 @@ export default function Dashboard() {
             ) : isDay1 ? 'day1done' : 'upcoming';
             const statusLabel = isLive ? 'LIVE' : isDone ? (m.resultSummary || 'Completed') : isDay1 ? 'Day 1 Done' : 'Upcoming';
             const formatColors = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
+            const matchTo = isLive ? `/match/${m.id}?tab=commentary` : isDone ? `/match/${m.id}?tab=scorecard` : `/match/${m.id}/preview`;
             return (
-              <div
+              <Link
                 key={m.id}
+                to={matchTo}
                 className={`dash-match-row dash-match-${statusClass}`}
-                onClick={() => navigate(isLive ? `/match/${m.id}?tab=commentary` : isDone ? `/match/${m.id}?tab=scorecard` : isDay1 ? `/match/${m.id}/preview` : `/match/${m.id}/preview`)}
               >
                 <div className="dash-match-date">
                   {m.matchDate ? new Date(m.matchDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
@@ -441,7 +441,7 @@ export default function Dashboard() {
                   <span className={!m.isHome ? 'dash-match-my-team' : ''}>{m.awayTeamName}</span>
                 </div>
                 <span className={`dash-match-status ${statusClass}`}>{statusLabel}</span>
-              </div>
+              </Link>
             );
           }) : (
             <div className="dash-empty-state">
@@ -464,10 +464,10 @@ export default function Dashboard() {
               const formatColors = { T20: '#22d3ee', ODI: '#a78bfa', FC: '#34d399' };
               const formatLabels = { T20: 'T20', ODI: 'One Day', FC: 'First Class' };
               return (
-                <div
+                <Link
                   className="dash-league-row dash-league-row-clickable"
                   key={lg.leagueId}
-                  onClick={() => navigate(`/league/${lg.leagueId}`)}
+                  to={`/league/${lg.leagueId}`}
                 >
                   <div className="dash-league-badge" style={{ background: formatColors[lg.format] || '#64748b' }}>
                     {formatLabels[lg.format] || lg.format}
@@ -497,7 +497,7 @@ export default function Dashboard() {
                     <span className="dash-league-pos-num">#{lg.position}</span>
                     <span className="dash-league-pos-label">of {lg.totalTeams}</span>
                   </div>
-                </div>
+                </Link>
               );
             })
           ) : (

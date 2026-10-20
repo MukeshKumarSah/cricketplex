@@ -235,6 +235,8 @@ html[data-theme="light"] .sq-sort-select option {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
 }
 .sq-card:hover {
   border-color: var(--border-hover);

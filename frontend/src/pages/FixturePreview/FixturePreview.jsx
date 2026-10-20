@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getFixturePreview } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -25,7 +25,6 @@ const PITCH_META = {
 
 export default function FixturePreview() {
   const { fixtureId } = useParams();
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,19 +68,19 @@ export default function FixturePreview() {
             style={(() => { const c = FORMAT_COLORS[data.format] || '#94a3b8'; return { color: c, background: c + '18', borderColor: c + '40' }; })()}
           >{data.format}</span>
           {data.leagueLabel && (
-            <span
+            <Link
               className="fp-league-link"
-              onClick={() => navigate(`/league/${data.leagueId}`)}
+              to={`/league/${data.leagueId}`}
             >
               {data.leagueLabel}
-            </span>
+            </Link>
           )}
           {!data.leagueLabel && <span className="fp-league-link">Friendly</span>}
           {data.round > 0 && <span className="fp-round">Round {data.round}</span>}
         </div>
 
         <div className="fp-teams-row">
-          <div className="fp-team fp-team-home" onClick={() => navigate(`/team/${home.id}`)}>
+          <Link to={`/team/${home.id}`} className="fp-team fp-team-home">
             {home.teamProfilePicUrl ? (
               <img className="fp-team-logo" src={`/api/files/${home.teamProfilePicUrl}`} alt="" />
             ) : (
@@ -89,7 +88,7 @@ export default function FixturePreview() {
             )}
             <span className="fp-team-name">{home.teamName}</span>
             {home.isBot && <span className="fp-bot">BOT</span>}
-          </div>
+          </Link>
 
           <div className="fp-vs-block">
             <span className="fp-vs">VS</span>
@@ -98,7 +97,7 @@ export default function FixturePreview() {
             </span>
           </div>
 
-          <div className="fp-team fp-team-away" onClick={() => navigate(`/team/${away.id}`)}>
+          <Link to={`/team/${away.id}`} className="fp-team fp-team-away">
             {away.teamProfilePicUrl ? (
               <img className="fp-team-logo" src={`/api/files/${away.teamProfilePicUrl}`} alt="" />
             ) : (
@@ -106,7 +105,7 @@ export default function FixturePreview() {
             )}
             <span className="fp-team-name">{away.teamName}</span>
             {away.isBot && <span className="fp-bot">BOT</span>}
-          </div>
+          </Link>
         </div>
 
         <div className="fp-header-details">
@@ -179,16 +178,16 @@ export default function FixturePreview() {
               <div className="fp-recent">
                 <h4 className="fp-recent-title">Recent Results</h4>
                 {rivalry.recentMatches.map((m, i) => (
-                  <div
+                  <Link
                     key={i}
+                    to={`/match/${m.fixtureId}?tab=scorecard`}
                     className="fp-recent-row fp-recent-row-clickable"
-                    onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}
                     title="View scorecard"
                   >
                     <span className="fp-recent-date">{m.date}</span>
                     <span className="fp-recent-format">{m.format}</span>
                     <span className="fp-recent-summary">{m.summary}</span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -199,31 +198,31 @@ export default function FixturePreview() {
       {/* Action Buttons */}
       <div className="fp-actions">
         {data.status === 'COMPLETED' && (
-          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}>
+          <Link className="fp-btn fp-btn-primary" to={`/match/${fixtureId}?tab=scorecard`}>
             View Scorecard
-          </button>
+          </Link>
         )}
         {data.status === 'IN_PROGRESS' && (
-          <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}>
+          <Link className="fp-btn fp-btn-primary" to={`/match/${fixtureId}?tab=commentary`}>
             Watch Live
-          </button>
+          </Link>
         )}
         {data.status === 'FC_DAY1_COMPLETE' && (
           <>
-            <button className="fp-btn fp-btn-primary" onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}>
+            <Link className="fp-btn fp-btn-primary" to={`/match/${fixtureId}?tab=scorecard`}>
               View Day 1 Scorecard
-            </button>
+            </Link>
             {data.isUserInvolved && (
-              <button className="fp-btn fp-btn-accent" onClick={() => navigate(`/match/${fixtureId}/fc-strategy`)}>
+              <Link className="fp-btn fp-btn-accent" to={`/match/${fixtureId}/fc-strategy`}>
                 Update Day 2 Strategy
-              </button>
+              </Link>
             )}
           </>
         )}
         {data.isUserInvolved && data.status === 'SCHEDULED' && (
-          <button className="fp-btn fp-btn-accent" onClick={() => navigate(`/match/${fixtureId}/lineup`)}>
+          <Link className="fp-btn fp-btn-accent" to={`/match/${fixtureId}/lineup`}>
             {data.lineupSet ? 'Edit Lineup' : 'Set Lineup'}
-          </button>
+          </Link>
         )}
       </div>
     </div>

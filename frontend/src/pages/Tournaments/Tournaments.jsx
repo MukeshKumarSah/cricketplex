@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   listTournaments,
@@ -203,7 +203,8 @@ export default function Tournaments() {
       ) : (
         <div className="tournaments-grid">
           {tournaments.map((t) => (
-            <div key={t.id} className="tournament-card" onClick={() => navigate(`/tournaments/${t.id}`)}>
+            <div key={t.id} className="tournament-card-wrap">
+              <Link to={`/tournaments/${t.id}`} className="tournament-card">
               <div className="tc-header">
                 <span className="tc-type-badge" data-type={t.type}>{t.type}</span>
                 <span className="tc-format">{t.format}</span>
@@ -218,9 +219,9 @@ export default function Tournaments() {
                 {t.startDate && <span><HiOutlineCalendarDays /> {new Date(t.startDate).toLocaleDateString()}</span>}
               </div>
               <div className="tc-creator">By {t.createdBy}</div>
-
+              </Link>
               {filter === 'pending' && (
-                <div className="tc-respond-row" onClick={(e) => e.stopPropagation()}>
+                <div className="tc-respond-row">
                   <button className="btn-accept" onClick={() => handleRespond(t.id, true)}>
                     <HiOutlineCheckCircle /> Accept
                   </button>

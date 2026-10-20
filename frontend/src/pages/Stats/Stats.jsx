@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getTeamStats, getCurrentSeason } from '../../api/auth';
 import toast from 'react-hot-toast';
 import './Stats.css';
@@ -13,7 +13,6 @@ const MATCH_TYPES = [
 const ROLE_SHORT = { BATSMAN: 'BAT', BOWLER: 'BOWL', ALL_ROUNDER: 'AR', KEEPER: 'WK' };
 
 export default function Stats() {
-  const navigate = useNavigate();
   const [format, setFormat] = useState(() => sessionStorage.getItem('stats_format') || 'T20');
   const [matchType, setMatchType] = useState(() => sessionStorage.getItem('stats_matchType') || 'LEAGUE');
   const [season, setSeason] = useState(() => {
@@ -153,15 +152,15 @@ export default function Stats() {
       </div>
 
       <div className="st-table-wrap">
-        {tab === 'batting' && <BattingTable rows={data.batting} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
-        {tab === 'bowling' && <BowlingTable rows={data.bowling} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
-        {tab === 'fielding' && <FieldingTable rows={data.fielding} navigate={navigate} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
+        {tab === 'batting' && <BattingTable rows={data.batting} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
+        {tab === 'bowling' && <BowlingTable rows={data.bowling} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
+        {tab === 'fielding' && <FieldingTable rows={data.fielding} sortField={sortField} sortOrder={sortOrder} onSort={handleSort} sortData={sortData} />}
       </div>
     </div>
   );
 }
 
-function BattingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
+function BattingTable({ rows, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No batting data for this format</div>;
   const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
@@ -208,9 +207,9 @@ function BattingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }
       </thead>
       <tbody>
         {sorted.map(r => (
-          <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
+          <tr key={r.id} className="st-row">
             <td className="st-td-name">
-              <span className="st-player-name">{r.name}</span>
+              <Link to={`/player/${r.id}`} className="st-player-name">{r.name}</Link>
               <span className="st-player-role">{ROLE_SHORT[r.role] || r.role}</span>
             </td>
             <td>{r.matches}</td>
@@ -231,7 +230,7 @@ function BattingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }
   );
 }
 
-function BowlingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
+function BowlingTable({ rows, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No bowling data for this format</div>;
   const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
@@ -281,9 +280,9 @@ function BowlingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }
       </thead>
       <tbody>
         {sorted.map(r => (
-          <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
+          <tr key={r.id} className="st-row">
             <td className="st-td-name">
-              <span className="st-player-name">{r.name}</span>
+              <Link to={`/player/${r.id}`} className="st-player-name">{r.name}</Link>
               <span className="st-player-role">{ROLE_SHORT[r.role] || r.role}</span>
             </td>
             <td>{r.matches}</td>
@@ -305,7 +304,7 @@ function BowlingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }
   );
 }
 
-function FieldingTable({ rows, navigate, sortField, sortOrder, onSort, sortData }) {
+function FieldingTable({ rows, sortField, sortOrder, onSort, sortData }) {
   if (!rows?.length) return <div className="st-empty">No fielding data for this format</div>;
   const sorted = sortField ? sortData(rows, sortField, sortOrder) : rows;
   return (
@@ -334,9 +333,9 @@ function FieldingTable({ rows, navigate, sortField, sortOrder, onSort, sortData 
       </thead>
       <tbody>
         {sorted.map(r => (
-          <tr key={r.id} className="st-row" onClick={() => navigate(`/player/${r.id}`)}>
+          <tr key={r.id} className="st-row">
             <td className="st-td-name">
-              <span className="st-player-name">{r.name}</span>
+              <Link to={`/player/${r.id}`} className="st-player-name">{r.name}</Link>
               <span className="st-player-role">{ROLE_SHORT[r.role] || r.role}</span>
             </td>
             <td>{r.matches}</td>

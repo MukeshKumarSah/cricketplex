@@ -219,6 +219,7 @@ html[data-theme="light"] .st-season-select select option {
   color: var(--text-1);
   font-weight: 600;
   font-size: 0.82rem;
+  text-decoration: none;
 }
 .st-player-role {
   font-size: 0.6rem;
@@ -231,7 +232,6 @@ html[data-theme="light"] .st-season-select select option {
   letter-spacing: 0.3px;
 }
 .st-row {
-  cursor: pointer;
   transition: background 0.15s;
 }
 .st-row:hover {

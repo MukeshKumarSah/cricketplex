@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   getTeamProfile,
   getTeamSquad,
@@ -45,7 +45,6 @@ const ratingColor = (r) => {
 
 export default function TeamProfile() {
   const { teamId } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -332,10 +331,10 @@ export default function TeamProfile() {
                           : m.status === 'FC_DAY1_COMPLETE' ? `/match/${m.id}?tab=scorecard`
                           : `/match/${m.id}/preview`;
                         return (
-                          <a
+                          <Link
                             key={m.id}
                             className="tp-match-row tp-match-clickable"
-                            href={matchHref}
+                            to={matchHref}
                           >
                             {/* Date */}
                             <div className="tp-mc-date">
@@ -396,7 +395,7 @@ export default function TeamProfile() {
                                 <span className="tp-res-sched">Scheduled</span>
                               )}
                             </div>
-                          </a>
+                          </Link>
                         );
                       })}
                     </div>
@@ -439,10 +438,11 @@ export default function TeamProfile() {
                         <tr
                           key={p.id}
                           className="tp-sq-row"
-                          onClick={() => navigate(`/player/${p.id}`)}
                         >
                           <td className="tp-sq-pos">{i + 1}</td>
-                          <td className="tp-sq-name">{p.firstName} {p.lastName}</td>
+                          <td className="tp-sq-name">
+                            <Link to={`/player/${p.id}`}>{p.firstName} {p.lastName}</Link>
+                          </td>
                           <td>
                             <span className="tp-sq-role" data-role={p.role}>
                               {ROLE_LABEL[p.role] || p.role}
@@ -475,10 +475,10 @@ export default function TeamProfile() {
             ) : (
               <div className="tp-league-grid">
                 {leagues.leagues.map((l) => (
-                  <div
+                  <Link
                     key={l.leagueId}
+                    to={`/league/${l.leagueId}`}
                     className="tp-league-card"
-                    onClick={() => navigate(`/league/${l.leagueId}`)}
                   >
                     <div className="tp-league-header">
                       <HiOutlineTrophy className="tp-league-icon" />
@@ -498,7 +498,7 @@ export default function TeamProfile() {
                         <span className="tp-league-pos">{l.position}/{l.totalTeams}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBlog, reactToBlog, pinBlog, deleteBlog } from '../../api/auth';
 import RichTextRenderer from '../../components/RichTextEditor/RichTextRenderer';
@@ -84,9 +84,9 @@ export default function BlogPost() {
   return (
     <div className="blog-post-page">
       {/* Back */}
-      <button className="blog-post-back" onClick={() => navigate('/blogs')}>
+      <Link to="/blogs" className="blog-post-back">
         <HiOutlineArrowLeft /> Back to Blog
-      </button>
+      </Link>
 
       {/* Header */}
       <div className="blog-post-header">
@@ -106,12 +106,12 @@ export default function BlogPost() {
       {(canEdit || canDelete || isAdmin) && (
         <div className="blog-post-admin-row">
           {canEdit && (
-            <button
+            <Link
               className="btn-ghost"
-              onClick={() => navigate(`/blogs/${id}/edit`)}
+              to={`/blogs/${id}/edit`}
             >
               <HiOutlinePencil /> Edit
-            </button>
+            </Link>
           )}
           {isAdmin && (
             <button className="btn-ghost" onClick={handlePin}>
@@ -162,12 +162,12 @@ export default function BlogPost() {
       {blog.forumThreadId && (
         <div className="blog-forum-link">
           <span className="blog-forum-link-text">💬 Discuss this blog in the forum</span>
-          <button
+          <Link
             className="blog-forum-link-btn"
-            onClick={() => navigate(`/forums/thread/${blog.forumThreadId}`)}
+            to={`/forums/thread/${blog.forumThreadId}`}
           >
             Open thread <HiOutlineArrowTopRightOnSquare />
-          </button>
+          </Link>
         </div>
       )}
     </div>

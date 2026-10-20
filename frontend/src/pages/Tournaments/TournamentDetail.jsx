@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   getTournamentDetail,
@@ -143,7 +143,7 @@ export default function TournamentDetail() {
     <div className="tournaments-page">
       {/* Header */}
       <div className="td-header">
-        <button className="btn-back" onClick={() => navigate('/tournaments')}>← Back</button>
+        <Link to="/tournaments" className="btn-back">← Back</Link>
         <div className="td-title-row">
           <HiOutlineTrophy className="tournaments-icon" />
           <div>
@@ -210,10 +210,10 @@ export default function TournamentDetail() {
                 <h3 className="round-label">{roundLabel}</h3>
                 <div className="fixture-list">
                   {fixtures.map((f) => (
-                    <div
+                    <Link
                       key={f.id}
+                      to={`/match/${f.id}/preview`}
                       className={`fixture-row ${f.status === 'COMPLETED' ? 'completed' : ''}`}
-                      onClick={() => navigate(`/match/${f.id}/preview`)}
                     >
                       <span className="fx-team home">{f.homeTeam?.name}</span>
                       <div className="fx-center">
@@ -229,7 +229,7 @@ export default function TournamentDetail() {
                         </span>
                       </div>
                       <span className="fx-team away">{f.awayTeam?.name}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

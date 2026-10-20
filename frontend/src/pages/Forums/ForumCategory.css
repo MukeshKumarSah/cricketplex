@@ -91,6 +91,8 @@
   flex: 1;
   min-width: 0;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
 }
 
 .fc-thread-title-row {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   HiOutlineGlobeAlt,
@@ -26,7 +26,6 @@ import { COUNTRIES } from '../../constants/countries';
 import './AdminLeagues.css';
 
 export default function AdminLeagues() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState({ totalCountries: 0, totalLeagues: 0, countries: [] });
   const [loading, setLoading] = useState(true);
 
@@ -530,10 +529,10 @@ export default function AdminLeagues() {
                             <h4 className="al-div-title">Division {div}</h4>
                             <div className="al-league-chips">
                               {leagues.map((l) => (
-                                <span
+                                <Link
                                   key={l.id || l.leagueId}
+                                  to={`/league/${l.id}`}
                                   className="al-league-chip al-league-chip-clickable"
-                                  onClick={() => navigate(`/league/${l.id}`)}
                                 >
                                   {l.format} {l.leagueId}
                                   <span className="al-league-season">S{l.season}</span>
@@ -549,7 +548,7 @@ export default function AdminLeagues() {
                                       <HiOutlineTrash />
                                     </button>
                                   )}
-                                </span>
+                                </Link>
                               ))}
                             </div>
                           </div>

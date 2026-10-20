@@ -71,6 +71,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
 }
 .sc-commentary-btn:hover { background: #a78bfa30; }
 
@@ -117,6 +118,9 @@
   transition: all 0.2s;
   position: relative;
   overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 .sc-motm-card::before {
   content: '';
@@ -421,6 +425,8 @@
   border-bottom: 1px solid #1a2332;
   cursor: pointer;
   transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
 }
 .sc-perf-row:hover { background: #0f172a60; }
 .sc-perf-row:last-child { border-bottom: none; }

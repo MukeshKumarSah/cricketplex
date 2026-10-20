@@ -441,7 +441,6 @@
 }
 
 .cup-stats-row {
-  cursor: pointer;
   transition: background 0.12s;
 }
 .cup-stats-row:hover {
@@ -461,6 +460,10 @@
 .cup-stats-name {
   font-weight: 600;
   color: var(--text-1);
+  text-decoration: none;
+}
+.cup-stats-name:hover {
+  color: var(--accent);
 }
 
 .cup-stats-role {

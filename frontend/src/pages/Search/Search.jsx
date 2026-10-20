@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { searchManagers, searchPlayers, searchTeams, searchLeagues } from '../../api/auth';
 import toast from 'react-hot-toast';
@@ -20,7 +20,6 @@ const TABS = [
 ];
 
 export default function Search() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const [activeTab, setActiveTab] = useState('managers');
@@ -137,14 +136,14 @@ export default function Search() {
         {/* Manager Results */}
         {activeTab === 'managers' && results.length > 0 && (
           <div className="search-grid">
-            {results.map((m) => (
-              <div
+            {results.map((m) => {
+              const teamTo = m.teamId ? (m.teamId === user?.teamId ? '/' : `/team/${m.teamId}`) : null;
+              const Card = teamTo ? Link : 'div';
+              return (
+              <Card
                 key={m.id}
-                className={`search-card ${m.teamId ? 'search-card-clickable' : ''}`}
-                onClick={() => {
-                  if (!m.teamId) return;
-                  navigate(m.teamId === user?.teamId ? '/' : `/team/${m.teamId}`);
-                }}
+                {...(teamTo ? { to: teamTo } : {})}
+                className={`search-card ${teamTo ? 'search-card-clickable' : ''}`}
               >
                 <div className="search-card-avatar">
                   {m.profilePicUrl ? (
@@ -164,8 +163,9 @@ export default function Search() {
                     </span>
                   )}
                 </div>
-              </div>
-            ))}
+              </Card>
+            );
+            })}
           </div>
         )}
 
@@ -173,10 +173,10 @@ export default function Search() {
         {activeTab === 'players' && results.length > 0 && (
           <div className="search-grid">
             {results.map((p) => (
-              <div
+              <Link
                 key={p.id}
+                to={`/player/${p.id}`}
                 className="search-card search-card-clickable"
-                onClick={() => navigate(`/player/${p.id}`)}
               >
                 <div className="search-card-role-badge" data-role={p.role}>
                   {p.role === 'ALL_ROUNDER' ? 'AR' : p.role?.slice(0, 3)}
@@ -190,7 +190,7 @@ export default function Search() {
                     Team: {p.teamName}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -199,10 +199,10 @@ export default function Search() {
         {activeTab === 'teams' && results.length > 0 && (
           <div className="search-grid">
             {results.map((t) => (
-              <div
+              <Link
                 key={t.id}
+                to={t.id === user?.teamId ? '/' : `/team/${t.id}`}
                 className="search-card search-card-clickable"
-                onClick={() => navigate(t.id === user?.teamId ? '/' : `/team/${t.id}`)}
               >
                 <div className="search-card-avatar">
                   {t.teamProfilePicUrl ? (
@@ -222,7 +222,7 @@ export default function Search() {
                     <span>FC: {t.fcRating}</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -231,10 +231,10 @@ export default function Search() {
         {activeTab === 'leagues' && results.length > 0 && (
           <div className="search-grid">
             {results.map((l) => (
-              <div
+              <Link
                 key={l.id}
+                to={`/league/${l.id}`}
                 className="search-card search-card-clickable"
-                onClick={() => navigate(`/league/${l.id}`)}
               >
                 <div className="search-card-role-badge" data-role="LEAGUE">
                   {l.leagueId}
@@ -245,7 +245,7 @@ export default function Search() {
                     {l.format} · Division {l.division} · League {l.leagueNumber} · Season {l.season}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

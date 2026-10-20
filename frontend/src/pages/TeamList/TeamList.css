@@ -149,18 +149,17 @@
 .tl-row:hover {
   background: var(--surface-hover);
 }
-.tl-row-clickable {
-  cursor: pointer;
-}
-.tl-row-clickable:hover {
-  background: var(--accent-surface);
-}
-
-/* -- Team cell -- */
 .tl-team-info {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* -- Team cell -- */
+.tl-team-info:hover .tl-team-name {
+  color: var(--accent);
 }
 .tl-team-avatar {
   width: 28px;

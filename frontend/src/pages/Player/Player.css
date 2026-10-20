@@ -56,6 +56,7 @@
   color: var(--text-3);
   cursor: pointer;
   transition: color 0.2s;
+  text-decoration: none;
 }
 .pp-team-link:hover {
   color: var(--accent);
@@ -478,6 +479,8 @@
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
+  text-decoration: none;
+  color: inherit;
 }
 .pp-last5-row:hover {
   border-color: var(--border-hover);
@@ -660,6 +663,7 @@
 .pp-transfer-team.link {
   cursor: pointer;
   color: var(--accent);
+  text-decoration: none;
 }
 
 .pp-transfer-team.link:hover {

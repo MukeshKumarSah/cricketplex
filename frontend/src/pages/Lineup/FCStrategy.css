@@ -40,6 +40,7 @@
   color: var(--text-2);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  text-decoration: none;
 }
 .fcs-scorecard-btn:hover {
   background: var(--surface-hover, var(--primary));

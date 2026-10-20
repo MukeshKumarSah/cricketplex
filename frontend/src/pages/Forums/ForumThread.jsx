@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   getForumThread,
@@ -185,9 +185,9 @@ export default function ForumThread() {
   return (
     <div className="ft-page">
       {/* ── Back ── */}
-      <button className="btn-ghost ft-back" onClick={() => navigate(`/forums/category/${thread.category.id}`)}>
+      <Link to={`/forums/category/${thread.category.id}`} className="btn-ghost ft-back">
         <HiOutlineArrowLeft /> {thread.category.name}
-      </button>
+      </Link>
 
       {/* ── Thread card ── */}
       <div className="ft-thread-card">

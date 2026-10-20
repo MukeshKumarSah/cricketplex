@@ -119,6 +119,8 @@
   border-radius: 6px;
   padding: 0.1rem 0.3rem;
   transition: background 0.15s, color 0.15s;
+  text-decoration: none;
+  color: inherit;
 }
 .mc-meta-link:hover {
   background: var(--accent-surface);
@@ -1285,6 +1287,8 @@
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
   transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
 }
 .mc-team-clickable:hover { background: var(--accent-surface); }
 .mc-team-clickable:hover .mc-team-name { color: var(--accent); }
@@ -1355,6 +1359,8 @@
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   font-size: 0.78rem;
+  text-decoration: none;
+  color: inherit;
 }
 .mc-rivalry-date { color: var(--text-3); min-width: 90px; flex-shrink: 0; }
 .mc-rivalry-format {
@@ -1412,7 +1418,8 @@
 }
 .mc-overlay-btn:hover { opacity: 0.85; }
 .mc-overlay-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-.mc-overlay-actions button {
+.mc-overlay-actions button,
+.mc-overlay-actions a {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1426,8 +1433,10 @@
   padding: 0.6rem 1.2rem;
   cursor: pointer;
   transition: opacity 0.2s;
+  text-decoration: none;
 }
-.mc-overlay-actions button:hover { opacity: 0.85; }
+.mc-overlay-actions button:hover,
+.mc-overlay-actions a:hover { opacity: 0.85; }
 .mc-overlay-back {
   background: var(--surface-2) !important;
   color: var(--text-3) !important;

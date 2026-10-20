@@ -401,6 +401,7 @@
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 6px;
   transition: all 0.15s;
+  text-decoration: none;
 }
 .al-league-chip-clickable {
   cursor: pointer;

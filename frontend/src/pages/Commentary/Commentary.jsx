@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCommentary } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -67,12 +67,12 @@ export default function Commentary() {
           <h1>Ball-by-Ball Commentary</h1>
           <p className="comm-summary">{data.summary}</p>
         </div>
-        <button
+        <Link
           className="comm-scorecard-btn"
-          onClick={() => navigate(`/match/${fixtureId}?tab=scorecard`)}
+          to={`/match/${fixtureId}?tab=scorecard`}
         >
           <HiOutlineTrophy /> Scorecard
-        </button>
+        </Link>
       </div>
 
       {/* Innings Tabs */}

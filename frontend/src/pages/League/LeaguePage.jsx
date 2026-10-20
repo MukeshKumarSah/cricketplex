@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getAvailableLeagues, refreshLeagueStandings } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import toast from 'react-hot-toast';
@@ -454,14 +454,14 @@ export default function LeaguePage() {
 
                     {/* Match rows */}
                     {round.matches.map((m) => (
-                      <div
+                      <Link
                         key={m.id}
                         className="lp-ft-row"
-                        onClick={() => {
-                          if (m.status === 'FC_DAY1_COMPLETE') navigate(`/match/${m.id}/fc-strategy`);
-                          else if (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') navigate(`/match/${m.id}?tab=scorecard`);
-                          else navigate(`/match/${m.id}/preview`);
-                        }}
+                        to={
+                          m.status === 'FC_DAY1_COMPLETE' ? `/match/${m.id}/fc-strategy`
+                          : (m.status === 'COMPLETED' || m.status === 'IN_PROGRESS') ? `/match/${m.id}?tab=scorecard`
+                          : `/match/${m.id}/preview`
+                        }
                       >
                         {/* Fixture column */}
                         <div className="lp-ft-col-fixture">
@@ -503,7 +503,7 @@ export default function LeaguePage() {
                             <span className="lp-ft-pill lp-ft-pill-scheduled">Scheduled</span>
                           )}
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 ))}

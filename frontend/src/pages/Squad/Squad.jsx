@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   HiOutlineUserGroup,
@@ -34,7 +34,6 @@ const SORT_OPTIONS = [
 ];
 
 export default function Squad() {
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('ALL');
@@ -183,10 +182,10 @@ export default function Squad() {
       {/* Player Cards */}
       <div className="sq-grid">
         {players.map((p) => (
-          <div
+          <Link
             key={p.id}
+            to={`/player/${p.id}`}
             className="sq-card"
-            onClick={() => navigate(`/player/${p.id}`)}
           >
             {/* Card Top */}
             <div className="sq-card-top">
@@ -237,7 +236,7 @@ export default function Squad() {
                 <RatingBar label="FIT" value={p.fitness} max={100} color="#a3e635" />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

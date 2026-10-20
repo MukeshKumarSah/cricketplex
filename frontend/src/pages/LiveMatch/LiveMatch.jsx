@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { getCommentary, getMatchResult } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -63,7 +63,6 @@ function getLegalCount(balls) {
 
 export default function LiveMatch() {
   const { fixtureId } = useParams();
-  const navigate = useNavigate();
   const [commentary, setCommentary] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -534,9 +533,9 @@ export default function LiveMatch() {
     <div className="lm-page">
       {/* ─── Sticky Score Bar ─── */}
       <div className="lm-score-bar">
-        <button className="lm-back" onClick={() => navigate('/challenges')}>
+        <Link to="/challenges" className="lm-back">
           <HiOutlineChevronLeft />
-        </button>
+        </Link>
         <div className="lm-score-info">
           <span className="lm-team-name">{battingTeam}</span>
           <span className="lm-score-num">{liveScore.runs}/{liveScore.wkts}</span>
@@ -657,9 +656,9 @@ export default function LiveMatch() {
                         return (
                       <span className="lm-sc-name">
                         {bc.playerId ? (
-                          <a className="lm-sc-name" href={`/player/${bc.playerId}`}>
+                          <Link className="lm-sc-name" to={`/player/${bc.playerId}`}>
                             {bc.playerName}{bc.notOut ? '*' : ''}
-                          </a>
+                          </Link>
                         ) : (
                           <>{bc.playerName}{bc.notOut ? '*' : ''}</>
                         )}
@@ -699,9 +698,9 @@ export default function LiveMatch() {
                     <div key={i} className={`lm-sc-row ${bc.wickets >= 3 ? 'lm-sc-haul' : ''}`}>
                       {(() => {
                         return bc.playerId ? (
-                          <a className="lm-sc-name" href={`/player/${bc.playerId}`}>
+                          <Link className="lm-sc-name" to={`/player/${bc.playerId}`}>
                             {bc.playerName}
-                          </a>
+                          </Link>
                         ) : <span className="lm-sc-name">{bc.playerName}</span>;
                       })()}
                       <span className="lm-sc-num">
@@ -772,12 +771,12 @@ export default function LiveMatch() {
               <button onClick={() => { setMatchEnded(false); setActiveTab('scorecard'); }}>
                 <HiOutlineTrophy /> View Scorecard
               </button>
-              <button onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}>
+              <Link to={`/match/${fixtureId}?tab=commentary`}>
                 <HiOutlineClipboardDocumentList /> Full Commentary
-              </button>
-              <button className="lm-overlay-back" onClick={() => navigate('/matches')}>
+              </Link>
+              <Link to="/matches" className="lm-overlay-back">
                 Back to Matches
-              </button>
+              </Link>
             </div>
           </div>
         </div>

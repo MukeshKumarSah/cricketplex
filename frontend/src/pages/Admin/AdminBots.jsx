@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { HiOutlineCpuChip, HiChevronUp, HiChevronDown, HiChevronUpDown } from 'react-icons/hi2';
 import { getTeamList } from '../../api/auth';
@@ -14,7 +14,6 @@ const ratingColor = (r) => {
 };
 
 export default function AdminBots() {
-  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -137,11 +136,10 @@ export default function AdminBots() {
                 filtered.map((team) => (
                   <tr
                     key={team.id}
-                    className="tl-row tl-row-clickable"
-                    onClick={() => navigate(`/team/${team.id}`)}
+                    className="tl-row"
                   >
                     <td className="tl-cell-team">
-                      <div className="tl-team-info">
+                      <Link to={`/team/${team.id}`} className="tl-team-info">
                         {team.teamProfilePicUrl ? (
                           <img
                             src={`/api/files/${team.teamProfilePicUrl}`}
@@ -154,7 +152,7 @@ export default function AdminBots() {
                           </span>
                         )}
                         <span className="tl-team-name">{team.teamName}</span>
-                      </div>
+                      </Link>
                     </td>
                     <td className="tl-cell-rating">
                       <span className="tl-rating" style={{ color: ratingColor(team.odiRating) }}>

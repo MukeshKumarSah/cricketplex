@@ -461,6 +461,8 @@ html[data-theme="light"] .lp-season-select option {
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .lp-ft-row:last-child {

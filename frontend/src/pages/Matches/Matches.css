@@ -356,6 +356,8 @@ html[data-theme="light"] .matches-filter-item select option {
   justify-content: flex-start;
 }
 .matches-action-btn {
+  display: inline-flex;
+  align-items: center;
   padding: 0.3rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
@@ -364,6 +366,7 @@ html[data-theme="light"] .matches-filter-item select option {
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  text-decoration: none;
 }
 .matches-lineup-btn {
   background: var(--accent-surface);

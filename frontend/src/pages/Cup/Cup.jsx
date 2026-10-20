@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getCupCurrent, getCupBySeason, getCupMyStatus, getTeamStats, getCupStats } from '../../api/auth';
 import { HiOutlineTrophy, HiOutlineCalendarDays } from 'react-icons/hi2';
 import './Cup.css';
@@ -50,7 +50,6 @@ export default function Cup() {
   const [cupStatsLoading, setCupStatsLoading] = useState(false);
   const [statsLoadedSeason, setStatsLoadedSeason]       = useState(null); // cache key
   const [cupStatsLoadedSeason, setCupStatsLoadedSeason] = useState(null); // cache key
-  const navigate = useNavigate();
 
   const loadCup = useCallback(async (s) => {
     setLoading(true);
@@ -376,7 +375,6 @@ export default function Cup() {
           season={season}
           statsTab={statsTab}
           setStatsTab={setStatsTab}
-          navigate={navigate}
           showTeam
         />
       )}
@@ -389,7 +387,6 @@ export default function Cup() {
           season={season}
           statsTab={statsTab}
           setStatsTab={setStatsTab}
-          navigate={navigate}
           showTeam={false}
         />
       )}
@@ -398,7 +395,7 @@ export default function Cup() {
 }
 
 // ── Reusable stats panel ────────────────────────────────────────────────────
-function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, navigate, showTeam }) {
+function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, showTeam }) {
   if (loading) return <div className="cup-loading">Loading stats…</div>;
   if (!data) return (
     <div className="cup-empty">
@@ -431,10 +428,10 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, navigate,
                 <th>Avg</th><th>SR</th><th>100s</th><th>50s</th><th>4s</th><th>6s</th>
               </tr></thead>
               <tbody>{data.batting.map(r => (
-                <tr key={r.id} className="cup-stats-row" onClick={() => navigate(`/player/${r.id}`)}>
+                <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
-                      <span className="cup-stats-name">{r.name}</span>
+                      <Link to={`/player/${r.id}`} className="cup-stats-name">{r.name}</Link>
                       <span className="cup-stats-role">{roleShort(r.role)}</span>
                     </div>
                   </td>
@@ -460,10 +457,10 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, navigate,
                 <th>Best</th><th>Avg</th><th>Econ</th><th>SR</th><th>Mdns</th><th>5W</th><th>3W</th>
               </tr></thead>
               <tbody>{data.bowling.map(r => (
-                <tr key={r.id} className="cup-stats-row" onClick={() => navigate(`/player/${r.id}`)}>
+                <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
-                      <span className="cup-stats-name">{r.name}</span>
+                      <Link to={`/player/${r.id}`} className="cup-stats-name">{r.name}</Link>
                       <span className="cup-stats-role">{roleShort(r.role)}</span>
                     </div>
                   </td>
@@ -489,10 +486,10 @@ function CupStatsPanel({ data, loading, season, statsTab, setStatsTab, navigate,
                 <th className="cup-hi-col">Total</th>
               </tr></thead>
               <tbody>{data.fielding.map(r => (
-                <tr key={r.id} className="cup-stats-row" onClick={() => navigate(`/player/${r.id}`)}>
+                <tr key={r.id} className="cup-stats-row">
                   <td>
                     <div className="cup-stats-player">
-                      <span className="cup-stats-name">{r.name}</span>
+                      <Link to={`/player/${r.id}`} className="cup-stats-name">{r.name}</Link>
                       <span className="cup-stats-role">{roleShort(r.role)}</span>
                     </div>
                   </td>

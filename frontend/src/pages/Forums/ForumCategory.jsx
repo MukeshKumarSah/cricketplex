@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   getForumThreads,
@@ -38,7 +38,6 @@ function timeAgo(dateStr) {
 
 export default function ForumCategory() {
   const { categoryId } = useParams();
-  const navigate       = useNavigate();
   const { user: authUser } = useAuth();
   const isAdmin = authUser?.role === 'ADMIN';
 
@@ -117,9 +116,9 @@ export default function ForumCategory() {
     <div className="fc-page">
       {/* ── Back + header ── */}
       <div className="fc-header">
-        <button className="btn-ghost fc-back" onClick={() => navigate('/forums')}>
+        <Link to="/forums" className="btn-ghost fc-back">
           <HiOutlineArrowLeft /> Forums
-        </button>
+        </Link>
         <div className="fc-header-info">
           <h1 className="fc-title">{category?.name}</h1>
           {category?.description && <p className="fc-subtitle">{category.description}</p>}
@@ -147,12 +146,9 @@ export default function ForumCategory() {
             </div>
 
             {/* Thread info */}
-            <div
+            <Link
               className="fc-thread-info"
-              onClick={() => navigate(`/forums/thread/${t.id}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate(`/forums/thread/${t.id}`)}
+              to={`/forums/thread/${t.id}`}
             >
               <div className="fc-thread-title-row">
                 {t.isPinned && <span className="badge-pin">Pinned</span>}
@@ -164,7 +160,7 @@ export default function ForumCategory() {
                 <span>·</span>
                 <span>{timeAgo(t.lastActivityAt)}</span>
               </div>
-            </div>
+            </Link>
 
             {/* Stats */}
             <div className="fc-thread-stats">

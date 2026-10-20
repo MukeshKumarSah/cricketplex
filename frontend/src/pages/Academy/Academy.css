@@ -312,6 +312,9 @@
   padding: 1rem;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 .ac-result-card:hover { border-color: var(--accent); background: var(--surface-hover); }
 .ac-result-top {
@@ -353,7 +356,7 @@
   border-radius: 8px; padding: 0.55rem 0.8rem; transition: border-color 0.15s;
 }
 .ac-player-row:hover { border-color: var(--border-hover); }
-.ac-player-info { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.ac-player-info { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; text-decoration: none; color: inherit; }
 .ac-player-name { color: var(--text-1); font-weight: 600; font-size: 0.85rem; }
 .ac-player-info:hover .ac-player-name { color: var(--accent); }
 .ac-player-role-badge {
@@ -412,6 +415,7 @@
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 8px; padding: 0.55rem 0.8rem;
   cursor: pointer; transition: border-color 0.15s;
+  text-decoration: none; color: inherit;
 }
 .ac-history-row:hover { border-color: var(--border-hover); }
 .ac-history-left { display: flex; align-items: center; gap: 0.5rem; }

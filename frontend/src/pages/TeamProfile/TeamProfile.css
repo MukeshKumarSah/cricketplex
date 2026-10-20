@@ -471,12 +471,20 @@
 }
 
 .tp-sq-row {
-  cursor: pointer;
   transition: background 0.12s;
 }
 
 .tp-sq-row:hover {
   background: var(--accent-surface);
+}
+
+.tp-sq-name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tp-sq-name a:hover {
+  color: var(--accent);
 }
 
 .tp-sq-pos {
@@ -518,6 +526,9 @@
   padding: 0.9rem 1.1rem;
   cursor: pointer;
   transition: all 0.15s;
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .tp-league-card:hover {

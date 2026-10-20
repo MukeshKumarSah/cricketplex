@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   getAcademyOverview, pullPlayer, getPullHistory, getPullStatus,
   assignTraining, removeTraining, getTrainingHistory,
@@ -33,7 +33,6 @@ const DOWNGRADE_REFUND = { 4: 150000, 3: 75000, 2: 30000 };
 const LEVEL_SPOTS = { 1: 3, 2: 5, 3: 7, 4: 10 };
 
 export default function Academy() {
-  const navigate = useNavigate();
   const [tab, setTab] = useState(() => sessionStorage.getItem('academy_tab') || 'pulls');
     useEffect(() => {
       sessionStorage.setItem('academy_tab', tab);
@@ -239,7 +238,6 @@ export default function Academy() {
           pullRole={pullRole} setPullRole={setPullRole}
           pulling={pulling} handlePull={handlePull} lastPull={lastPull}
           canPull={canPull} nextWindow={nextWindow}
-          navigate={navigate}
         />
       )}
 
@@ -248,7 +246,6 @@ export default function Academy() {
           overview={overview}
           assigningId={assigningId} setAssigningId={setAssigningId}
           handleAssign={handleAssign} handleRemove={handleRemove}
-          navigate={navigate}
         />
       )}
 
@@ -268,8 +265,8 @@ export default function Academy() {
               Training Logs
             </button>
           </div>
-          {historySubTab === 'pull-history' && <PullHistorySection data={pullHistory} navigate={navigate} />}
-          {historySubTab === 'training-history' && <TrainingHistorySection data={trainingHistory} navigate={navigate} />}
+          {historySubTab === 'pull-history' && <PullHistorySection data={pullHistory} />}
+          {historySubTab === 'training-history' && <TrainingHistorySection data={trainingHistory} />}
         </div>
       )}
 
@@ -305,7 +302,7 @@ export default function Academy() {
 }
 
 /* ════════════ Pulls Tab ════════════ */
-function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, canPull, nextWindow, navigate }) {
+function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, canPull, nextWindow }) {
   const formatNextWindow = () => {
     if (!nextWindow) return '';
     const d = new Date(nextWindow + 'Z');
@@ -343,7 +340,7 @@ function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, ca
       {lastPull && (
         <div className="ac-pull-result">
           <h3 className="ac-section-title">Last Pull</h3>
-          <div className="ac-result-card" onClick={() => navigate(`/player/${lastPull.player.id}`)}>
+          <Link to={`/player/${lastPull.player.id}`} className="ac-result-card">
             <div className="ac-result-top">
               <span className="ac-result-name">{lastPull.player.name}</span>
               <span className="ac-result-role">{ROLE_SHORT[lastPull.player.role]}</span>
@@ -357,7 +354,7 @@ function PullsSection({ pullRole, setPullRole, pulling, handlePull, lastPull, ca
               <StatPill label="Stam" value={lastPull.player.stamina} />
               <StatPill label="Conf" value={lastPull.player.confidence} />
             </div>
-          </div>
+          </Link>
         </div>
       )}
     </div>
@@ -369,7 +366,7 @@ function byAge(a, b) {
   return (a.age - b.age) || ((a.ageDays ?? 0) - (b.ageDays ?? 0)) || a.name.localeCompare(b.name);
 }
 
-function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, handleRemove, navigate }) {
+function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, handleRemove }) {
   const focused = [...overview.players.filter(p => p.trainingType)].sort(byAge);
   const general = [...overview.players.filter(p => !p.trainingType)].sort(byAge);
 
@@ -386,11 +383,11 @@ function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, 
           <div className="ac-player-list">
             {focused.map(p => (
               <div key={p.id} className="ac-player-row">
-                <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
+                <Link to={`/player/${p.id}`} className="ac-player-info">
                   <span className="ac-player-name">{p.name}</span>
                   <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
                   <span className="ac-player-age">Age {p.age}yr {p.ageDays ?? 0}d</span>
-                </div>
+                </Link>
                 <div className="ac-player-training">
                   <span className="ac-training-badge focused">{p.trainingType}</span>
                   {assigningId === p.id ? (
@@ -418,11 +415,11 @@ function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, 
       <div className="ac-player-list">
         {general.map(p => (
           <div key={p.id} className="ac-player-row">
-            <div className="ac-player-info" onClick={() => navigate(`/player/${p.id}`)}>
+            <Link to={`/player/${p.id}`} className="ac-player-info">
               <span className="ac-player-name">{p.name}</span>
               <span className="ac-player-role-badge">{ROLE_SHORT[p.role]}</span>
               <span className="ac-player-age">Age {p.age}yr {p.ageDays ?? 0}d</span>
-            </div>
+            </Link>
             <div className="ac-player-training">
               <span className="ac-training-badge general">General</span>
               {assigningId === p.id ? (
@@ -447,14 +444,14 @@ function TrainingSection({ overview, assigningId, setAssigningId, handleAssign, 
 }
 
 /* ════════════ Pull History ════════════ */
-function PullHistorySection({ data, navigate }) {
+function PullHistorySection({ data }) {
   if (!data) return <div className="ac-loading">Loading…</div>;
   if (!data.length) return <div className="ac-empty">No pulls yet</div>;
   return (
     <div className="ac-section">
       <div className="ac-history-list">
         {data.map(p => (
-          <div key={p.id} className="ac-history-row" onClick={() => navigate(`/player/${p.player.id}`)}>
+          <Link key={p.id} to={`/player/${p.player.id}`} className="ac-history-row">
             <div className="ac-history-left">
               <span className="ac-history-name">{p.player.name}</span>
               <span className="ac-player-role-badge">{ROLE_SHORT[p.requestedRole]}</span>
@@ -469,7 +466,7 @@ function PullHistorySection({ data, navigate }) {
               </div>
               {p.pulledAt && <span className="ac-history-date">{new Date(p.pulledAt).toLocaleDateString()}</span>}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -477,14 +474,14 @@ function PullHistorySection({ data, navigate }) {
 }
 
 /* ════════════ Training History ════════════ */
-function TrainingHistorySection({ data, navigate }) {
+function TrainingHistorySection({ data }) {
   if (!data) return <div className="ac-loading">Loading…</div>;
   if (!data.length) return <div className="ac-empty">No training logs yet</div>;
   return (
     <div className="ac-section">
       <div className="ac-history-list">
         {data.map(log => (
-          <div key={log.id} className="ac-history-row" onClick={() => navigate(`/player/${log.playerId}`)}>
+          <Link key={log.id} to={`/player/${log.playerId}`} className="ac-history-row">
             <div className="ac-history-left">
               <span className="ac-history-name">{log.playerName}</span>
               <span className={`ac-training-badge ${log.trainingType === 'GENERAL' ? 'general' : 'focused'}`}>
@@ -499,7 +496,7 @@ function TrainingHistorySection({ data, navigate }) {
               </span>
               {log.trainedAt && <span className="ac-history-date">{new Date(log.trainedAt).toLocaleDateString()}</span>}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>

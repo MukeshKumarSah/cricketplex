@@ -46,6 +46,7 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  text-decoration: none;
 }
 .fp-league-link:hover {
   text-decoration: underline;
@@ -73,6 +74,8 @@
   cursor: pointer;
   transition: opacity 0.15s;
   min-width: 100px;
+  text-decoration: none;
+  color: inherit;
 }
 .fp-team:hover {
   opacity: 0.8;
@@ -330,6 +333,8 @@
   background: var(--surface-2);
   margin-bottom: 6px;
   border: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
 }
 
 .fp-recent-row-clickable {
@@ -376,6 +381,9 @@
 }
 
 .fp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 10px;
   padding: 12px 28px;
@@ -383,6 +391,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
+  text-decoration: none;
 }
 .fp-btn:hover {
   transform: translateY(-1px);

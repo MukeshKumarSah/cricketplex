@@ -193,7 +193,7 @@
 .dash-leagues-card { grid-column: 1 / -1; }
 .dash-leagues { display: flex; flex-direction: column; gap: 0.5rem; }
 
-.dash-league-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; transition: background 0.18s, border-color 0.18s, box-shadow 0.18s; }
+.dash-league-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; transition: background 0.18s, border-color 0.18s, box-shadow 0.18s; text-decoration: none; color: inherit; }
 .dash-league-row-clickable { cursor: pointer; }
 .dash-league-row-clickable:hover { background: var(--surface-hover); border-color: var(--border-hover); box-shadow: var(--shadow); }
 
@@ -295,10 +295,10 @@
    MATCHES
    ══════════════════════════════════════ */
 .dash-matches-card .dash-card-header { position: relative; }
-.dash-matches-view-all { margin-left: auto; font-size: 0.7rem; font-weight: 600; color: var(--accent); cursor: pointer; transition: color 0.18s; }
+.dash-matches-view-all { margin-left: auto; font-size: 0.7rem; font-weight: 600; color: var(--accent); cursor: pointer; transition: color 0.18s; text-decoration: none; }
 .dash-matches-view-all:hover { color: var(--accent-alt); }
 .dash-matches-list { display: flex; flex-direction: column; gap: 0.38rem; }
-.dash-match-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.52rem 0.75rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; transition: background 0.18s, border-color 0.18s; }
+.dash-match-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.52rem 0.75rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; transition: background 0.18s, border-color 0.18s; text-decoration: none; color: inherit; }
 .dash-match-row:hover { background: var(--surface-hover); border-color: var(--border-hover); }
 .dash-match-date { font-size: 0.68rem; font-weight: 600; color: var(--text-3); min-width: 42px; text-align: center; }
 .dash-match-format { font-size: 0.56rem; font-weight: 800; padding: 0.15rem 0.42rem; border-radius: 4px; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }

@@ -53,6 +53,9 @@
   padding: 1.25rem 1.4rem;
   cursor: pointer;
   transition: box-shadow .18s, border-color .18s;
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 
 .blog-card:hover {
@@ -215,6 +218,7 @@
   border: none;
   padding: 0;
   transition: color .15s;
+  text-decoration: none;
 }
 
 .blog-post-back:hover {
@@ -385,6 +389,7 @@
   cursor: pointer;
   padding: 0;
   transition: opacity .15s;
+  text-decoration: none;
 }
 
 .blog-forum-link-btn:hover {

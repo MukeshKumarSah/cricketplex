@@ -95,6 +95,8 @@
   gap: 1rem;
   background: var(--surface);
   transition: background .18s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .fcc-header:hover {
@@ -175,6 +177,8 @@
   cursor: pointer;
   border-bottom: 1px solid var(--border);
   transition: background .15s;
+  text-decoration: none;
+  color: inherit;
 }
 
 .fcc-thread-row:last-child {
@@ -287,6 +291,9 @@
   border-radius: .45rem;
   transition: background .15s;
   border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .panel-thread:last-child {
@@ -421,6 +428,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: opacity .18s;
+  text-decoration: none;
 }
 
 .btn-primary:hover:not(:disabled) { opacity: .85; }
@@ -439,6 +447,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background .18s;
+  text-decoration: none;
 }
 
 .btn-secondary:hover { background: var(--surface-hover); }
@@ -472,6 +481,7 @@
   font-size: .8rem;
   cursor: pointer;
   transition: background .18s;
+  text-decoration: none;
 }
 
 .btn-ghost:hover { background: var(--surface-hover); }

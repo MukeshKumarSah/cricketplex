@@ -154,6 +154,8 @@
   padding: 0.8rem 1rem;
   transition: border-color 0.2s, background 0.2s;
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
 }
 
 .search-card-clickable {

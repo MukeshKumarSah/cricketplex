@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getMatchResult } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -126,12 +126,12 @@ export default function Scorecard() {
           <h1>Match Scorecard</h1>
           <p className="sc-summary">{data.summary}</p>
         </div>
-        <button
+        <Link
           className="sc-commentary-btn"
-          onClick={() => navigate(`/match/${fixtureId}?tab=commentary`)}
+          to={`/match/${fixtureId}?tab=commentary`}
         >
           <HiOutlineClipboardDocumentList /> Commentary
-        </button>
+        </Link>
       </div>
 
       {/* Match Info Bar */}
@@ -158,7 +158,7 @@ export default function Scorecard() {
 
       {/* ── Man of the Match Card ── */}
       {motmStats && (
-        <div className="sc-motm-card" onClick={() => navigate(`/player/${data.manOfMatchId}`)}>
+        <Link to={`/player/${data.manOfMatchId}`} className="sc-motm-card">
           <div className="sc-motm-header">
             <span className="sc-motm-trophy">🏅</span>
             <div className="sc-motm-title">
@@ -223,7 +223,7 @@ export default function Scorecard() {
               </div>
             )}
           </div>
-        </div>
+        </Link>
       )}
 
       {/* Innings Tabs */}
@@ -328,10 +328,10 @@ export default function Scorecard() {
                     <span className="sc-perf-col-total">Total</span>
                   </div>
                   {team.players.map((p, i) => (
-                    <div
+                    <Link
                       key={p.id}
+                      to={`/player/${p.id}`}
                       className={`sc-perf-row ${p.id === data.manOfMatchId ? 'sc-perf-motm' : ''}`}
-                      onClick={() => navigate(`/player/${p.id}`)}
                     >
                       <span className="sc-perf-col-rank">{i + 1}</span>
                       <span className="sc-perf-col-name">
@@ -341,7 +341,7 @@ export default function Scorecard() {
                       <span className="sc-perf-col-num">{p.batPts}</span>
                       <span className="sc-perf-col-num">{p.bowlPts}</span>
                       <span className="sc-perf-col-total">{p.totalPts}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { getCommentary, getMatchResult, getRivalry } from '../../api/auth';
 import toast from 'react-hot-toast';
 import {
@@ -770,23 +770,23 @@ export default function MatchCenter() {
         </button>
         <div className="mc-header-body">
           <div className="mc-teams-row">
-            <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.homeTeamId}`)}>
+            <Link to={`/team/${result.homeTeamId}`} className="mc-team mc-team-clickable">
               {result.homeTeamPicUrl ? (
                 <img src={fileUrl(result.homeTeamPicUrl)} alt="" className="mc-team-logo" />
               ) : (
                 <span className="mc-team-initials">{result.homeTeamName?.slice(0, 2).toUpperCase()}</span>
               )}
               <span className="mc-team-name">{result.homeTeamName}</span>
-            </div>
+            </Link>
             <span className="mc-vs">vs</span>
-            <div className="mc-team mc-team-clickable" onClick={() => navigate(`/team/${result.awayTeamId}`)}>
+            <Link to={`/team/${result.awayTeamId}`} className="mc-team mc-team-clickable">
               {result.awayTeamPicUrl ? (
                 <img src={fileUrl(result.awayTeamPicUrl)} alt="" className="mc-team-logo" />
               ) : (
                 <span className="mc-team-initials">{result.awayTeamName?.slice(0, 2).toUpperCase()}</span>
               )}
               <span className="mc-team-name">{result.awayTeamName}</span>
-            </div>
+            </Link>
             <span className={`mc-status-badge ${isLive && !matchEnded ? 'live' : 'completed'}`}>
               {isLive && !matchEnded ? 'In Progress' : 'Completed'}
             </span>
@@ -796,17 +796,12 @@ export default function MatchCenter() {
               <span className="mc-meta-item"><HiOutlineMapPin /> {result.groundName}</span>
             )}
             {result.leagueId && result.leagueLabel && (
-              <span
+              <Link
                 className="mc-meta-item mc-meta-link"
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/league/${result.leagueId}`)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') navigate(`/league/${result.leagueId}`);
-                }}
+                to={`/league/${result.leagueId}`}
               >
                 <HiOutlineClipboardDocumentList /> League {result.leagueLabel}
-              </span>
+              </Link>
             )}
             {result.matchDate && (
               <span className="mc-meta-item mc-meta-date">
@@ -962,15 +957,15 @@ export default function MatchCenter() {
                       <div key={i} className={`mc-sc-row ${bc.notOut ? 'mc-sc-notout' : ''}`}>
                         {(() => {
                           return (
-                        <a
+                        <Link
                           className="mc-sc-name mc-sc-name-link"
-                          href={`/player/${bc.playerId}`}
+                          to={`/player/${bc.playerId}`}
                         >
                           {bc.playerName}{bc.notOut ? '*' : ''}
                           <span className="mc-sc-dismissal">
                             {bc.notOut ? 'not out' : formatDismissal(bc)}
                           </span>
-                        </a>
+                        </Link>
                           );
                         })()}
                         <span className="mc-sc-hand">
@@ -1027,12 +1022,12 @@ export default function MatchCenter() {
                       <div key={i} className={`mc-sc-row ${bc.wickets >= 3 ? 'mc-sc-haul' : ''}`}>
                         {(() => {
                           return (
-                            <a
+                            <Link
                               className="mc-sc-name mc-sc-name-link"
-                              href={`/player/${bc.playerId}`}
+                              to={`/player/${bc.playerId}`}
                             >
                               {bc.playerName}
-                            </a>
+                            </Link>
                           );
                         })()}
                         <span className="mc-sc-type">
@@ -1541,12 +1536,12 @@ export default function MatchCenter() {
             {matchEnded && result.manOfMatch && (
               <div className="mc-summary-motm">
                 <span className="mc-motm-label">Player of the Match</span>
-                <a
+                <Link
                   className="mc-motm-name"
-                  href={`/player/${result.manOfMatchId}`}
+                  to={`/player/${result.manOfMatchId}`}
                 >
                   {result.manOfMatch}
-                </a>
+                </Link>
               </div>
             )}
             {summaryData.map((sInn) => (
@@ -1594,9 +1589,9 @@ export default function MatchCenter() {
                           >
                             <span className="mc-perf-col-rank">{i + 1}</span>
                             <span className="mc-perf-col-name">
-                              <a className="mc-sc-name-link" href={`/player/${p.id}`}>
+                              <Link className="mc-sc-name-link" to={`/player/${p.id}`}>
                                 {p.name}
-                              </a>
+                              </Link>
                               {p.id === result.manOfMatchId && <span className="mc-perf-motm-badge">MoM</span>}
                             </span>
                             <span className="mc-perf-col-num">{p.batPts}</span>
@@ -1735,12 +1730,11 @@ export default function MatchCenter() {
                 <h4 className="mc-rivalry-recent-title">Recent Matches</h4>
                 <div className="mc-rivalry-list">
                   {rivalry.matches.slice(0, 10).map((m, i) => (
-                    <div key={i} className="mc-rivalry-match mc-rivalry-match-link"
-                      onClick={() => navigate(`/match/${m.fixtureId}?tab=scorecard`)}>
+                    <Link key={i} to={`/match/${m.fixtureId}?tab=scorecard`} className="mc-rivalry-match mc-rivalry-match-link">
                       <span className="mc-rivalry-date">{m.date}</span>
                       <span className="mc-rivalry-format">{m.format}</span>
                       <span className="mc-rivalry-summary">{m.summary}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </>
@@ -1769,9 +1763,9 @@ export default function MatchCenter() {
               <button onClick={() => { setOverlayDismissed(true); setActiveTab('commentary'); }}>
                 <HiOutlineClipboardDocumentList /> View Commentary
               </button>
-              <button className="mc-overlay-back" onClick={() => navigate('/matches')}>
+              <Link to="/matches" className="mc-overlay-back">
                 Back to Matches
-              </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   getChallenges,
   getChallengeableTeams,
@@ -356,12 +356,12 @@ export default function Challenges() {
 
                 {/* Accepted → Set Lineup */}
                 {c.status === 'ACCEPTED' && c.fixtureId && !c.myLineupSet && (
-                  <button
+                  <Link
                     className="ch-btn ch-lineup"
-                    onClick={() => navigate(`/match/${c.fixtureId}/lineup`)}
+                    to={`/match/${c.fixtureId}/lineup`}
                   >
                     <HiOutlineUserGroup /> Set Lineup
-                  </button>
+                  </Link>
                 )}
 
                 {/* Both lineups set, not yet started → show "Starts at" info */}
@@ -374,26 +374,26 @@ export default function Challenges() {
                 {/* Completed → View Scorecard / Continue Watching */}
                 {c.resultExists && c.fixtureId && (
                   c.fixtureStatus === 'IN_PROGRESS' ? (
-                    <button
+                    <Link
                       className="ch-btn ch-simulate"
-                      onClick={() => navigate(`/match/${c.fixtureId}?tab=commentary`)}
+                      to={`/match/${c.fixtureId}?tab=commentary`}
                     >
                       <HiOutlinePlayCircle /> Watch Live
-                    </button>
+                    </Link>
                   ) : (
                     <>
-                      <button
+                      <Link
                         className="ch-btn ch-scorecard"
-                        onClick={() => navigate(`/match/${c.fixtureId}?tab=scorecard`)}
+                        to={`/match/${c.fixtureId}?tab=scorecard`}
                       >
                         <HiOutlineTrophy /> Scorecard
-                      </button>
-                      <button
+                      </Link>
+                      <Link
                         className="ch-btn ch-commentary"
-                        onClick={() => navigate(`/match/${c.fixtureId}?tab=commentary`)}
+                        to={`/match/${c.fixtureId}?tab=commentary`}
                       >
                         <HiOutlineClipboardDocumentList /> Commentary
-                      </button>
+                      </Link>
                     </>
                   )
                 )}

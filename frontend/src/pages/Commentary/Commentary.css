@@ -71,6 +71,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  text-decoration: none;
 }
 .comm-scorecard-btn:hover { background: #10b98130; }
 

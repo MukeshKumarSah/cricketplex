@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBlogs } from '../../api/auth';
 import {
@@ -34,7 +34,6 @@ function ReactionChips({ reactions }) {
 
 export default function Blog() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [data, setData]   = useState(null);
   const [page, setPage]   = useState(0);
   const [loading, setLoading] = useState(true);
@@ -65,9 +64,9 @@ export default function Blog() {
           </div>
         </div>
         {canWrite && (
-          <button className="btn-primary" onClick={() => navigate('/blogs/create')}>
+          <Link className="btn-primary" to="/blogs/create">
             <HiOutlinePencilSquare /> New Blog
-          </button>
+          </Link>
         )}
       </div>
 
@@ -81,10 +80,10 @@ export default function Blog() {
         <>
           <div className="blog-list">
             {data.blogs.map(blog => (
-              <div
+              <Link
                 key={blog.id}
+                to={`/blogs/${blog.id}`}
                 className={`blog-card${blog.isPinned ? ' blog-card-pinned' : ''}`}
-                onClick={() => navigate(`/blogs/${blog.id}`)}
               >
                 <div className="blog-card-top">
                   <h2 className="blog-card-title">{blog.title}</h2>
@@ -102,7 +101,7 @@ export default function Blog() {
                   </div>
                   <ReactionChips reactions={blog.reactions} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 
