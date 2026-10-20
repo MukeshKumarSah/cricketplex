@@ -4,6 +4,7 @@ import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.service.TeamListService;
 import com.cricketplex.service.FixtureService;
+import com.cricketplex.util.LeaguePoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -207,12 +208,11 @@ public class TeamListController {
                         if (bowlNrr != null) { bowlNrr[2] += runs; bowlNrr[3] += overs; }
                     }
 
-                    if ("TIE".equals(mr.getResultType())) {
-                        stats.getOrDefault(homeId, new int[2])[0] += 1;
-                        stats.getOrDefault(awayId, new int[2])[0] += 1;
-                    } else if (mr.getWinner() != null) {
-                        int[] ws = stats.get(mr.getWinner().getId());
-                        if (ws != null) { ws[0] += 2; ws[1]++; }
+                    boolean isFC = LeaguePoints.isFcFormat(league.getFormat());
+                    int[] sHome = stats.get(homeId);
+                    int[] sAway = stats.get(awayId);
+                    if (sHome != null && sAway != null) {
+                        LeaguePoints.applyRanking(mr, sHome, sAway, homeId, awayId, isFC);
                     }
                 });
             }

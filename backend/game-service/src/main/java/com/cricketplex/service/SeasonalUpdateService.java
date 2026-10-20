@@ -16,6 +16,7 @@ import com.cricketplex.repository.MatchResultRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.TransactionLogRepository;
 import com.cricketplex.repository.TrophyRepository;
+import com.cricketplex.util.LeaguePoints;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -224,14 +225,10 @@ public class SeasonalUpdateService {
                 int[] sB = stats.get(teamB);
                 if (sA == null || sB == null) continue;
 
-                if ("TIE".equals(result.getResultType())) {
-                    sA[0] += 1;
-                    sB[0] += 1;
-                } else if (result.getWinner() != null) {
-                    UUID winnerId = result.getWinner().getId();
-                    if (winnerId.equals(teamA)) { sA[0] += 2; sA[1]++; }
-                    else if (winnerId.equals(teamB)) { sB[0] += 2; sB[1]++; }
-                }
+                boolean isFC = LeaguePoints.isFcFormat(
+                        f.getFormat() != null ? f.getFormat()
+                                : (f.getLeague() != null ? f.getLeague().getFormat() : null));
+                LeaguePoints.applyRanking(result, sA, sB, teamA, teamB, isFC);
             }
 
             List<UUID> sorted = new ArrayList<>(stats.keySet());

@@ -2,6 +2,7 @@ package com.cricketplex.service;
 
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
+import com.cricketplex.util.LeaguePoints;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -240,12 +241,13 @@ public class WeeklyFinanceService {
 
                 UUID homeId = f.getHomeTeam().getId();
                 UUID awayId = f.getAwayTeam().getId();
-
-                if ("TIE".equals(mr.getResultType())) {
-                    addPts(stats, homeId, 1, 0);
-                    addPts(stats, awayId, 1, 0);
-                } else if (mr.getWinner() != null) {
-                    addPts(stats, mr.getWinner().getId(), 2, 1);
+                boolean isFC = LeaguePoints.isFcFormat(
+                        f.getFormat() != null ? f.getFormat()
+                                : (teams.isEmpty() ? null : teams.get(0).getLeague().getFormat()));
+                int[] sHome = stats.get(homeId);
+                int[] sAway = stats.get(awayId);
+                if (sHome != null && sAway != null) {
+                    LeaguePoints.applyRanking(mr, sHome, sAway, homeId, awayId, isFC);
                 }
             }
 
@@ -275,11 +277,6 @@ public class WeeklyFinanceService {
             }
         }
         return sizes;
-    }
-
-    private void addPts(Map<UUID, int[]> stats, UUID teamId, int pts, int wins) {
-        int[] s = stats.get(teamId);
-        if (s != null) { s[0] += pts; s[1] += wins; }
     }
 
     /* ═══════════════ transaction logging ═══════════════ */

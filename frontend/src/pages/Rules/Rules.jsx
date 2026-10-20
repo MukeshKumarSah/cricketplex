@@ -69,11 +69,11 @@ const sections = [
       },
       {
         heading: 'Points System',
-        text: 'T20 and One Day matches award 2 points for a win, 1 for a tie/no-result, and 0 for a loss. First Class matches award 12 points for a win, 4 for a first-innings lead in a draw, and 0 for a loss. Bonus points are awarded for scoring rates and wicket-taking rates.',
+        text: 'T20 and One Day matches award 2 points for a win, 1 for a tie, and 0 for a loss. First Class matches award 3 points for a win, 2 for a tie, 1 for a draw, and 0 for a loss. First Class standings use batting/bowling quotient (Quo) as the tiebreaker.',
       },
       {
         heading: 'Tiebreakers',
-        text: 'If teams are level on points at the end of a season, tiebreakers are applied in order: (1) Net Run Rate, (2) Head-to-head record, (3) Most wins, (4) Fewest losses. For First Class, batting and bowling bonus points are used before NRR.',
+        text: 'If teams are level on points at the end of a season, tiebreakers are applied in order: (1) Net Run Rate (T20/ODI) or Quotient (First Class), (2) Most wins.',
       },
     ],
   },

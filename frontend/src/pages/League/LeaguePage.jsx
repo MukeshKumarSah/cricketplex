@@ -360,6 +360,7 @@ export default function LeaguePage() {
                   <th className="lp-th-team">Team</th>
                   <th>P</th>
                   <th>W</th>
+                  {league.format === 'FC' && <th>D</th>}
                   <th>L</th>
                   <th>T</th>
                   <th>Pts</th>
@@ -389,6 +390,7 @@ export default function LeaguePage() {
                     </td>
                     <td>{row.played}</td>
                     <td>{row.won}</td>
+                    {league.format === 'FC' && <td>{row.drawn ?? 0}</td>}
                     <td>{row.lost}</td>
                     <td>{row.tied}</td>
                     <td className="lp-td-pts">{row.points}</td>

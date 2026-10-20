@@ -6,6 +6,7 @@ import com.cricketplex.service.FixtureService;
 import com.cricketplex.service.LeagueService;
 import com.cricketplex.service.LeagueSyncService;
 import com.cricketplex.service.MatchEngine;
+import com.cricketplex.util.LeaguePoints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,14 +47,14 @@ public class LeagueController {
 
         // Build standings from completed match results
         List<Fixture> fixtures = fixtureRepository.findByLeagueIdAndSeasonOrderByRoundAscMatchNumberAsc(id, viewSeason);
-        Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
+        Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points, drawn]
         // For FC: [runsScored, wicketsLost, runsConceded, wicketsTaken]
         // For T20/ODI: [runsScored, oversPlayed, runsConceded, oversBowled]
         Map<UUID, double[]> nrrData = new LinkedHashMap<>();
         boolean isFC = "FC".equals(league.getFormat());
 
         for (LeagueTeam lt : leagueTeams) {
-            stats.put(lt.getTeam().getId(), new int[5]);
+            stats.put(lt.getTeam().getId(), new int[6]);
             nrrData.put(lt.getTeam().getId(), new double[4]);
         }
 
@@ -104,23 +105,7 @@ public class LeagueController {
                 }
             }
 
-            if ("TIE".equals(mr.getResultType())) {
-                homeStats[3]++;
-                awayStats[3]++;
-                homeStats[4] += 1;
-                awayStats[4] += 1;
-            } else if (mr.getWinner() != null) {
-                UUID winnerId = mr.getWinner().getId();
-                if (winnerId.equals(teamA)) {
-                    homeStats[1]++;
-                    awayStats[2]++;
-                    homeStats[4] += 2;
-                } else if (winnerId.equals(teamB)) {
-                    awayStats[1]++;
-                    homeStats[2]++;
-                    awayStats[4] += 2;
-                }
-            }
+            LeaguePoints.applyTable(mr, homeStats, awayStats, teamA, teamB, isFC);
         }
 
         List<Map<String, Object>> standings = new ArrayList<>();
@@ -149,6 +134,7 @@ public class LeagueController {
             row.put("won", s[1]);
             row.put("lost", s[2]);
             row.put("tied", s[3]);
+            row.put("drawn", s[5]);
             row.put("points", s[4]);
             row.put("nrr", Math.round(tiebreaker * 1000.0) / 1000.0);
             standings.add(row);

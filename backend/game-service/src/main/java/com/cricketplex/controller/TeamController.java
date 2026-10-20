@@ -22,6 +22,7 @@ import com.cricketplex.service.MatchEngine;
 import com.cricketplex.service.TeamService;
 import com.cricketplex.service.FixtureService;
 import com.cricketplex.service.WeatherService;
+import com.cricketplex.util.LeaguePoints;
 import com.cricketplex.util.TeamHelper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -216,13 +217,13 @@ public class TeamController {
             List<LeagueTeam> allInLeague = leagueTeamRepository.findByLeagueIdAndSeason(league.getId(), standingsSeason);
 
             // Compute standings from completed fixtures
-            Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points]
+            Map<UUID, int[]> stats = new LinkedHashMap<>(); // [played, won, lost, tied, points, drawn]
             // For FC: [runsScored, wicketsLost, runsConceded, wicketsTaken]
             // For T20/ODI: [runsScored, oversPlayed, runsConceded, oversBowled]
             Map<UUID, double[]> nrrData = new LinkedHashMap<>();
             boolean isFC = "FC".equals(league.getFormat());
             for (LeagueTeam entry : allInLeague) {
-                stats.put(entry.getTeam().getId(), new int[5]);
+                stats.put(entry.getTeam().getId(), new int[6]);
                 nrrData.put(entry.getTeam().getId(), new double[4]);
             }
 
@@ -271,17 +272,7 @@ public class TeamController {
                     }
                 }
 
-                if ("TIE".equals(mr.getResultType())) {
-                    hs[3]++; as[3]++;
-                    hs[4] += 1; as[4] += 1;
-                } else if (mr.getWinner() != null) {
-                    UUID winnerId = mr.getWinner().getId();
-                    if (winnerId.equals(teamA)) {
-                        hs[1]++; as[2]++; hs[4] += 2;
-                    } else if (winnerId.equals(teamB)) {
-                        as[1]++; hs[2]++; as[4] += 2;
-                    }
-                }
+                LeaguePoints.applyTable(mr, hs, as, teamA, teamB, isFC);
             }
 
             // Sort teams by points DESC, then tiebreaker DESC, then wins DESC
@@ -311,7 +302,7 @@ public class TeamController {
             int position = sorted.indexOf(myTeam.getId()) + 1;
             if (position == 0) position = allInLeague.size(); // fallback
 
-            int[] myStats = stats.getOrDefault(myTeam.getId(), new int[5]);
+            int[] myStats = stats.getOrDefault(myTeam.getId(), new int[6]);
 
             // Recent form: last 5 completed matches for my team (newest first)
             // Use innings team refs (not fixture teams) to handle bot→human swaps
@@ -336,8 +327,9 @@ public class TeamController {
                         || inn.getBowlingTeam().getId().equals(myTeam.getId()));
                 if (!involved) continue;
                 formCount++;
-                if ("TIE".equals(mr2.getResultType()) || "DRAW".equals(mr2.getResultType())
-                        || "NO_RESULT".equals(mr2.getResultType())) {
+                if ("DRAW".equals(mr2.getResultType())) {
+                    recentForm.add("D");
+                } else if ("TIE".equals(mr2.getResultType()) || "NO_RESULT".equals(mr2.getResultType())) {
                     recentForm.add("T");
                 } else if (mr2.getWinner() != null && mr2.getWinner().getId().equals(myTeam.getId())) {
                     recentForm.add("W");
@@ -361,6 +353,7 @@ public class TeamController {
             leagueInfo.put("won", myStats[1]);
             leagueInfo.put("lost", myStats[2]);
             leagueInfo.put("tied", myStats[3]);
+            leagueInfo.put("drawn", myStats[5]);
             leagueInfo.put("points", myStats[4]);
             leagueInfo.put("recentForm", recentForm);
             leagues.add(leagueInfo);

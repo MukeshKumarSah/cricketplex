@@ -50,23 +50,7 @@ public class FirstClassMatchSimulator {
 
     public MatchResult determineFCResultAndFinalize(Fixture fixture, MatchResult result,
                                                       Team battingFirst, Team battingSecond, Random rng) {
-        List<Innings> inns = result.getInningsList();
-        if (inns.size() >= 4) {
-            boolean fo = inns.get(2).getBattingTeam().getId().equals(battingSecond.getId());
-            firstClassSupport.determineFCResult(result, inns.get(0).getTotalRuns(), inns.get(1).getTotalRuns(),
-                    inns.get(2).getTotalRuns(), inns.get(3).getTotalRuns(),
-                    battingFirst, battingSecond, fo, false);
-        } else if (inns.size() == 3) {
-            boolean fo = inns.get(2).getBattingTeam().getId().equals(battingSecond.getId());
-            int i1 = inns.get(0).getTotalRuns(), i2 = inns.get(1).getTotalRuns(),
-                    i3 = inns.get(2).getTotalRuns();
-            int overallLead = fo ? i1 - (i2 + i3) : (i1 + i3) - i2;
-            if ((fo && overallLead > 0) || (!fo && overallLead < 0))
-                firstClassSupport.determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, true);
-            else result.setResultType("DRAW");
-        } else {
-            result.setResultType("DRAW");
-        }
+        firstClassSupport.applyFCResult(result, battingFirst, battingSecond);
         return finalizeFCMatch(fixture, result, rng);
     }
 
@@ -239,14 +223,18 @@ public class FirstClassMatchSimulator {
                     int i1 = inningsList.get(0).getTotalRuns(), i2 = inningsList.get(1).getTotalRuns(),
                             i3 = inningsList.get(2).getTotalRuns();
                     boolean fo = inningsList.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+                    if (!firstClassSupport.isInningsClosed(inningsList.get(2))) {
+                        firstClassSupport.applyFCResult(result, battingFirst, battingSecond);
+                        return finalizeFCMatch(fixture, result, rng);
+                    }
                     int overallLead = fo ? i1 - (i2 + i3) : (i1 + i3) - i2;
                     if ((fo && overallLead > 0) || (!fo && overallLead < 0)) {
-                        firstClassSupport.determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, true);
+                        firstClassSupport.applyFCResult(result, battingFirst, battingSecond);
                         return finalizeFCMatch(fixture, result, rng);
                     }
                     chaseTarget = firstClassSupport.computeFCChaseTarget(inningsList, battingSecond);
                     if (chaseTarget <= 0) {
-                        firstClassSupport.determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, fo, false);
+                        firstClassSupport.applyFCResult(result, battingFirst, battingSecond);
                         return finalizeFCMatch(fixture, result, rng);
                     }
                     if (fo) { bat = battingFirst; bowl = battingSecond; batL = bat1Lineup; bowlL = bat2Lineup; }

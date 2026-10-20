@@ -740,7 +740,7 @@ html[data-theme="light"] .lp-season-select option {
   .lp-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
   .lp-tab { min-width: 120px; min-height: 44px; flex: 1 0 auto; }
   .lp-standings { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .lp-table { min-width: 640px; }
+  .lp-table { min-width: 700px; }
 }
 @media (max-width: 480px) {
   .lp-header-icon { font-size: 1.5rem; }

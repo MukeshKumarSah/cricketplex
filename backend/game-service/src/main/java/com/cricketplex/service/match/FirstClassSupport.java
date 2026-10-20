@@ -101,17 +101,57 @@ public class FirstClassSupport {
         boolean fo = inningsList.get(2).getBattingTeam().getId().equals(battingSecond.getId());
         return fo ? (i2 + i3) - i1 + 1 : (i1 + i3) - i2 + 1;
     }
+
+    public boolean isInningsClosed(Innings inn) {
+        if (inn == null) return false;
+        return Boolean.TRUE.equals(inn.getAllOut())
+                || Boolean.TRUE.equals(inn.getDeclared())
+                || (inn.getTotalWickets() != null && inn.getTotalWickets() >= 10);
+    }
+
+    public void applyFCResult(MatchResult result, Team battingFirst, Team battingSecond) {
+        List<Innings> inns = result.getInningsList();
+        if (inns == null || inns.size() < 3) {
+            setDraw(result);
+            return;
+        }
+        boolean followOn = inns.get(2).getBattingTeam().getId().equals(battingSecond.getId());
+        int i1 = inns.get(0).getTotalRuns();
+        int i2 = inns.get(1).getTotalRuns();
+        int i3 = inns.get(2).getTotalRuns();
+        if (inns.size() == 3) {
+            if (!isInningsClosed(inns.get(2))) {
+                setDraw(result);
+                return;
+            }
+            determineFCResult(result, i1, i2, i3, 0, battingFirst, battingSecond, followOn, true);
+            return;
+        }
+        determineFCResult(result, i1, i2, i3, inns.get(3).getTotalRuns(),
+                battingFirst, battingSecond, followOn, false);
+    }
+
     public void determineFCResult(MatchResult result, int inn1, int inn2, int inn3, int inn4,
                                     Team battingFirst, Team battingSecond, boolean followOn, boolean inningsDefeat) {
         if (inningsDefeat) {
             if (followOn) {
                 int margin = inn1 - (inn2 + inn3);
-                if (margin > 0) { result.setWinner(battingFirst); result.setResultType("INNINGS"); result.setResultMargin(margin); }
-                else result.setResultType("DRAW");
+                if (margin > 0) {
+                    result.setWinner(battingFirst);
+                    result.setResultType("INNINGS");
+                    result.setResultMargin(margin);
+                } else {
+                    setDraw(result);
+                }
             } else {
                 int margin = inn2 - (inn1 + inn3);
-                if (margin > 0) { result.setWinner(battingSecond); result.setResultType("INNINGS"); result.setResultMargin(margin); }
-                else result.setResultType("DRAW");
+                if (margin > 0) {
+                    result.setWinner(battingSecond);
+                    result.setResultType("INNINGS");
+                    result.setResultMargin(margin);
+                } else {
+                    setDraw(result);
+                }
             }
             return;
         }
@@ -120,18 +160,37 @@ public class FirstClassSupport {
         int target       = team1Total - team2Total + 1;
         Team chasingTeam = followOn ? battingFirst : battingSecond;
         Team settingTeam = followOn ? battingSecond : battingFirst;
+        Innings last = result.getInningsList() == null ? null
+                : result.getInningsList().stream().filter(i -> i.getInningsNumber() == 4).findFirst().orElse(null);
         if (inn4 >= target) {
-            Innings last = result.getInningsList().stream().filter(i -> i.getInningsNumber() == 4).findFirst().orElse(null);
-            int wl = last != null ? last.getTotalWickets() : 0;
-            result.setWinner(chasingTeam); result.setResultType("WICKETS"); result.setResultMargin(10 - wl);
-        } else {
-            Innings last = result.getInningsList().stream().filter(i -> i.getInningsNumber() == 4).findFirst().orElse(null);
-            if (last != null && (Boolean.TRUE.equals(last.getAllOut()) || last.getTotalWickets() >= 10)) {
-                result.setWinner(settingTeam); result.setResultType("RUNS"); result.setResultMargin(target - inn4 - 1);
+            int wl = last != null && last.getTotalWickets() != null ? last.getTotalWickets() : 0;
+            result.setWinner(chasingTeam);
+            result.setResultType("WICKETS");
+            result.setResultMargin(Math.max(0, 10 - wl));
+        } else if (last != null && (Boolean.TRUE.equals(last.getAllOut()) || (last.getTotalWickets() != null && last.getTotalWickets() >= 10))) {
+            int margin = target - inn4 - 1;
+            if (margin == 0) {
+                setTie(result);
             } else {
-                result.setResultType("DRAW");
+                result.setWinner(settingTeam);
+                result.setResultType("RUNS");
+                result.setResultMargin(margin);
             }
+        } else {
+            setDraw(result);
         }
+    }
+
+    private void setDraw(MatchResult result) {
+        result.setWinner(null);
+        result.setResultType("DRAW");
+        result.setResultMargin(null);
+    }
+
+    private void setTie(MatchResult result) {
+        result.setWinner(null);
+        result.setResultType("TIE");
+        result.setResultMargin(null);
     }
 
     public int getOversUsed(Innings innings) {

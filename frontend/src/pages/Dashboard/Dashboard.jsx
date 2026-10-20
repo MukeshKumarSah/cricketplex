@@ -486,7 +486,7 @@ export default function Dashboard() {
                       return (
                         <span
                           key={i}
-                          className={`dash-form-dot ${r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'T' ? 'tie' : 'empty'}`}
+                          className={`dash-form-dot ${r === 'W' ? 'win' : r === 'L' ? 'loss' : r === 'T' || r === 'D' ? 'tie' : 'empty'}`}
                         >
                           {r || '.'}
                         </span>
