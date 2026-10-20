@@ -402,14 +402,26 @@ html[data-theme="light"] .matches-filter-item select option {
 .matches-result-lost { color: #f87171; }
 .matches-result-draw { color: #fbbf24; }
 
-/* ── Compact: phone, tablet, desktop-site-on-phone ── */
+/* ── Compact: tablet / desktop-site-on-phone — keep table ── */
 @media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .matches-header { flex-wrap: wrap; padding: 1.1rem; }
+  .matches-filters { flex-direction: column; align-items: flex-start; }
+  .matches-filters button, .matches-filters select { min-height: 44px; }
+  .matches-table-head,
+  .matches-row {
+    grid-template-columns: 95px 65px 1fr 95px 100px;
+    gap: 0.4rem;
+    padding: 0.5rem 0.7rem;
+  }
+  .matches-team-name { font-size: 0.75rem; }
+}
+
+/* ── Phone view only ── */
+@media (max-width: 600px) {
   .matches-header h1 { font-size: 1.15rem; }
   .matches-subtitle { font-size: 0.78rem; }
 
   .matches-filters {
-    flex-direction: column;
     align-items: stretch;
     padding: 0.75rem;
     gap: 0.65rem;
@@ -419,31 +431,20 @@ html[data-theme="light"] .matches-filter-item select option {
     flex-wrap: wrap;
     gap: 0.55rem;
   }
-  .matches-filter-item {
-    flex: 1 1 140px;
-  }
-  .matches-filter-item select {
-    width: 100%;
-    min-height: 44px;
-  }
-  .matches-tabs {
-    width: 100%;
-  }
+  .matches-filter-item { flex: 1 1 140px; }
+  .matches-filter-item select { width: 100%; }
+  .matches-tabs { width: 100%; }
   .matches-tab {
     flex: 1;
     justify-content: center;
-    min-height: 44px;
   }
-  .matches-filters button { min-height: 44px; }
 
   .matches-content {
     background: transparent;
     border: none;
     overflow: visible;
   }
-  .matches-list {
-    gap: 0.65rem;
-  }
+  .matches-list { gap: 0.65rem; }
   .matches-table-head { display: none; }
 
   .matches-row {
