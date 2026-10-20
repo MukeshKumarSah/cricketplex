@@ -248,7 +248,7 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Compact: phone, tablet, desktop-site-on-phone ─ */
+/* ── Compact: overlay hamburger only (desktop-in-phone keeps laptop content) ─ */
 @media (max-width: 1024px), ((pointer: coarse) and (max-width: 1280px)) {
   .home-main,
   .home-main.sidebar-collapsed {
@@ -274,9 +274,18 @@
     width: min(300px, 86vw);
   }
 
+  .menu-toggle {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.25rem;
+  }
+}
+
+/* ── Phone view ── */
+@media (max-width: 600px) {
   .top-bar {
-    height: 56px;
-    min-height: 56px;
+    height: 52px;
+    min-height: 52px;
     padding: 0 0.85rem;
     padding-left: max(0.85rem, env(safe-area-inset-left));
     padding-right: max(0.85rem, env(safe-area-inset-right));
@@ -289,24 +298,6 @@
 
   .page-title {
     font-size: 0.95rem;
-  }
-
-  .home-content {
-    padding: 1rem;
-    padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
-  }
-
-  .menu-toggle {
-    min-width: 40px;
-    min-height: 40px;
-    font-size: 1.25rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .top-bar {
-    height: 52px;
-    min-height: 52px;
   }
 
   .profile-chevron {
