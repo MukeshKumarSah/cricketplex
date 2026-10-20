@@ -431,6 +431,18 @@ const sections = [
         note: 'Set per batter per match from the lineup (A/N/D). That is the base. If wickets fall early or in a cluster, scoring intent overlays more defensive (fewer 4s/6s, more dots) so an all-attacking XI does not slog into a collapse.',
       },
       {
+        title: 'Set Batsman',
+        rows: [
+          ['New batter', 'Harder to score, slightly more wicket risk until they settle'],
+          ['Peak', 'T20 ~30 balls, ODI ~50–90 balls, FC ~90–160 balls. Cap 0.48 (was 0.88)'],
+          ['Fade', 'ODI after 90 balls; FC after 160. Concentration lapses raise wickets (ODI 90+, FC 180+)'],
+          ['Scoring', 'Mostly singles once set. 2s/3s drop after fatigue. Boundaries stay similar'],
+          ['Wickets', 'Set only trims pWicket by 0.004 × factor × format (was 0.010)'],
+          ['Fatigue', 'Accelerates after 80 then 160 balls. FC floor 0.52, ODI 0.60'],
+        ],
+        note: 'A set batter should look fluent, not immortal. Long FC/ODI knocks tire out: more wickets, fewer 2s/3s.',
+      },
+      {
         title: 'Extras — Wides & No-Balls',
         rows: [
           ['T20 Base', '4% extra chance'],
@@ -489,8 +501,9 @@ const sections = [
           ['− Pitch Bowl Bonus', 'bowlerBonus × 0.5'],
           ['+ Weather', 'battingMod + batter weather mod'],
           ['+ Phase', 'phaseModifier × 2.0'],
+          ['+ Set batsman', 'setFactor × 2.0  (peaked, then fades in long FC knocks)'],
           ['+ Captain skill', 'captain rating/100 × 0.8 + Min(captain exp × 0.03, 0.6)'],
-          ['× Fatigue', '1.0 − (ballsFaced × 0.001 × (1 − stamina))'],
+          ['× Fatigue', 'Accelerates after 80 / 160 balls; FC floor 0.52'],
           ['Clamped', '5 – 120'],
         ],
       },

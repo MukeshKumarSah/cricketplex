@@ -39,16 +39,22 @@ public class DeliverySimulator {
         double batStamina     = batter.player.getStamina()   / 100.0;
         double bowlStamina    = bowler.getStamina()          / 100.0;
 
-        // FIX: batter fatigue — non-linear acceleration after 100 balls for FC realism
         double batFatigue;
-        if (ballsFaced <= 100) {
-            batFatigue = 1.0 - (ballsFaced * 0.0005 * (1.0 - batStamina));
+        double stamLoss = 1.0 - batStamina;
+        if (ballsFaced <= 80) {
+            batFatigue = 1.0 - (ballsFaced * 0.0005 * stamLoss);
+        } else if (ballsFaced <= 160) {
+            double baseLoss = 80 * 0.0005 * stamLoss;
+            double extraLoss = (ballsFaced - 80) * 0.0014 * stamLoss;
+            batFatigue = 1.0 - baseLoss - extraLoss;
         } else {
-            double baseLoss = 100 * 0.0005 * (1.0 - batStamina);
-            double extraLoss = (ballsFaced - 100) * 0.0015 * (1.0 - batStamina);
+            double baseLoss = 80 * 0.0005 * stamLoss + 80 * 0.0014 * stamLoss;
+            double extraLoss = (ballsFaced - 160) * ("FC".equalsIgnoreCase(ctx.format) ? 0.0040 : 0.0020) * stamLoss;
             batFatigue = 1.0 - baseLoss - extraLoss;
         }
-        batFatigue = Math.max(0.70, batFatigue);
+        double batFatigueFloor = "FC".equalsIgnoreCase(ctx.format) ? 0.52
+                : "ODI".equalsIgnoreCase(ctx.format) ? 0.60 : 0.70;
+        batFatigue = Math.max(batFatigueFloor, batFatigue);
 
         // FIX: bowler fatigue — T20 floor raised to 0.85 so 4th over is harder
         boolean bowlerIsPace = MatchFormatRules.PACE_TYPES.contains(bowler.getBowlType());
@@ -119,7 +125,7 @@ public class DeliverySimulator {
                 + weatherEffect.battingMod
                 + batWeatherMod
                 + phaseModifier * 2.0
-                + setBatsmanFactor * 3.5
+                + setBatsmanFactor * 2.0
                 + ctx.battingCaptainBonus;
         batStrength *= batFatigue;
         batStrength  = Math.max(5, Math.min(batStrength, 120));
@@ -276,25 +282,24 @@ public class DeliverySimulator {
             p1      += 0.015 * aggrScale;
         }
 
-        // ── Set-batsman effect ──
+        double setFmt = "T20".equalsIgnoreCase(ctx.format) ? 1.0
+                : "FC".equalsIgnoreCase(ctx.format) ? 0.45 : 0.75;
         double setSkillMod = Math.max(0.3, Math.min(1.0, batter.player.getBatRating() / 40.0));
         if (setBatsmanFactor >= 0) {
-            pDot    -= 0.022 * setBatsmanFactor * setSkillMod;
-            p1      += 0.004 * setBatsmanFactor * setSkillMod;
-            p2      += 0.008 * setBatsmanFactor * setSkillMod;
-            p4      += 0.011 * setBatsmanFactor * setSkillMod;
-            p6      += 0.006 * setBatsmanFactor * setSkillMod;
-            pWicket -= 0.010 * setBatsmanFactor;
+            pDot    -= 0.012 * setBatsmanFactor * setSkillMod * setFmt;
+            p1      += 0.010 * setBatsmanFactor * setSkillMod * setFmt;
+            p2      -= 0.002 * setBatsmanFactor * setSkillMod * setFmt;
+            p3      -= 0.001 * setBatsmanFactor * setSkillMod * setFmt;
+            p4      += 0.006 * setBatsmanFactor * setSkillMod * setFmt;
+            p6      += 0.002 * setBatsmanFactor * setSkillMod * setFmt;
+            pWicket -= 0.004 * setBatsmanFactor * setFmt;
         } else {
-            // New batter — harder to score, slightly more vulnerable
-            // FIXED: reduced settling pWicket from 0.025 to 0.012 to prevent
-            // triple-compounding with chase pressure + wicket cluster in innings 2
             double settling = Math.abs(setBatsmanFactor);
             pDot    += 0.06  * settling;
             p1      -= 0.01  * settling;
             p4      -= 0.030 * settling;
             p6      -= 0.020 * settling;
-            pWicket += 0.012 * settling;   // was 0.025
+            pWicket += 0.012 * settling;
         }
 
         // ── Bowling aggression ──
@@ -468,12 +473,24 @@ public class DeliverySimulator {
         pDot    += phaseBoost[0];
         pWicket += phaseBoost[1];
 
-        // 9. Partnership momentum — FIX: exponential curve (1-e^(-x/30)) instead of linear
         if (partnershipBalls >= 10) {
-            double momentum = 1.0 - Math.exp(-(partnershipBalls - 10) / 30.0); // max approaches 1.0
-            pWicket -= 0.020 * momentum; // up to −0.020
-            pDot    -= 0.010 * momentum;
-            p4      += 0.005 * momentum;
+            double momentum = 1.0 - Math.exp(-(partnershipBalls - 10) / 30.0);
+            double momWkt = "FC".equalsIgnoreCase(ctx.format) ? 0.008 : 0.016;
+            pWicket -= momWkt * momentum;
+            pDot    -= 0.008 * momentum;
+            p4      += 0.004 * momentum;
+        }
+
+        int lapseAfter = "FC".equalsIgnoreCase(ctx.format) ? 180
+                : "ODI".equalsIgnoreCase(ctx.format) ? 90 : 0;
+        if (lapseAfter > 0 && ballsFaced > lapseAfter) {
+            double lapseSpan = "FC".equalsIgnoreCase(ctx.format) ? 160.0 : 50.0;
+            double lapse = Math.min(1.0, (ballsFaced - lapseAfter) / lapseSpan);
+            pWicket += 0.014 * lapse;
+            p2      -= 0.016 * lapse;
+            p3      -= 0.008 * lapse;
+            pDot    += 0.018 * lapse;
+            p1      += 0.004 * lapse;
         }
 
         // 10. Spinner variation delivery (doosra / googly)
