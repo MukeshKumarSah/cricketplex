@@ -139,7 +139,7 @@ public class SettingsController {
             throw new IllegalArgumentException("Only image files are allowed");
         }
         if (file.getSize() > 5 * 1024 * 1024) {
-            throw new IllegalArgumentException("File size must be less than 5MB");
+            throw new IllegalArgumentException("Image is too large. Maximum size is 5MB.");
         }
     }
 }

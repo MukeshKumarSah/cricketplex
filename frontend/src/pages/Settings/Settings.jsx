@@ -12,6 +12,39 @@ import toast from 'react-hot-toast';
 import { HiOutlineCamera } from 'react-icons/hi2';
 import './Settings.css';
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function validatePicFile(file) {
+  if (!file.type || !file.type.startsWith('image/')) {
+    return 'Only image files are allowed';
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return 'Image is too large. Maximum size is 5MB.';
+  }
+  return null;
+}
+
+function picUploadError(err) {
+  const status = err.response?.status;
+  const data = err.response?.data;
+  const msg = typeof data === 'object' && data?.message
+    ? data.message
+    : typeof data === 'string'
+      ? data
+      : '';
+  if (
+    status === 413
+    || /too large|413|max-file-size|size must be less|payload/i.test(msg)
+  ) {
+    return 'Image is too large. Maximum size is 5MB.';
+  }
+  if (msg && !msg.trim().startsWith('<')) return msg;
+  if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+    return 'Upload failed. The image may be too large (max 5MB).';
+  }
+  return 'Upload failed';
+}
+
 export default function Settings() {
   const { user, updateUser } = useAuth();
   const { theme, switchTheme } = useTheme();
@@ -32,6 +65,8 @@ export default function Settings() {
     confirmNewPassword: '',
   });
   const [pwSaving, setPwSaving] = useState(false);
+  const [profileUploading, setProfileUploading] = useState(false);
+  const [teamPicUploading, setTeamPicUploading] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -53,8 +88,16 @@ export default function Settings() {
   };
 
   const handleProfilePicUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = '';
     if (!file) return;
+    const invalid = validatePicFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    setProfileUploading(true);
     try {
       const res = await uploadProfilePic(file);
       const newUrl = res.data.profilePicUrl;
@@ -65,13 +108,23 @@ export default function Settings() {
       updateUser({ ...user, profilePicUrl: newUrl });
       toast.success('Profile picture updated');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed');
+      toast.error(picUploadError(err));
+    } finally {
+      setProfileUploading(false);
     }
   };
 
   const handleTeamPicUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
+    input.value = '';
     if (!file) return;
+    const invalid = validatePicFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    setTeamPicUploading(true);
     try {
       const res = await uploadTeamPic(file);
       const newUrl = res.data.teamProfilePicUrl;
@@ -81,7 +134,9 @@ export default function Settings() {
       }));
       toast.success('Team picture updated');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Upload failed');
+      toast.error(picUploadError(err));
+    } finally {
+      setTeamPicUploading(false);
     }
   };
 
@@ -145,7 +200,7 @@ export default function Settings() {
           <div className="avatar-section">
             <div
               className="avatar-wrapper"
-              onClick={() => profileInputRef.current?.click()}
+              onClick={() => !profileUploading && profileInputRef.current?.click()}
             >
               {settings?.user?.profilePicUrl ? (
                 <img
@@ -165,10 +220,12 @@ export default function Settings() {
               <p className="avatar-sub">@{settings?.user?.username}</p>
               <button
                 className="upload-btn"
+                disabled={profileUploading}
                 onClick={() => profileInputRef.current?.click()}
               >
-                Change Photo
+                {profileUploading ? 'Uploading…' : 'Change Photo'}
               </button>
+              <p className="avatar-hint">JPG, PNG or GIF. Max 5MB.</p>
             </div>
             <input
               ref={profileInputRef}
@@ -186,7 +243,7 @@ export default function Settings() {
           <div className="avatar-section">
             <div
               className="avatar-wrapper team-avatar"
-              onClick={() => teamPicInputRef.current?.click()}
+              onClick={() => !teamPicUploading && teamPicInputRef.current?.click()}
             >
               {settings?.team?.teamProfilePicUrl ? (
                 <img
@@ -206,10 +263,12 @@ export default function Settings() {
               <p className="avatar-sub">{settings?.team?.country}</p>
               <button
                 className="upload-btn"
+                disabled={teamPicUploading}
                 onClick={() => teamPicInputRef.current?.click()}
               >
-                Change Team Photo
+                {teamPicUploading ? 'Uploading…' : 'Change Team Photo'}
               </button>
+              <p className="avatar-hint">JPG, PNG or GIF. Max 5MB.</p>
             </div>
             <input
               ref={teamPicInputRef}
