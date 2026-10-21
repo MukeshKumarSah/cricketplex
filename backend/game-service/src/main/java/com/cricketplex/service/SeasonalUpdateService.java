@@ -5,6 +5,7 @@ import com.cricketplex.entity.Fixture;
 import com.cricketplex.entity.League;
 import com.cricketplex.entity.LeagueTeam;
 import com.cricketplex.entity.MatchResult;
+import com.cricketplex.entity.Player;
 import com.cricketplex.entity.Team;
 import com.cricketplex.entity.TransactionLog;
 import com.cricketplex.entity.Trophy;
@@ -13,10 +14,12 @@ import com.cricketplex.repository.FixtureRepository;
 import com.cricketplex.repository.LeagueRepository;
 import com.cricketplex.repository.LeagueTeamRepository;
 import com.cricketplex.repository.MatchResultRepository;
+import com.cricketplex.repository.PlayerRepository;
 import com.cricketplex.repository.TeamRepository;
 import com.cricketplex.repository.TransactionLogRepository;
 import com.cricketplex.repository.TrophyRepository;
 import com.cricketplex.util.LeaguePoints;
+import com.cricketplex.util.WageCalculator;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +47,7 @@ import java.util.stream.Collectors;
  *
  * Day 56 (season end):
  *   - Prize money credited based on position
- *   - Salary update placeholder
+ *   - Salary update from skill curve (bat/bowl/wk/fld/sta + exp/age)
  *
  * Day 1 of next season:
  *   - Promotion / relegation
@@ -84,6 +87,7 @@ public class SeasonalUpdateService {
     private final FixtureService fixtureService;
     private final TransactionTemplate txTemplate;
     private final TrophyRepository trophyRepository;
+    private final PlayerRepository playerRepository;
 
     @PostConstruct
     public void catchUpOnStartup() {
@@ -307,7 +311,18 @@ public class SeasonalUpdateService {
     }
 
     private void processSalaryUpdate(int season) {
-        log.info("Salary update for season {} - formula pending", season);
+        List<Player> players = playerRepository.findAll();
+        int updated = 0;
+        for (Player player : players) {
+            if (player.getSimSessionId() != null) continue;
+            int wage = WageCalculator.compute(player);
+            if (player.getWage() != wage) {
+                player.setWage(wage);
+                updated++;
+            }
+        }
+        playerRepository.saveAll(players);
+        log.info("Salary update for season {}: {} of {} players recalculated", season, updated, players.size());
     }
 
     private void processPromotionRelegation(int season,

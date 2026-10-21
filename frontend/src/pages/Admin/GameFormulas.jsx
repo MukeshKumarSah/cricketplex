@@ -30,11 +30,18 @@ const sections = [
         ],
       },
       {
-        title: 'Player Wages (per day)',
+        title: 'Player Wages (skill curve)',
         rows: [
-          ['Squad Generation', '$300 – $800'],
-          ['Academy Pull (Youth)', '$100 – $300'],
-          ['Default Wage', '$500'],
+          ['Curve', '30,000 × (skill / 100)^1.5  (uses full float skills)'],
+          ['Primary', 'max(bat, bowl)'],
+          ['Secondary', 'min(bat, bowl) / 4'],
+          ['Keeping', 'wk / 6'],
+          ['Fielding', 'fld / 20'],
+          ['Stamina', 'sta / 30'],
+          ['Experience', '× (1 + exp / 1000)'],
+          ['Age', '× (1 + (35 − age) / 170)'],
+          ['Wage', 'round(total), minimum $1'],
+          ['Applied', 'Squad generation, academy pull, seasonal salary update'],
         ],
       },
       {

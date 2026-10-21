@@ -4,6 +4,7 @@ import com.cricketplex.dto.TeamSetupRequest;
 import com.cricketplex.entity.*;
 import com.cricketplex.repository.*;
 import com.cricketplex.service.match.LineupGenerator;
+import com.cricketplex.util.WageCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -265,18 +266,22 @@ public class TeamService {
             if (name == null) continue;
             double batR = (double) randInt(rng, 25, 35);
             double bowlR = (double) randInt(rng, 0, 15);
+            double kpR = (double) randInt(rng, 5, 12);
             double fldR = (double) randInt(rng, 10, 35);
+            int age = randInt(rng, 18, 35);
+            int exp = randInt(rng, 5, 15);
+            double sta = (double) randInt(rng, 10, 25);
                 squad.add(Player.builder()
                     .firstName(name[0]).lastName(name[1]).country(name[2]).team(team)
                     .nationality(name[2])
-                    .role("BATSMAN").age(randInt(rng, 18, 35)).ageDays(randInt(rng, 0, 55)).batHand(batHand)
+                    .role("BATSMAN").age(age).ageDays(randInt(rng, 0, 55)).batHand(batHand)
                     .bowlHand(batHand).bowlType(randomPartTimeBowlType(rng))
                     .batRating(batR).bowlRating(bowlR)
-                    .keeperRating((double) randInt(rng, 5, 12)).fldRating(fldR)
+                    .keeperRating(kpR).fldRating(fldR)
                     .rating(calcOverallRating("BATSMAN", batR, bowlR, 0.0, fldR))
-                    .wage(randInt(rng, 300, 800))
+                    .wage(WageCalculator.compute(batR, bowlR, kpR, fldR, sta, exp, age))
                     .confidence((double) randInt(rng, 40, 65))
-                    .experience(randInt(rng, 5, 15)).stamina((double) randInt(rng, 10, 25)).fitness(100)
+                    .experience(exp).stamina(sta).fitness(100)
                     .batAggression(randomAggression(rng)).bowlAggression(randomAggression(rng))
                     .build());
         }
@@ -296,17 +301,20 @@ public class TeamService {
             double bowlR = (double) randInt(rng, 0, 5);
             double kpR = (double) randInt(rng, 20, 30);
             double fldR = (double) randInt(rng, 10, 35);
+            int age = randInt(rng, 18, 35);
+            int exp = randInt(rng, 5, 15);
+            double sta = (double) randInt(rng, 10, 25);
             squad.add(Player.builder()
                     .firstName(name[0]).lastName(name[1]).country(name[2]).team(team)
                     .nationality(name[2])
-                    .role("KEEPER").age(randInt(rng, 18, 35)).ageDays(randInt(rng, 0, 55)).batHand(batHand)
+                    .role("KEEPER").age(age).ageDays(randInt(rng, 0, 55)).batHand(batHand)
                     .bowlHand(batHand).bowlType(randomPartTimeBowlType(rng))
                     .batRating(batR).bowlRating(bowlR)
                     .keeperRating(kpR).fldRating(fldR)
                     .rating(calcOverallRating("KEEPER", batR, bowlR, kpR, fldR))
-                    .wage(randInt(rng, 300, 800))
+                    .wage(WageCalculator.compute(batR, bowlR, kpR, fldR, sta, exp, age))
                     .confidence((double) randInt(rng, 40, 65))
-                    .experience(randInt(rng, 5, 15)).stamina((double) randInt(rng, 10, 25)).fitness(100)
+                    .experience(exp).stamina(sta).fitness(100)
                     .batAggression(randomAggression(rng)).bowlAggression(randomAggression(rng))
                     .build());
         }
@@ -349,18 +357,23 @@ public class TeamService {
                 batRat = (double) randInt(rng, 20, 30);
                 bowlRat = (double) randInt(rng, 20, 30);
             }
+            double kpR = (double) randInt(rng, 5, 12);
+            double fldR = (double) randInt(rng, 10, 35);
+            int age = randInt(rng, 18, 35);
+            int exp = randInt(rng, 5, 15);
+            double sta = (double) randInt(rng, 10, 25);
 
                 squad.add(Player.builder()
                     .firstName(name[0]).lastName(name[1]).country(name[2]).team(team)
                     .nationality(name[2])
-                    .role(role).age(randInt(rng, 18, 35)).ageDays(randInt(rng, 0, 55)).batHand(batHand)
+                    .role(role).age(age).ageDays(randInt(rng, 0, 55)).batHand(batHand)
                     .bowlHand(bowlHand).bowlType(bowlType)
                     .batRating(batRat).bowlRating(bowlRat)
-                    .keeperRating((double) randInt(rng, 5, 12)).fldRating((double) randInt(rng, 10, 35))
-                    .rating(calcOverallRating(role, batRat, bowlRat, 0.0, (double) randInt(rng, 10, 35)))
-                    .wage(randInt(rng, 300, 800))
+                    .keeperRating(kpR).fldRating(fldR)
+                    .rating(calcOverallRating(role, batRat, bowlRat, 0.0, fldR))
+                    .wage(WageCalculator.compute(batRat, bowlRat, kpR, fldR, sta, exp, age))
                     .confidence((double) randInt(rng, 40, 65))
-                    .experience(randInt(rng, 5, 15)).stamina((double) randInt(rng, 10, 25)).fitness(100)
+                    .experience(exp).stamina(sta).fitness(100)
                     .batAggression(randomAggression(rng)).bowlAggression(randomAggression(rng))
                     .build());
         }

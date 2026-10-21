@@ -5,6 +5,7 @@ import com.cricketplex.repository.*;
 import com.cricketplex.security.UserPrincipal;
 import com.cricketplex.service.ActivityLogService;
 import com.cricketplex.util.TeamHelper;
+import com.cricketplex.util.WageCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -504,17 +505,20 @@ public class AcademyController {
             }
         }
 
+        int age = 17;
+        int exp = 0;
+        double sta = (double) randInt(rng, 5, 15);
         return Player.builder()
                 .firstName(fn).lastName(ln).country(country).team(team)
                 .nationality(country)
-                .role(role).age(17).batHand(batHand)
+                .role(role).age(age).batHand(batHand)
                 .bowlHand(bowlHand).bowlType(bowlType)
                 .batRating(batR).bowlRating(bowlR)
                 .keeperRating(kpR).fldRating(fldR)
                 .rating(calcOverallRating(role, batR, bowlR, kpR, fldR))
-                .wage(randInt(rng, 100, 300))
+                .wage(WageCalculator.compute(batR, bowlR, kpR, fldR, sta, exp, age))
                 .confidence((double) randInt(rng, 30, 50))
-                .experience(0).stamina((double) randInt(rng, 5, 15)).fitness(100)
+                .experience(exp).stamina(sta).fitness(100)
                 .batAggression(randomAggression(rng)).bowlAggression(randomAggression(rng))
                 .build();
     }
