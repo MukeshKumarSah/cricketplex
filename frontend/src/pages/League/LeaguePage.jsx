@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { getLeagueDetail, getLeagueFixtures, getLeaguePlayerStats, getAvailableLeagues, refreshLeagueStandings } from '../../api/auth';
 import { COUNTRIES } from '../../constants/countries';
 import { compareStats } from '../../utils/compareStats';
+import { seasonLabel, toStoredSeason } from '../../utils/seasonLabel';
 import toast from 'react-hot-toast';
 import {
   HiOutlineGlobeAlt,
@@ -61,6 +62,11 @@ export default function LeaguePage() {
     getLeagueDetail(id, season)
       .then((res) => {
         setLeague(res.data);
+        const fmt = res.data?.format;
+        if (season != null && fmt === 'FC') {
+          const stored = toStoredSeason(season, fmt);
+          if (stored !== season) setSeason(stored);
+        }
         if (season == null && res.data?.season != null) {
           setSeason(res.data.season);
         }
@@ -226,7 +232,7 @@ export default function LeaguePage() {
         <div>
           <h1>{league.country} {league.format} {league.leagueId}</h1>
           <p className="lp-subtitle">
-            Division {league.division} · League {league.leagueNumber} · Season {league.season} · {league.totalTeams} Teams
+            Division {league.division} · League {league.leagueNumber} · {seasonLabel(league.season, league.format)} · {league.totalTeams} Teams
             {league.matchStartTimeUtc && <> · Match Time: {league.matchStartTimeUtc} UTC</>}
           </p>
           {league.availableSeasons?.length > 1 && (
@@ -237,7 +243,7 @@ export default function LeaguePage() {
                 onChange={(e) => setSeason(Number(e.target.value))}
               >
                 {league.availableSeasons.map((s) => (
-                  <option key={s} value={s}>Season {s}</option>
+                  <option key={s} value={s}>{seasonLabel(s, league.format)}</option>
                 ))}
               </select>
             </div>

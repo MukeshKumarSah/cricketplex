@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTeamStats, getCurrentSeason } from '../../api/auth';
 import { compareStats } from '../../utils/compareStats';
+import { seasonLabel, seasonOptions, toStoredSeason } from '../../utils/seasonLabel';
 import toast from 'react-hot-toast';
 import './Stats.css';
 
@@ -20,7 +21,9 @@ export default function Stats() {
     const saved = sessionStorage.getItem('stats_season');
     if (saved == null || saved === 'all') return null;
     const n = Number(saved);
-    return Number.isFinite(n) ? n : null;
+    if (!Number.isFinite(n)) return null;
+    const fmt = sessionStorage.getItem('stats_format') || 'T20';
+    return toStoredSeason(n, fmt);
   });
   const [maxSeason, setMaxSeason] = useState(1);
   const [data, setData] = useState(null);
@@ -35,15 +38,25 @@ export default function Stats() {
         const s = r.data?.season;
         if (s) {
           setMaxSeason(s);
-          setSeason(prev => (prev != null && prev > s) ? s : prev);
+          setSeason(prev => {
+            if (prev == null) return prev;
+            const clamped = prev > s ? s : prev;
+            return toStoredSeason(clamped, format);
+          });
         }
       })
       .catch(() => {});
   }, []);
 
   useEffect(() => {
+    if (format !== 'FC' || season == null) return;
+    const stored = toStoredSeason(season, format);
+    if (stored !== season) setSeason(stored);
+  }, [format, season]);
+
+  useEffect(() => {
     setLoading(true);
-    getTeamStats(format, matchType, season)
+    getTeamStats(format, matchType, toStoredSeason(season, format))
       .then(res => setData(res.data))
       .catch(() => toast.error('Failed to load stats'))
       .finally(() => setLoading(false));
@@ -94,7 +107,11 @@ export default function Stats() {
           <select
             className="st-format-select"
             value={format}
-            onChange={e => setFormat(e.target.value)}
+            onChange={e => {
+              const next = e.target.value;
+              setFormat(next);
+              setSeason(prev => toStoredSeason(prev, next));
+            }}
           >
             {FORMATS.map(f => (
               <option key={f} value={f}>{f}</option>
@@ -113,12 +130,12 @@ export default function Stats() {
             <label htmlFor="st-season">Season:</label>
             <select
               id="st-season"
-              value={season == null ? 'all' : season}
+              value={season == null ? 'all' : toStoredSeason(season, format)}
               onChange={e => setSeason(e.target.value === 'all' ? null : Number(e.target.value))}
             >
               <option value="all">All seasons</option>
-              {Array.from({ length: maxSeason }, (_, i) => maxSeason - i).map(s => (
-                <option key={s} value={s}>Season {s}</option>
+              {seasonOptions(maxSeason, format).map(s => (
+                <option key={s} value={s}>{seasonLabel(s, format)}</option>
               ))}
             </select>
           </div>
