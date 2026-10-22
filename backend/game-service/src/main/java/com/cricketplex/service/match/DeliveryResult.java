@@ -31,4 +31,16 @@ public class DeliveryResult {
         this.commentarySubmission = null;
         this.commentary = text != null ? text : "";
     }
+
+    /**
+     * Whether batters change ends. Wide/no-ball extras do not rotate;
+     * only completed taken runs (odd) do. Bye/leg-bye and legal scoring
+     * rotate on odd total runs.
+     */
+    public boolean shouldRotateStrike() {
+        if (isWicket) return false;
+        int taken = runs;
+        if (isWide || isNoBall) taken = Math.max(0, runs - 1);
+        return taken % 2 == 1;
+    }
 }

@@ -435,7 +435,7 @@ public class FirstClassMatchSimulator {
                     if (delivery.isWide) bowlCard.setWides(bowlCard.getWides() + 1);
                     if (delivery.isNoBall) bowlCard.setNoBalls(bowlCard.getNoBalls() + 1);
                     maidenPossible = false; runsThisOver += delivery.runs;
-                    if ((delivery.runs % 2) == 1 && !delivery.isWicket) {
+                    if (delivery.shouldRotateStrike()) {
                         BatsmanState t = striker; striker = nonStriker; nonStriker = t;
                     }
                 } else {
@@ -471,7 +471,7 @@ public class FirstClassMatchSimulator {
                         else     { striker    = new BatsmanState(battingOrder.get(nextBatIdx)); batCards.put(striker.player.getId(), ScorecardFactory.createBatCard(innings, striker.lineupPlayer, nextBatIdx + 1)); }
                         nextBatIdx++;
                     } else {
-                        if (delivery.runs % 2 == 1) { BatsmanState t = striker; striker = nonStriker; nonStriker = t; }
+                        if (delivery.shouldRotateStrike()) { BatsmanState t = striker; striker = nonStriker; nonStriker = t; }
                     }
                 }
                 if (ctx.isChasing && totalRuns >= ctx.target) { chaseWon = true; break outerLoop; }

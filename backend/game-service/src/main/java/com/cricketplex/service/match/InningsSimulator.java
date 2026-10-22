@@ -80,7 +80,7 @@ public class InningsSimulator {
                     striker = new BatsmanState(batters.get(idx++));
                     dummyCards.put(striker.player.getId(), BattingScorecard.builder().build());
                 }
-            } else if (dr.runs % 2 == 1) {
+            } else if (dr.shouldRotateStrike()) {
                 BatsmanState tmp = striker; striker = nonStriker; nonStriker = tmp;
             }
         }
@@ -251,7 +251,7 @@ public class InningsSimulator {
                     if (delivery.isNoBall) bowlCard.setNoBalls(bowlCard.getNoBalls() + 1);
                     maidenPossible = false;
                     runsThisOver  += delivery.runs;
-                    if ((delivery.runs % 2) == 1 && !delivery.isWicket) {
+                    if (delivery.shouldRotateStrike()) {
                         BatsmanState t = striker; striker = nonStriker; nonStriker = t;
                     }
                 } else {
@@ -317,7 +317,7 @@ public class InningsSimulator {
                         }
                         nextBatIdx++;
                     } else {
-                        if (delivery.runs % 2 == 1) {
+                        if (delivery.shouldRotateStrike()) {
                             BatsmanState t = striker; striker = nonStriker; nonStriker = t;
                         }
                     }
