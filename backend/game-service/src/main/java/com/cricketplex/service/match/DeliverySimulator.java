@@ -473,6 +473,12 @@ public class DeliverySimulator {
         pDot    += phaseBoost[0];
         pWicket += phaseBoost[1];
 
+        double[] standardNudge = PitchWeatherCalculator.getStandardScoringNudge(ctx.format, ctx.pitchType);
+        pDot    += standardNudge[0];
+        p4      += standardNudge[1];
+        p6      += standardNudge[2];
+        pWicket += standardNudge[3];
+
         if (partnershipBalls >= 10) {
             double momentum = 1.0 - Math.exp(-(partnershipBalls - 10) / 30.0);
             double momWkt = "FC".equalsIgnoreCase(ctx.format) ? 0.008 : 0.016;

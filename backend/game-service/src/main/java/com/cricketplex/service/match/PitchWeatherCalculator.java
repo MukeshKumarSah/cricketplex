@@ -113,6 +113,20 @@ public final class PitchWeatherCalculator {
         };
     }
 
+    // Standard is otherwise a no-op, so T20/ODI inherit the full PP/death stack.
+    // Nudge scoring down on Standard only; other pitches and FC are unchanged.
+    // Returns {pDot, p4, p6, pWicket}.
+    public static double[] getStandardScoringNudge(String format, String pitchType) {
+        String pitch = pitchType != null ? pitchType : "STANDARD";
+        if (!"STANDARD".equalsIgnoreCase(pitch) || "FC".equalsIgnoreCase(format)) {
+            return new double[]{0, 0, 0, 0};
+        }
+        if ("T20".equalsIgnoreCase(format)) {
+            return new double[]{0.022, -0.012, -0.008, 0.004};
+        }
+        return new double[]{0.012, -0.006, -0.003, 0.002};
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  PITCH AWARE PAR RATE
     // ═══════════════════════════════════════════════════════════════════════════
@@ -120,7 +134,8 @@ public final class PitchWeatherCalculator {
     public static double getPitchAwareParRate(String format, String pitchType) {
         double baseRate = "T20".equalsIgnoreCase(format) ? 8.5
                 : "FC".equalsIgnoreCase(format) ? 3.0 : 5.6;
-        double pitchMult = switch (pitchType != null ? pitchType : "STANDARD") {
+        String pitch = pitchType != null ? pitchType : "STANDARD";
+        double pitchMult = switch (pitch) {
             case "FLAT"   -> 1.15;
             case "GREEN"  -> 0.82;
             case "BOUNCY" -> 0.85;
@@ -130,6 +145,9 @@ public final class PitchWeatherCalculator {
             case "SLOW"   -> 0.95;
             default       -> 1.00;
         };
+        if ("STANDARD".equalsIgnoreCase(pitch) && !"FC".equalsIgnoreCase(format)) {
+            pitchMult = "T20".equalsIgnoreCase(format) ? 0.94 : 0.96;
+        }
         return baseRate * pitchMult;
     }
 

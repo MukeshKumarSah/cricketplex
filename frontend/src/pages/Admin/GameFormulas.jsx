@@ -339,6 +339,18 @@ const sections = [
         ],
         note: 'skillAdapt: BAT 60+ → 2.0, BAT 40+ → 1.0, else 0. expAdapt: EXP 15+ → 2.0, EXP 8+ → 1.0, else −1.0',
       },
+      {
+        title: 'Standard Scoring Nudge (T20 / ODI only)',
+        header: ['Outcome', 'T20 Standard', 'ODI Standard', 'FC / other pitches'],
+        grid: [
+          ['Dot', '+2.2pp', '+1.2pp', 'none'],
+          ['Four', '−1.2pp', '−0.6pp', 'none'],
+          ['Six', '−0.8pp', '−0.3pp', 'none'],
+          ['Wicket', '+0.4pp', '+0.2pp', 'none'],
+          ['Chase par', '8.0 (×0.94)', '5.38 (×0.96)', 'unchanged'],
+        ],
+        note: 'Standard has no bowler/batter bonus, so limited-overs scoring inherited the full powerplay and death stack. This nudge trims Standard T20/ODI only. Green, dusty, flat, and FC are unchanged.',
+      },
     ],
   },
   {
@@ -626,7 +638,7 @@ const sections = [
         title: 'Chase Pressure (Smooth Curve)',
         rows: [
           ['Formula', 'chasePressure = (RRR − Par Rate) × FormatScale'],
-          ['Par Rates', 'T20: 8.0, ODI: 5.0, FC: 3.0'],
+          ['Par Rates', 'T20: 8.5, ODI: 5.6, FC: 3.0 (Standard T20 ×0.94 → 8.0, ODI ×0.96 → 5.38)'],
           ['Format Scale', 'T20: 0.8, ODI: 1.0, FC: 1.5'],
           ['Limits', 'Clamped between −3.0 (very easy) and +5.0 (extreme pressure)'],
           ['Progress Delay', 'Starts at 30% intensity on ball 1, smoothly reaches 100% by the final over.'],
