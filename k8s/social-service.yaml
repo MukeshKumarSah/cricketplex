@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: social-service
+  namespace: cricketplex
+  labels:
+    app: social-service
+    app.kubernetes.io/name: cricketplex
+    app.kubernetes.io/component: social-service
+    app.kubernetes.io/part-of: cricketplex
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8083
+      targetPort: http
+  selector:
+    app: social-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: social-service
+  namespace: cricketplex
+  labels:
+    app: social-service
+    app.kubernetes.io/name: cricketplex
+    app.kubernetes.io/component: social-service
+    app.kubernetes.io/part-of: cricketplex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: social-service
+  template:
+    metadata:
+      labels:
+        app: social-service
+        app.kubernetes.io/name: cricketplex
+        app.kubernetes.io/component: social-service
+        app.kubernetes.io/part-of: cricketplex
+    spec:
+      containers:
+        - name: social-service
+          image: cricketplex/social-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8083
+          env:
+            - name: SERVER_PORT
+              value: "8083"
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cricketplex
+                  key: SPRING_DATASOURCE_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cricketplex
+                  key: SPRING_DATASOURCE_PASSWORD
+            - name: MINIO_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: MINIO_ENDPOINT
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cricketplex
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cricketplex
+                  key: MINIO_SECRET_KEY
+            - name: APP_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: APP_BASE_URL
+            - name: APP_FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: APP_FRONTEND_URL
+            - name: APP_CORS_ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: APP_CORS_ALLOWED_ORIGINS
+            - name: APP_SEASON1_START
+              valueFrom:
+                configMapKeyRef:
+                  name: cricketplex
+                  key: APP_SEASON1_START
+            - name: APP_INTERNAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cricketplex
+                  key: APP_INTERNAL_API_KEY
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 10
+            initialDelaySeconds: 40
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+            initialDelaySeconds: 60
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

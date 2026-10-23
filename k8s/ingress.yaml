@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cricketplex
+  namespace: cricketplex
+  labels:
+    app.kubernetes.io/name: cricketplex
+    app.kubernetes.io/part-of: cricketplex
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - cricketplex.example.com
+      secretName: cricketplex-tls
+  rules:
+    - host: cricketplex.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

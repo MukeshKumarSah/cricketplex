@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cricketplex
+  labels:
+    app.kubernetes.io/name: cricketplex
+    app.kubernetes.io/part-of: cricketplex
