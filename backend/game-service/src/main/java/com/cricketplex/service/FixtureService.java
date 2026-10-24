@@ -44,28 +44,28 @@ public class FixtureService {
 
     /**
      * Country → UTC match start time (HH:mm).
-     * Chosen to reflect evening prime-time in each country's local timezone,
-     * which naturally distributes server load across the day.
+     * Each country is at least 1 hour apart. Local kickoff stays between 07:00 and 20:00
+     * in both standard and DST offsets.
      */
     private static final Map<String, String> COUNTRY_MATCH_TIMES = Map.ofEntries(
-            Map.entry("New Zealand",          "07:00"),
-            Map.entry("Australia",            "09:00"),
-            Map.entry("Bangladesh",           "13:00"),
-            Map.entry("Nepal",                "13:15"),
-            Map.entry("Sri Lanka",            "13:30"),
-            Map.entry("India",                "14:30"),
-            Map.entry("Pakistan",             "15:00"),
-            Map.entry("Afghanistan",          "15:30"),
+            Map.entry("United States",        "00:00"),
+            Map.entry("United Arab Emirates", "03:00"),
+            Map.entry("New Zealand",          "05:00"),
+            Map.entry("Zimbabwe",             "06:00"),
+            Map.entry("Australia",            "07:00"),
+            Map.entry("Ireland",              "08:00"),
+            Map.entry("England",              "09:00"),
+            Map.entry("Bangladesh",           "10:00"),
+            Map.entry("Nepal",                "11:00"),
+            Map.entry("Sri Lanka",            "12:00"),
+            Map.entry("India",                "13:00"),
+            Map.entry("Pakistan",             "14:00"),
+            Map.entry("Afghanistan",          "15:00"),
             Map.entry("Oman",                 "16:00"),
-            Map.entry("United Arab Emirates", "16:30"),
             Map.entry("South Africa",         "17:00"),
-            Map.entry("Zimbabwe",             "17:30"),
             Map.entry("Netherlands",          "18:00"),
-            Map.entry("Scotland",             "18:30"),
-            Map.entry("Ireland",              "19:00"),
-            Map.entry("England",              "19:30"),
-            Map.entry("West Indies",          "23:00"),
-            Map.entry("United States",        "00:00")
+            Map.entry("Scotland",             "19:00"),
+            Map.entry("West Indies",          "22:00")
     );
 
     /** Get the UTC match start time for a country. */
