@@ -477,15 +477,24 @@ export default function MatchCenter() {
       });
 
       const batMap = {};
+      const bowlMap = {};
       const milestones = [];
       balls.forEach((b) => {
         if (!batMap[b.batsman]) batMap[b.batsman] = 0;
         const batRunsThisBall = (b.isWide || b.isBye || b.isLegBye) ? 0 : (b.isNoBall ? Math.max(0, b.runs - 1) : b.runs);
         batMap[b.batsman] += batRunsThisBall;
         if (batMap[b.batsman] >= 100 && (batMap[b.batsman] - batRunsThisBall) < 100) {
-          milestones.push({ player: b.batsman, type: '100', over: b.overBall });
+          milestones.push({ player: b.batsman, type: '100', kind: 'bat', over: b.overBall });
         } else if (batMap[b.batsman] >= 50 && (batMap[b.batsman] - batRunsThisBall) < 50) {
-          milestones.push({ player: b.batsman, type: '50', over: b.overBall });
+          milestones.push({ player: b.batsman, type: '50', kind: 'bat', over: b.overBall });
+        }
+        if (b.isWicket && b.dismissalType !== 'RUN_OUT' && b.bowler) {
+          if (!bowlMap[b.bowler]) bowlMap[b.bowler] = 0;
+          bowlMap[b.bowler]++;
+          const w = bowlMap[b.bowler];
+          if (w === 3 || w === 5) {
+            milestones.push({ player: b.bowler, type: `${w}W`, kind: 'bowl', over: b.overBall });
+          }
         }
       });
 
@@ -1551,7 +1560,7 @@ export default function MatchCenter() {
                   <div className="mc-milestones">
                     <h4>Milestones</h4>
                     {sInn.milestones.map((m, i) => (
-                      <span key={i} className={`mc-milestone-badge ${m.type === '100' ? 'century' : 'fifty'}`}>
+                      <span key={i} className={`mc-milestone-badge ${m.kind === 'bowl' ? (m.type === '5W' ? 'five-for' : 'three-for') : (m.type === '100' ? 'century' : 'fifty')}`}>
                         {m.player} — {m.type} (ov {m.over})
                       </span>
                     ))}

@@ -1109,6 +1109,8 @@
 }
 .mc-milestone-badge.fifty { background: rgba(34, 211, 238, 0.1); color: #22d3ee; }
 .mc-milestone-badge.century { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.mc-milestone-badge.three-for { background: rgba(124, 58, 237, 0.12); color: #c4b5fd; }
+.mc-milestone-badge.five-for { background: rgba(220, 38, 38, 0.12); color: #fca5a5; }
 
 .mc-biggest-over span { font-size: 0.8rem; color: var(--text-1); font-weight: 600; }
 
