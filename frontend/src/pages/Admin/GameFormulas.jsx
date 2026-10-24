@@ -343,8 +343,10 @@ const sections = [
         title: 'Standard Scoring Nudge (T20 / ODI only)',
         header: ['Outcome', 'T20 Standard', 'ODI Standard', 'FC / other pitches'],
         grid: [
-          ['Dot', '+2.2pp', '+1.2pp', 'none'],
-          ['Four', '−1.2pp', '−0.6pp', 'none'],
+          ['Dot', '+1.4pp', '+0.8pp', 'none'],
+          ['Single', '+0.7pp', '+0.3pp', 'none'],
+          ['Double', '+0.5pp', '+0.3pp', 'none'],
+          ['Four', '−1.6pp', '−0.8pp', 'none'],
           ['Six', '−0.8pp', '−0.3pp', 'none'],
           ['Wicket', '+0.4pp', '+0.2pp', 'none'],
           ['Chase par', '8.0 (×0.94)', '5.38 (×0.96)', 'unchanged'],

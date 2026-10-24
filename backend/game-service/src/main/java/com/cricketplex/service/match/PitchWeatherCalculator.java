@@ -115,16 +115,16 @@ public final class PitchWeatherCalculator {
 
     // Standard is otherwise a no-op, so T20/ODI inherit the full PP/death stack.
     // Nudge scoring down on Standard only; other pitches and FC are unchanged.
-    // Returns {pDot, p4, p6, pWicket}.
+    // Returns {pDot, p1, p2, p4, p6, pWicket}.
     public static double[] getStandardScoringNudge(String format, String pitchType) {
         String pitch = pitchType != null ? pitchType : "STANDARD";
         if (!"STANDARD".equalsIgnoreCase(pitch) || "FC".equalsIgnoreCase(format)) {
-            return new double[]{0, 0, 0, 0};
+            return new double[]{0, 0, 0, 0, 0, 0};
         }
         if ("T20".equalsIgnoreCase(format)) {
-            return new double[]{0.022, -0.012, -0.008, 0.004};
+            return new double[]{0.014, 0.007, 0.005, -0.016, -0.008, 0.004};
         }
-        return new double[]{0.012, -0.006, -0.003, 0.002};
+        return new double[]{0.008, 0.003, 0.003, -0.008, -0.003, 0.002};
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
