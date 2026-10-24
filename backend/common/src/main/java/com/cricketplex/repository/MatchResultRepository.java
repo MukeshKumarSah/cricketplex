@@ -44,4 +44,8 @@ public interface MatchResultRepository extends JpaRepository<MatchResult, UUID> 
     @Modifying
     @Query("DELETE FROM MatchResult mr WHERE mr.fixture.simSessionId = :simId")
     void deleteBySimSessionId(@Param("simId") UUID simId);
+
+    @Modifying
+    @Query(value = "UPDATE match_results SET created_at = :ts WHERE fixture_id = :fid", nativeQuery = true)
+    int updateCreatedAt(@Param("fid") UUID fixtureId, @Param("ts") java.time.LocalDateTime createdAt);
 }

@@ -21,6 +21,18 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
+    @Bean(name = "matchStartExecutor")
+    public ThreadPoolTaskExecutor matchStartExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(12);
+        executor.setMaxPoolSize(12);
+        executor.setQueueCapacity(512);
+        executor.setThreadNamePrefix("match-start-");
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+
     @Override
     public Executor getAsyncExecutor() {
         return taskExecutor();
